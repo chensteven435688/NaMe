@@ -29,7 +29,7 @@ async function loadBrowseFeed() {
 }
 
 function renderBrowseCard(post, cardClass, showMeta) {
-  const href = `/post.html?slug=${encodeURIComponent(post.slug)}`;
+  const href = `${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(post.slug)}`;
   const meta = showMeta && post.meta ? `<p class="card__meta">${escapeHtml(post.meta)}</p>` : "";
   return `
     <a href="${href}" class="card ${cardClass}">

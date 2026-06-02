@@ -77,7 +77,7 @@ function renderCard(s, lang) {
 
   const live =
     s.postSlug
-      ? `<a href="/post.html?slug=${encodeURIComponent(s.postSlug)}" target="_blank" rel="noopener">${NaMeAdmin.esc(NaMeI18n.t(lang, "submissionViewLive"))}</a>`
+      ? `<a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(s.postSlug)}" target="_blank" rel="noopener">${NaMeAdmin.esc(NaMeI18n.t(lang, "submissionViewLive"))}</a>`
       : "";
 
   return `

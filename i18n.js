@@ -813,8 +813,14 @@ const NaMeI18n = (function () {
 
     document.querySelectorAll("[data-i18n-html]").forEach((el) => {
       const key = el.getAttribute("data-i18n-html");
-      if (key) el.innerHTML = t(lang, key);
+      if (key) {
+        let html = t(lang, key);
+        if (typeof NaMeBase !== "undefined") html = NaMeBase.fixHtmlLinks(html);
+        el.innerHTML = html;
+      }
     });
+
+    if (typeof NaMeBase !== "undefined") NaMeBase.fixLinks();
 
     document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
       const key = el.getAttribute("data-i18n-placeholder");

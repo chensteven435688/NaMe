@@ -81,7 +81,7 @@ async function loadDashboard() {
       <li class="admin-table__row">
         <span>${esc(p.title)} <small>${p.type}</small></span>
         <span>
-          <a href="/post.html?slug=${encodeURIComponent(p.slug)}" target="_blank">View</a>
+          <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(p.slug)}" target="_blank">View</a>
           <button type="button" data-edit="${p.id}">Edit</button>
         </span>
       </li>`
@@ -118,7 +118,7 @@ function renderContentTable(posts) {
       <td>${esc(p.section || "—")}</td>
       <td>${p.featured ? "★" : "—"}</td>
       <td class="admin-actions">
-        <a href="/post.html?slug=${encodeURIComponent(p.slug)}" target="_blank">View</a>
+        <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(p.slug)}" target="_blank">View</a>
         <button type="button" data-edit="${p.id}">Edit</button>
         <button type="button" class="danger" data-delete-post="${p.id}">Delete</button>
       </td>

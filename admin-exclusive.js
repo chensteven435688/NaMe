@@ -66,8 +66,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       success.innerHTML = `
         <p><strong>${NaMeI18n.t(NaMeI18n.getLang(), "adminPublishSuccess")}</strong> ${NaMeAdmin.esc(post.title)}</p>
         <p>
-          <a href="/post.html?slug=${encodeURIComponent(post.slug)}" class="btn btn--primary" target="_blank">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewPost")}</a>
-          <a href="/exclusive.html" class="btn btn--ghost" target="_blank">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewExclusive")}</a>
+          <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(post.slug)}" class="btn btn--primary" target="_blank">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewPost")}</a>
+          <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/exclusive.html") : "/exclusive.html"}" class="btn btn--ghost" target="_blank">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewExclusive")}</a>
         </p>`;
       form.reset();
       updatePreview();
@@ -99,7 +99,7 @@ async function loadExclusivePosts() {
           <br><small class="text-dim">/${NaMeAdmin.esc(p.slug)} · ${NaMeAdmin.formatDate(p.publishedAt)}</small>
         </td>
         <td class="admin-actions">
-          <a href="/post.html?slug=${encodeURIComponent(p.slug)}" target="_blank">${NaMeAdmin.esc(NaMeI18n.t(lang, "adminViewPost"))}</a>
+          <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(p.slug)}" target="_blank">${NaMeAdmin.esc(NaMeI18n.t(lang, "adminViewPost"))}</a>
           <button type="button" class="danger" data-delete-exclusive="${p.id}">${NaMeAdmin.esc(NaMeI18n.t(lang, "adminRemoveExclusive"))}</button>
         </td>
       </tr>`

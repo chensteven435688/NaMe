@@ -71,7 +71,7 @@ function renderList(submissions, el, lang) {
         : "";
       const liveLink =
         s.status === "published" && s.postSlug
-          ? `<a href="/post.html?slug=${encodeURIComponent(s.postSlug)}" target="_blank" rel="noopener">${esc(NaMeI18n.t(lang, "submissionViewLive"))}</a>`
+          ? `<a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(s.postSlug)}" target="_blank" rel="noopener">${esc(NaMeI18n.t(lang, "submissionViewLive"))}</a>`
           : "";
       const note = s.adminNote
         ? `<p class="submission-item__note">${esc(NaMeI18n.t(lang, "submissionEditorNote"))}: ${esc(s.adminNote)}</p>`

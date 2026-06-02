@@ -31,7 +31,12 @@ function renderPost(post) {
   const typeLabel = isExclusive
     ? NaMeI18n.t(lang, "exclusiveBadge")
     : post.type + (isFilm ? " · Film" : "");
-  const backHref = isExclusive ? "/exclusive.html" : "/";
+  const backHref =
+    typeof NaMeBase !== "undefined"
+      ? NaMeBase.path(isExclusive ? "/exclusive.html" : "/")
+      : isExclusive
+        ? "/exclusive.html"
+        : "/";
   const backLabel = isExclusive
     ? NaMeI18n.t(lang, "editorsExclusive")
     : NaMeI18n.t(lang, "backHome");

@@ -19,7 +19,9 @@ const NaMeAdmin = (function () {
       const label =
         typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, item.key) : item.key;
       const active = item.page === activePage ? " is-active" : "";
-      return `<a href="${item.href}" class="admin-nav__item${active}">${label}</a>`;
+      const href =
+        typeof NaMeBase !== "undefined" ? NaMeBase.path(item.href) : item.href;
+      return `<a href="${href}" class="admin-nav__item${active}">${label}</a>`;
     }).join("");
   }
 

@@ -31,6 +31,18 @@ Visit [http://localhost:8080](http://localhost:8080).
 
 > Opening `index.html` directly in the browser will **not** enable login, comments, or uploads. Use the server above.
 
+## GitHub Pages
+
+This repo is a **project site**, not your account homepage. Use:
+
+**https://chensteven435688.github.io/NaMe/**
+
+(`https://chensteven435688.github.io` alone will 404 — that URL is only for a repo named `chensteven435688.github.io`.)
+
+In the repo: **Settings → Pages → Build from branch → `main` → `/ (root)`**.
+
+`base.js` rewrites internal links for the `/NaMe/` prefix. **Login, comments, uploads, and admin still need the Node server** — GitHub Pages only hosts static HTML/CSS/JS.
+
 ## Roles
 
 | Role | Who | Can do |

@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       success.innerHTML = `
         <p><strong>${NaMeI18n.t(NaMeI18n.getLang(), "adminPublishSuccess")}</strong> ${NaMeAdmin.esc(post.title)}</p>
         <p>
-          <a href="/post.html?slug=${encodeURIComponent(post.slug)}" class="btn btn--primary" target="_blank">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewPost")}</a>
+          <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(post.slug)}" class="btn btn--primary" target="_blank">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewPost")}</a>
           <button type="button" class="btn btn--ghost" id="upload-another">${NaMeI18n.t(NaMeI18n.getLang(), "adminUploadAnother")}</button>
         </p>`;
       document.getElementById("upload-another")?.addEventListener("click", () => {

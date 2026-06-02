@@ -9,7 +9,8 @@ const NaMeAuth = (function () {
   function apiBase() {
     if (typeof window.NA_ME_API_BASE === "string") return window.NA_ME_API_BASE;
     if (window.location.protocol === "file:") return "http://localhost:8080";
-    return "";
+    if (typeof NaMeBase !== "undefined") return NaMeBase.getBase();
+    return window.NA_ME_BASE || "";
   }
 
   async function request(path, options = {}) {

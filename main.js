@@ -36,7 +36,7 @@ async function loadFeeds() {
 }
 
 function renderCard(post, cfg) {
-  const href = `/post.html?slug=${encodeURIComponent(post.slug)}`;
+  const href = `${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(post.slug)}`;
   const meta = cfg.showMeta && post.meta ? `<p class="card__meta">${escapeHtml(post.meta)}</p>` : "";
   const title =
     cfg.cardClass === "card--short"

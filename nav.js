@@ -8,7 +8,9 @@ const NaMeNav = (function () {
       if (!toggle || toggle.dataset.bound) return;
       toggle.dataset.bound = "1";
 
-      const path = location.pathname;
+      let path = location.pathname;
+      const base = typeof NaMeBase !== "undefined" ? NaMeBase.getBase() : "";
+      if (base && path.startsWith(base)) path = path.slice(base.length) || "/";
       if (
         path.endsWith("/about.html") ||
         path.endsWith("/business.html") ||

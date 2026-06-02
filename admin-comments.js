@@ -60,7 +60,7 @@ function renderComments() {
         <small>♥ ${c.likeCount} · ${NaMeAdmin.formatDate(c.createdAt)}</small>
       </td>
       <td>
-        <a href="/post.html?slug=${encodeURIComponent(c.postSlug)}" target="_blank" rel="noopener">${NaMeAdmin.esc(c.postTitle)}</a>
+        <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(c.postSlug)}" target="_blank" rel="noopener">${NaMeAdmin.esc(c.postTitle)}</a>
       </td>
       <td>
         <strong>${NaMeAdmin.esc(c.author.displayName)}</strong><br>
