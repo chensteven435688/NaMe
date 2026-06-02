@@ -176,13 +176,3 @@ document.querySelectorAll("[data-carousel]").forEach((btn) => {
     }, 2500);
   }
 })();
-
-// ─── Newsletter form ───
-document.querySelector(".newsletter__form")?.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const input = e.target.querySelector("input[type=email]");
-  if (input?.value) {
-    alert(NaMeI18n.t(NaMeI18n.getLang(), "newsletterThanks"));
-    input.value = "";
-  }
-});

@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="About NaMe Magazine" />
-  <title>About — NaMe Magazine</title>
+  <meta name="description" content="Subscribe — NaMe Magazine" />
+  <title>Subscribe — NaMe Magazine</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="page-static" data-page-title="aboutPageTitle" data-page-description="aboutPageDescription">
+<body class="page-subscribe" data-page-title="subscribePageTitle" data-page-description="subscribePageDescription">
   <header class="header" id="header">
     <div class="header__top">
       <a href="/" class="logo"><span class="brand-mark">NaMe</span></a>
@@ -53,11 +53,48 @@
     </nav>
   </header>
 
-  <main class="static-page">
-    <a href="/" class="static-page__back" data-i18n="backHome">← Back to NaMe</a>
-    <p class="static-page__label" data-i18n="aboutLabel">About</p>
-    <h1 class="static-page__title" data-i18n="aboutTitle">NaMe Magazine</h1>
-    <div class="static-page__content" data-i18n-html="aboutBody"></div>
+  <main class="subscribe-page">
+    <section class="subscribe-hero">
+      <a href="/" class="subscribe-hero__back" data-i18n="backHome">← Back to NaMe</a>
+      <span class="subscribe-hero__label" data-i18n="subscribeLabel">Newsletter</span>
+      <h1 class="subscribe-hero__title" data-i18n="subscribePageHeading">Before the world knows your name</h1>
+      <p class="subscribe-hero__text" data-i18n="subscribePageIntro">
+        Open calls, new features, and voices from across mediums — delivered to your inbox.
+      </p>
+    </section>
+
+    <section class="subscribe-perks" aria-label="What you receive">
+      <article class="subscribe-perk">
+        <span class="subscribe-perk__n">01</span>
+        <h2 class="subscribe-perk__title" data-i18n="subscribePerk1Title">Editorial drops</h2>
+        <p class="subscribe-perk__text" data-i18n="subscribePerk1Text">New editorials, articles, and cover stories — first access before they hit the site.</p>
+      </article>
+      <article class="subscribe-perk">
+        <span class="subscribe-perk__n">02</span>
+        <h2 class="subscribe-perk__title" data-i18n="subscribePerk2Title">Film &amp; culture</h2>
+        <p class="subscribe-perk__text" data-i18n="subscribePerk2Text">Premieres, shorts, and curated picks from the NaMe editorial desk.</p>
+      </article>
+      <article class="subscribe-perk">
+        <span class="subscribe-perk__n">03</span>
+        <h2 class="subscribe-perk__title" data-i18n="subscribePerk3Title">Open calls</h2>
+        <p class="subscribe-perk__text" data-i18n="subscribePerk3Text">Submission windows, community features, and opportunities for emerging voices.</p>
+      </article>
+    </section>
+
+    <section class="subscribe-signup">
+      <div class="subscribe-signup__inner">
+        <h2 class="subscribe-signup__title" data-i18n="newsletterTitle">Subscribe</h2>
+        <form class="subscribe-form" id="subscribe-form">
+          <label class="subscribe-form__field">
+            <span class="visually-hidden" data-i18n="emailLabel">Email</span>
+            <input type="email" name="email" data-i18n-placeholder="emailPlaceholder" placeholder="Email address" data-i18n-aria="emailLabel" aria-label="Email" required />
+          </label>
+          <button type="submit" class="btn btn--primary" data-i18n="newsletterBtn">Subscribe</button>
+        </form>
+        <p id="subscribe-status" class="subscribe-form__status" role="status"></p>
+        <p class="subscribe-signup__note" data-i18n-html="subscribePrivacyNote">No spam. Unsubscribe anytime. See our Privacy Policy.</p>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -75,10 +112,6 @@
         <a href="/terms.html" data-i18n="terms">Terms of Service</a>
         <a href="/privacy.html" data-i18n="privacy">Privacy Policy</a>
       </nav>
-      <div class="footer__social">
-        <a href="#" aria-label="YouTube">YouTube</a>
-        <a href="https://www.instagram.com/name_magazine_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>
-      </div>
     </div>
     <p class="footer__copy" data-i18n="footerCopy"></p>
   </footer>
@@ -111,5 +144,6 @@
   <script src="auth.js"></script>
   <script src="nav.js"></script>
   <script src="page.js"></script>
+  <script src="subscribe.js"></script>
 </body>
 </html>
