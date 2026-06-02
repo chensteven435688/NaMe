@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Business — NaMe Magazine" />
+  <title>Business — NaMe Magazine</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page-static" data-page-title="businessPageTitle" data-page-description="businessPageDescription">
+  <header class="header" id="header">
+    <div class="header__top">
+      <a href="/" class="logo"><span class="brand-mark">NaMe</span></a>
+      <nav class="header__actions" aria-label="Quick actions">
+        <a href="/#newsletter" data-i18n="subscribe">Subscribe</a>
+        <a href="/submission.html" data-i18n="submission">Submission</a>
+        <a href="/#newsletter" data-i18n="newsletter">Newsletter</a>
+        <a href="/admin-upload.html" id="admin-link" hidden data-i18n="admin">Admin</a>
+        <a href="#auth" id="auth-link" data-i18n="loginJoin">Login / Join</a>
+      </nav>
+      <button class="header__menu-btn" type="button" data-i18n-aria="openMenu" aria-expanded="false" id="menu-btn">
+        <span></span><span></span>
+      </button>
+    </div>
+    <nav class="header__nav" id="main-nav" aria-label="Main">
+      <div class="nav-dropdown" data-nav-dropdown>
+        <a href="/about.html" class="nav-dropdown__main" data-i18n="about">About</a>
+        <button type="button" class="nav-dropdown__toggle" aria-expanded="false" data-i18n-aria="navAboutMenu" aria-label="About menu">
+          <span class="nav-dropdown__caret" aria-hidden="true"></span>
+        </button>
+        <div class="nav-dropdown__menu">
+          <a href="/business.html" data-i18n="business">Business</a>
+          <a href="/contact.html" data-i18n="contact">Contact</a>
+        </div>
+      </div>
+      <a href="/community.html" data-i18n="community">Community</a>
+      <a href="/exclusive.html" data-i18n="editorsExclusive">Editor's Exclusive!</a>
+      <a href="/magazine.html" data-i18n="magazine">Magazine</a>
+      <a href="/editorial.html" data-i18n="editorial">Editorial</a>
+      <a href="/articles.html" data-i18n="article">Article</a>
+      <a href="/#film" data-i18n="film">Film</a>
+      <div class="lang-select">
+        <select id="lang-select" data-i18n-aria="language" aria-label="Language">
+          <option value="en">English</option>
+          <option value="ko">한국어</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+          <option value="ja">日本語</option>
+          <option value="zh-Hans">简体中文</option>
+          <option value="zh-Hant">繁體中文</option>
+        </select>
+      </div>
+    </nav>
+  </header>
+
+  <main class="static-page">
+    <a href="/" class="static-page__back" data-i18n="backHome">← Back to NaMe</a>
+    <p class="static-page__label" data-i18n="businessLabel">Business</p>
+    <h1 class="static-page__title" data-i18n="businessTitle">Partnerships &amp; Advertising</h1>
+    <div class="static-page__content" data-i18n-html="businessBody"></div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <p class="footer__logo" data-i18n="footerMagazine">NaMe Magazine</p>
+        <p class="footer__address" data-i18n-html="footerAddress"></p>
+      </div>
+      <nav class="footer__links">
+        <a href="/about.html" data-i18n="about">About</a>
+        <a href="/business.html" data-i18n="business">Business</a>
+        <a href="/contact.html" data-i18n="contact">Contact</a>
+      </nav>
+      <nav class="footer__links">
+        <a href="/terms.html" data-i18n="terms">Terms of Service</a>
+        <a href="/privacy.html" data-i18n="privacy">Privacy Policy</a>
+      </nav>
+      <div class="footer__social">
+        <a href="#" aria-label="YouTube">YouTube</a>
+        <a href="#" aria-label="Facebook">Facebook</a>
+        <a href="#" aria-label="Instagram">Instagram</a>
+      </div>
+    </div>
+    <p class="footer__copy" data-i18n="footerCopy"></p>
+  </footer>
+
+  <div class="modal" id="auth-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close-auth></div>
+    <div class="modal__panel modal__panel--wide" role="dialog">
+      <button class="modal__close" type="button" data-close-auth>&times;</button>
+      <h2 class="modal__title" data-i18n="authTitle">NaMe Account</h2>
+      <p id="auth-error" class="auth-error" hidden></p>
+      <div class="auth-tabs">
+        <button type="button" class="auth-tabs__btn is-active" data-auth-tab="login" data-i18n="authLogin">Login</button>
+        <button type="button" class="auth-tabs__btn" data-auth-tab="register" data-i18n="authRegister">Join</button>
+      </div>
+      <form id="auth-login-form" class="auth-form" data-auth-panel="login" autocomplete="on">
+        <input type="email" name="loginEmail" data-login-email autocomplete="username" required />
+        <input type="password" name="loginPassword" data-login-password autocomplete="current-password" required />
+        <button type="submit" class="btn btn--primary" data-i18n="authLoginBtn">Login</button>
+      </form>
+      <form id="auth-register-form" class="auth-form is-hidden" data-auth-panel="register" autocomplete="on">
+        <input type="text" name="registerName" data-register-name autocomplete="name" required />
+        <input type="email" name="registerEmail" data-register-email autocomplete="email" required />
+        <input type="password" name="registerPassword" data-register-password autocomplete="new-password" required minlength="8" />
+        <button type="submit" class="btn btn--primary" data-i18n="authRegisterBtn">Create account</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="auth.js"></script>
+  <script src="nav.js"></script>
+  <script src="page.js"></script>
+</body>
+</html>

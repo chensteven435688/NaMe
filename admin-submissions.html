@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NaMe — Review submissions</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page-admin">
+  <div id="admin-gate" class="admin-gate">
+    <div class="admin-gate__panel">
+      <a href="/" class="logo"><span class="brand-mark">NaMe</span></a>
+      <h1 data-i18n="adminGateTitle">Admin access</h1>
+      <p data-i18n="adminDenied">You need an admin account to review submissions.</p>
+      <button type="button" class="btn btn--primary" data-open-auth="login" data-i18n="authLoginBtn">Login</button>
+      <a href="/" class="admin-gate__back" data-i18n="backHome">← Back to NaMe</a>
+    </div>
+  </div>
+
+  <div id="admin-app" class="admin-app is-hidden">
+    <aside class="admin-sidebar">
+      <a href="/" class="logo admin-sidebar__logo"><span class="brand-mark">NaMe</span></a>
+      <p class="admin-sidebar__label" data-i18n="adminPanel">Admin</p>
+      <nav class="admin-nav" id="admin-sidebar-nav"></nav>
+      <div class="admin-sidebar__foot">
+        <a href="/" target="_blank" rel="noopener" data-i18n="adminViewSite">View site →</a>
+        <button type="button" id="admin-logout" data-i18n="adminLogout">Log out</button>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <h1 class="admin-topbar__title" data-i18n="adminSubmissionsTitle">Review submissions</h1>
+        <span class="admin-topbar__user" id="admin-user-label"></span>
+      </header>
+
+      <section class="admin-panel is-active">
+        <p class="admin-upload-intro" data-i18n="adminSubmissionsIntro">
+          Member submissions appear here. Publish selected work to the site or reject with an optional note.
+        </p>
+
+        <div class="admin-toolbar">
+          <select id="submissions-filter">
+            <option value="" data-i18n="adminSubmissionsAll">All statuses</option>
+            <option value="pending" data-i18n="submissionStatus_pending">Pending review</option>
+            <option value="published" data-i18n="submissionStatus_published">Published on site</option>
+            <option value="rejected" data-i18n="submissionStatus_rejected">Not selected</option>
+          </select>
+          <button type="button" class="btn btn--ghost" id="submissions-refresh" data-i18n="adminRefresh">Refresh</button>
+        </div>
+
+        <p id="submissions-counts" class="admin-submissions-counts"></p>
+        <p id="submissions-status" class="admin__status" role="status"></p>
+
+        <div id="submissions-grid" class="admin-submissions-grid">
+          <p data-i18n="adminLoading">Loading…</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal" id="publish-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close-publish></div>
+    <div class="modal__panel modal__panel--wide" role="dialog">
+      <button class="modal__close" type="button" data-close-publish>&times;</button>
+      <h2 class="modal__title" data-i18n="adminPublishSubmissionTitle">Publish to site</h2>
+      <p id="publish-modal-summary" class="admin-publish-summary"></p>
+      <form id="publish-form" class="admin-form">
+        <input type="hidden" name="submissionId" id="publish-submission-id" />
+        <label>
+          <span data-i18n="adminType">Type</span>
+          <select name="type" required>
+            <option value="article">Article</option>
+            <option value="editorial">Editorial</option>
+            <option value="film">Film</option>
+            <option value="short">Short</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="adminSection">Section</span>
+          <select name="section">
+            <option value="latest">Latest</option>
+            <option value="popular">Popular</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="adminMeta">Meta (category — date)</span>
+          <input type="text" name="meta" id="publish-meta" />
+        </label>
+        <button type="submit" class="btn btn--primary" data-i18n="adminPublishSubmissionBtn">Publish on NaMe</button>
+        <p id="publish-status" class="admin__status"></p>
+      </form>
+    </div>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="auth.js"></script>
+  <script src="admin-common.js"></script>
+  <script src="admin-submissions.js"></script>
+</body>
+</html>

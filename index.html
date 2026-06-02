@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="NaMe Magazine — Before the Name" />
+  <title>NaMe Magazine — Before the Name</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Member modal -->
+  <div class="modal" id="member-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close-modal></div>
+    <div class="modal__panel" role="dialog" aria-labelledby="modal-title">
+      <button class="modal__close" type="button" data-i18n-aria="close" data-close-modal>&times;</button>
+      <h2 id="modal-title" class="modal__title" data-i18n="modalTitle">Become a NaMe Member</h2>
+      <p class="modal__text" data-i18n-html="modalText">Editorials, films, articles —<br />get every story from NaMe first.</p>
+      <a href="#auth" class="btn btn--primary" data-i18n="modalStart" data-open-auth="register">Start for free</a>
+      <button type="button" class="btn btn--ghost" data-i18n="modalLater" data-close-modal>Maybe later</button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="header" id="header">
+    <div class="header__top">
+      <a href="/" class="logo"><span class="brand-mark">NaMe</span></a>
+      <nav class="header__actions" aria-label="Quick actions">
+        <a href="#newsletter" data-i18n="subscribe">Subscribe</a>
+        <a href="/submission.html" data-i18n="submission">Submission</a>
+        <a href="#newsletter" data-i18n="newsletter">Newsletter</a>
+        <a href="/admin-upload.html" id="admin-link" hidden data-i18n="admin">Admin</a>
+        <a href="#auth" id="auth-link" data-i18n="loginJoin">Login / Join</a>
+      </nav>
+      <button class="header__menu-btn" type="button" data-i18n-aria="openMenu" aria-expanded="false" id="menu-btn">
+        <span></span><span></span>
+      </button>
+    </div>
+    <nav class="header__nav" id="main-nav" aria-label="Main">
+      <div class="nav-dropdown" data-nav-dropdown>
+        <a href="/about.html" class="nav-dropdown__main" data-i18n="about">About</a>
+        <button type="button" class="nav-dropdown__toggle" aria-expanded="false" data-i18n-aria="navAboutMenu" aria-label="About menu">
+          <span class="nav-dropdown__caret" aria-hidden="true"></span>
+        </button>
+        <div class="nav-dropdown__menu">
+          <a href="/business.html" data-i18n="business">Business</a>
+          <a href="/contact.html" data-i18n="contact">Contact</a>
+        </div>
+      </div>
+      <a href="/community.html" data-i18n="community">Community</a>
+      <a href="/exclusive.html" data-i18n="editorsExclusive">Editor's Exclusive!</a>
+      <a href="/magazine.html" data-i18n="magazine">Magazine</a>
+      <a href="/editorial.html" data-i18n="editorial">Editorial</a>
+      <a href="/articles.html" data-i18n="article">Article</a>
+      <a href="#film" data-i18n="film">Film</a>
+      <div class="lang-select">
+        <select id="lang-select" data-i18n-aria="language" aria-label="Language">
+          <option value="en">English</option>
+          <option value="ko">한국어</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+          <option value="ja">日本語</option>
+          <option value="zh-Hans">简体中文</option>
+          <option value="zh-Hant">繁體中文</option>
+        </select>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Cover hero -->
+    <section class="hero" data-i18n-aria="coverStory" aria-label="Cover story">
+      <div class="hero__slides" id="hero-slides">
+        <article class="hero__slide hero__slide--active" data-slide="0">
+          <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1920&q=80" alt="FOLIE" />
+          <div class="hero__overlay">
+            <p class="hero__vol" data-i18n="heroVolCover">VOL.01 COVER STORY</p>
+            <h1 class="hero__title">FOLIE</h1>
+          </div>
+        </article>
+        <article class="hero__slide" data-slide="1">
+          <img src="https://images.unsplash.com/photo-1469334031218-e382a71abbee?w=1920&q=80" alt="EQUIPOISE" />
+          <div class="hero__overlay">
+            <p class="hero__vol" data-i18n="heroEditorial">EDITORIAL</p>
+            <h1 class="hero__title">EQUIPOISE</h1>
+          </div>
+        </article>
+        <article class="hero__slide" data-slide="2">
+          <img src="https://images.unsplash.com/photo-1483985988354-763728e3685b?w=1920&q=80" alt="BIRDS DON'T CRY" />
+          <div class="hero__overlay">
+            <p class="hero__vol" data-i18n="heroEditorial">EDITORIAL</p>
+            <h1 class="hero__title">BIRDS DON'T CRY</h1>
+          </div>
+        </article>
+      </div>
+      <div class="hero__dots" id="hero-dots" data-i18n-aria="coverSlides" aria-label="Cover slides"></div>
+    </section>
+
+    <!-- Community CTA -->
+    <section class="community-banner" id="community">
+      <div class="community-banner__inner">
+        <span class="community-banner__label" data-i18n="communityLabel">Before the Name</span>
+        <h2 class="community-banner__title" data-i18n="communityTitle">Before the world knows your name</h2>
+        <p class="community-banner__text" data-i18n="communityText">Through open calls, features, and online discussion, we're building an archive and community for new creative voices from every medium and background.</p>
+        <a href="/community.html" class="community-banner__link" data-i18n="communityLink">Enter community →</a>
+      </div>
+    </section>
+
+    <!-- Editor's Exclusive -->
+    <section class="section section--exclusive" id="exclusive">
+      <div class="section__head">
+        <div class="section__head-text">
+          <span class="section__label" data-i18n="exclusiveLabel">Editor's Exclusive!</span>
+          <h2 class="section__title" data-i18n="exclusiveSectionTitle">Editor's Exclusive!</h2>
+          <p class="section__intro" data-i18n="exclusiveSectionIntro">Personal picks from the editor — read free, comment when you're signed in.</p>
+        </div>
+        <div class="section__head-actions">
+          <a href="/exclusive.html" class="section__view-all" data-i18n="viewAll">View all →</a>
+          <div class="carousel-nav">
+            <button type="button" class="carousel-nav__btn" data-carousel="exclusive" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
+            <button type="button" class="carousel-nav__btn" data-carousel="exclusive" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
+          </div>
+        </div>
+      </div>
+      <div class="carousel carousel--exclusive" id="carousel-exclusive" data-feed="exclusive"></div>
+    </section>
+
+    <!-- Latest articles -->
+    <section class="section" id="articles">
+      <div class="section__head">
+        <h2 class="section__title" data-i18n="latestArticles">Latest Articles</h2>
+        <div class="section__head-actions">
+          <a href="/articles.html" class="section__view-all" data-i18n="viewAll">View all →</a>
+          <div class="carousel-nav">
+            <button type="button" class="carousel-nav__btn" data-carousel="articles" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
+            <button type="button" class="carousel-nav__btn" data-carousel="articles" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
+          </div>
+        </div>
+      </div>
+      <div class="carousel" id="carousel-articles" data-feed="article"></div>
+    </section>
+
+    <!-- Latest editorials -->
+    <section class="section section--alt" id="editorial">
+      <div class="section__head">
+        <h2 class="section__title" data-i18n="latestEditorials">Latest Editorials</h2>
+        <div class="section__head-actions">
+          <a href="/editorial.html" class="section__view-all" data-i18n="viewAll">View all →</a>
+          <div class="carousel-nav">
+            <button type="button" class="carousel-nav__btn" data-carousel="editorials-latest" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
+            <button type="button" class="carousel-nav__btn" data-carousel="editorials-latest" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
+          </div>
+        </div>
+      </div>
+      <div class="carousel carousel--editorial" id="carousel-editorials-latest" data-feed="editorial-latest"></div>
+    </section>
+
+    <!-- Popular editorials -->
+    <section class="section" id="magazine">
+      <div class="section__head">
+        <h2 class="section__title" data-i18n="popularEditorials">Popular Editorials</h2>
+        <div class="section__head-actions">
+          <a href="/magazine.html" class="section__view-all" data-i18n="viewAll">View all →</a>
+          <div class="carousel-nav">
+            <button type="button" class="carousel-nav__btn" data-carousel="editorials-popular" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
+            <button type="button" class="carousel-nav__btn" data-carousel="editorials-popular" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
+          </div>
+        </div>
+      </div>
+      <div class="carousel carousel--editorial" id="carousel-editorials-popular" data-feed="editorial-popular"></div>
+    </section>
+
+    <!-- Film -->
+    <section class="section section--film" id="film">
+      <div class="section__head">
+        <h2 class="section__title" data-i18n="filmSection">Film</h2>
+        <div class="carousel-nav">
+          <button type="button" class="carousel-nav__btn" data-carousel="films" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
+          <button type="button" class="carousel-nav__btn" data-carousel="films" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
+        </div>
+      </div>
+      <div class="carousel carousel--film" id="carousel-films" data-feed="film"></div>
+
+      <div class="shorts">
+        <div class="shorts__head">
+          <span class="shorts__badge" data-i18n="shorts">Shorts</span>
+          <div class="carousel-nav">
+            <button type="button" class="carousel-nav__btn" data-carousel="shorts" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
+            <button type="button" class="carousel-nav__btn" data-carousel="shorts" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
+          </div>
+        </div>
+        <div class="carousel carousel--shorts" id="carousel-shorts" data-feed="short"></div>
+      </div>
+    </section>
+
+    <!-- Newsletter -->
+    <section class="newsletter" id="newsletter">
+      <h2 class="newsletter__title" data-i18n="newsletterTitle">Subscribe</h2>
+      <p class="newsletter__text" data-i18n="newsletterText">Editorial drops, film premieres, and culture — in your inbox.</p>
+      <form class="newsletter__form" action="#" method="post">
+        <input type="email" data-i18n-placeholder="emailPlaceholder" data-i18n-aria="emailLabel" placeholder="Email address" required aria-label="Email" />
+        <button type="submit" class="btn btn--primary" data-i18n="newsletterBtn">Subscribe</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <p class="footer__logo" data-i18n="footerMagazine">NaMe Magazine</p>
+        <p class="footer__address" data-i18n-html="footerAddress">
+          NaMe Publishing<br />
+          Editorial Studio · New York<br />
+          hello@NaMe-magazine.com
+        </p>
+      </div>
+      <nav class="footer__links">
+        <a href="/about.html" data-i18n="about">About</a>
+        <a href="/business.html" data-i18n="business">Business</a>
+        <a href="/contact.html" data-i18n="contact">Contact</a>
+      </nav>
+      <nav class="footer__links">
+        <a href="/terms.html" data-i18n="terms">Terms of Service</a>
+        <a href="/privacy.html" data-i18n="privacy">Privacy Policy</a>
+      </nav>
+      <div class="footer__social">
+        <a href="#" aria-label="YouTube">YouTube</a>
+        <a href="#" aria-label="Facebook">Facebook</a>
+        <a href="#" aria-label="Instagram">Instagram</a>
+      </div>
+    </div>
+    <p class="footer__copy" data-i18n="footerCopy">&copy; 2026 NaMe Magazine. All rights reserved.</p>
+  </footer>
+
+  <!-- Mobile bottom bar -->
+  <nav class="mobile-bar" data-i18n-aria="mobileNav" aria-label="Mobile quick links">
+    <a href="#newsletter" data-i18n="subscribe">Subscribe</a>
+    <a href="/submission.html" data-i18n="submission">Submission</a>
+    <a href="#newsletter" data-i18n="newsletter">Newsletter</a>
+    <a href="/community.html" data-i18n="community">Community</a>
+    <a href="/exclusive.html" data-i18n="editorsExclusive">Editor's Exclusive!</a>
+    <a href="/magazine.html" data-i18n="magazine">Magazine</a>
+  </nav>
+
+  <!-- Auth modal -->
+  <div class="modal" id="auth-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close-auth></div>
+    <div class="modal__panel modal__panel--wide" role="dialog" aria-labelledby="auth-modal-title">
+      <button class="modal__close" type="button" data-close-auth>&times;</button>
+      <h2 id="auth-modal-title" class="modal__title" data-i18n="authTitle">NaMe Account</h2>
+      <p id="auth-error" class="auth-error" hidden></p>
+      <div class="auth-tabs">
+        <button type="button" class="auth-tabs__btn is-active" data-auth-tab="login" data-i18n="authLogin">Login</button>
+        <button type="button" class="auth-tabs__btn" data-auth-tab="register" data-i18n="authRegister">Join</button>
+      </div>
+      <form id="auth-login-form" class="auth-form" data-auth-panel="login" autocomplete="on">
+        <input type="email" name="loginEmail" data-login-email data-i18n-placeholder="authEmail" placeholder="Email" required autocomplete="username" />
+        <input type="password" name="loginPassword" data-login-password data-i18n-placeholder="authPassword" placeholder="Password" required autocomplete="current-password" />
+        <button type="submit" class="btn btn--primary" data-i18n="authLoginBtn">Login</button>
+      </form>
+      <form id="auth-register-form" class="auth-form is-hidden" data-auth-panel="register" autocomplete="on">
+        <input type="text" name="registerName" data-register-name data-i18n-placeholder="authDisplayName" placeholder="Display name" required autocomplete="name" />
+        <input type="email" name="registerEmail" data-register-email data-i18n-placeholder="authEmail" placeholder="Email" required autocomplete="email" />
+        <input type="password" name="registerPassword" data-register-password data-i18n-placeholder="authPasswordMin" placeholder="Password (8+ characters)" required minlength="8" autocomplete="new-password" />
+        <button type="submit" class="btn btn--primary" data-i18n="authRegisterBtn">Create account</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="auth.js"></script>
+  <script src="nav.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

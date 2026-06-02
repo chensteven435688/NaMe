@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NaMe — Editor's Exclusive</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page-admin">
+  <div id="admin-gate" class="admin-gate">
+    <div class="admin-gate__panel">
+      <a href="/" class="logo"><span class="brand-mark">NaMe</span></a>
+      <h1 data-i18n="adminGateTitle">Admin access</h1>
+      <p data-i18n="adminExclusiveDenied">Only the editor can manage Editor's Exclusive posts.</p>
+      <button type="button" class="btn btn--primary" data-open-auth="login" data-i18n="authLoginBtn">Login</button>
+      <a href="/" class="admin-gate__back" data-i18n="backHome">← Back to NaMe</a>
+    </div>
+  </div>
+
+  <div id="admin-app" class="admin-app is-hidden">
+    <aside class="admin-sidebar">
+      <a href="/" class="logo admin-sidebar__logo"><span class="brand-mark">NaMe</span></a>
+      <p class="admin-sidebar__label" data-i18n="adminPanel">Admin</p>
+      <nav class="admin-nav" id="admin-sidebar-nav"></nav>
+      <div class="admin-sidebar__foot">
+        <a href="/exclusive.html" target="_blank" rel="noopener" data-i18n="adminViewExclusive">View Editor's Exclusive →</a>
+        <button type="button" id="admin-logout" data-i18n="adminLogout">Log out</button>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <h1 class="admin-topbar__title" data-i18n="adminExclusivePageTitle">Editor's Exclusive!</h1>
+        <span class="admin-topbar__user" id="admin-user-label"></span>
+      </header>
+
+      <section class="admin-panel is-active admin-upload-page">
+        <p class="admin-upload-intro" data-i18n="adminExclusiveIntro">
+          Publish personal editor picks here. Only admins can upload or remove posts. Everyone can read and comment.
+        </p>
+
+        <div class="admin-upload-layout">
+          <form class="admin-form admin-upload-form" id="exclusive-form">
+            <input type="hidden" name="type" value="exclusive" />
+
+            <label>
+              <span data-i18n="adminTitleField">Title</span>
+              <input type="text" name="title" id="exclusive-title" required />
+            </label>
+
+            <label>
+              <span data-i18n="adminMeta">Meta (category — date)</span>
+              <input type="text" name="meta" id="exclusive-meta" placeholder="Editor's note — 02 Jun 2026" />
+            </label>
+
+            <div class="admin-upload-media">
+              <label class="admin-upload-drop">
+                <span data-i18n="adminImage">Cover image</span>
+                <input type="file" name="image" id="exclusive-image" accept="image/*" />
+                <span class="admin-upload-drop__hint" data-i18n="adminImageHint">Click to choose or drag an image</span>
+              </label>
+              <label>
+                <span data-i18n="adminImageUrl">Or image URL</span>
+                <input type="url" name="imageUrl" id="exclusive-image-url" placeholder="https://…" />
+              </label>
+            </div>
+
+            <label>
+              <span data-i18n="adminBody">Body (HTML allowed)</span>
+              <textarea name="body" id="exclusive-body" rows="10" placeholder="<p>Your story…</p>"></textarea>
+            </label>
+
+            <label>
+              <span data-i18n="adminVideo">Video URL (optional)</span>
+              <input type="url" name="videoUrl" id="exclusive-video" placeholder="https://…" />
+            </label>
+
+            <div class="admin-form__actions">
+              <button type="submit" class="btn btn--primary" data-i18n="adminExclusivePublish">Publish to Editor's Exclusive</button>
+              <button type="reset" class="btn btn--ghost" data-i18n="adminClearForm">Clear form</button>
+            </div>
+            <p id="exclusive-status" class="admin__status" role="status"></p>
+            <div id="exclusive-success" class="admin-upload-success is-hidden"></div>
+          </form>
+
+          <aside class="admin-upload-preview">
+            <h2 data-i18n="adminPreview">Preview</h2>
+            <div class="admin-upload-preview__card admin-upload-preview__card--exclusive" id="exclusive-preview">
+              <div class="admin-upload-preview__img" id="exclusive-preview-img">
+                <span data-i18n="adminPreviewEmpty">Image preview</span>
+              </div>
+              <p class="admin-upload-preview__meta" id="exclusive-preview-meta">—</p>
+              <h3 class="admin-upload-preview__title" id="exclusive-preview-title" data-i18n="adminPreviewTitle">Title</h3>
+              <p class="admin-upload-preview__type" data-i18n="exclusiveLabel">Editor's Exclusive!</p>
+            </div>
+          </aside>
+        </div>
+
+        <div class="admin-exclusive-list">
+          <div class="admin-panel__head">
+            <h2 data-i18n="adminExclusiveManage">Manage Editor's Exclusive posts</h2>
+            <button type="button" class="btn btn--ghost btn--sm" id="exclusive-refresh" data-i18n="adminRefresh">Refresh</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th data-i18n="adminColTitle">Title</th>
+                  <th data-i18n="adminColActions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="exclusive-table-body">
+                <tr><td colspan="2" data-i18n="adminLoading">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="auth.js"></script>
+  <script src="admin-common.js"></script>
+  <script src="admin-exclusive.js"></script>
+</body>
+</html>
