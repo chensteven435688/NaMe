@@ -144,7 +144,7 @@ const NaMeI18n = (function () {
       subscribePerk2Text: "Premieres, shorts, and curated picks from the NaMe editorial desk.",
       subscribePerk3Title: "Open calls",
       subscribePerk3Text: "Submission windows, community features, and opportunities for emerging voices.",
-      subscribePrivacyNote: 'No spam. Unsubscribe anytime. See our <a href="/privacy.html">Privacy Policy</a>.',
+      subscribePrivacyNote: 'No spam. Unsubscribe anytime. See our <a href="privacy.html">Privacy Policy</a>.',
       footerMagazine: "NaMe Magazine",
       footerAddress: "NaMe Publishing<br />Editorial Studio · New York<br />hello@NaMe-magazine.com",
       terms: "Terms of Service",

@@ -48,5 +48,10 @@ const NaMeBase = (function () {
 
 if (typeof window !== "undefined") {
   window.NA_ME_BASE = NaMeBase.getBase();
-  document.addEventListener("DOMContentLoaded", () => NaMeBase.fixLinks());
+  const runFix = () => NaMeBase.fixLinks();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", runFix);
+  } else {
+    runFix();
+  }
 }
