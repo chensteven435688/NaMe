@@ -2016,6 +2016,26 @@ button.danger {
   background: var(--bg-elevated);
 }
 
+.browse-hero--film {
+  background: var(--text);
+  color: var(--text-inverse);
+}
+
+.browse-hero--film .browse-hero__back,
+.browse-hero--film .browse-hero__label,
+.browse-hero--film .browse-hero__text {
+  color: var(--text-inverse-muted);
+}
+
+.browse-hero--film .browse-hero__back:hover,
+.browse-hero--film .browse-hero__title {
+  color: var(--text-inverse);
+}
+
+.browse-feed--film {
+  background: var(--bg-alt);
+}
+
 .browse-feed {
   background: var(--bg);
 }

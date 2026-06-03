@@ -50,7 +50,7 @@
       <a href="/magazine.html" data-i18n="magazine">Magazine</a>
       <a href="/editorial.html" data-i18n="editorial">Editorial</a>
       <a href="/articles.html" data-i18n="article">Article</a>
-      <a href="#film" data-i18n="film">Film</a>
+      <a href="/film.html" data-i18n="film">Film</a>
       <div class="lang-select">
         <select id="lang-select" data-i18n-aria="language" aria-label="Language">
           <option value="en">English</option>
@@ -173,9 +173,12 @@
     <section class="section section--film" id="film">
       <div class="section__head">
         <h2 class="section__title" data-i18n="filmSection">Film</h2>
-        <div class="carousel-nav">
-          <button type="button" class="carousel-nav__btn" data-carousel="films" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
-          <button type="button" class="carousel-nav__btn" data-carousel="films" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
+        <div class="section__head-actions">
+          <a href="/film.html" class="section__view-all" data-i18n="viewAll">View all →</a>
+          <div class="carousel-nav">
+            <button type="button" class="carousel-nav__btn" data-carousel="films" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
+            <button type="button" class="carousel-nav__btn" data-carousel="films" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
+          </div>
         </div>
       </div>
       <div class="carousel carousel--film" id="carousel-films" data-feed="film"></div>

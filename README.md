@@ -66,6 +66,7 @@ Register with one of those emails (or log in again after adding your email) to g
 | Path | Purpose |
 |------|---------|
 | `/` | Homepage |
+| `/film.html` | Films and moving-image stories |
 | `/about.html` | About NaMe & editor |
 | `/business.html` | Partnerships & advertising |
 | `/contact.html` | Contact form |

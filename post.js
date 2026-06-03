@@ -31,15 +31,14 @@ function renderPost(post) {
   const typeLabel = isExclusive
     ? NaMeI18n.t(lang, "exclusiveBadge")
     : post.type + (isFilm ? " · Film" : "");
+  const backPath = isExclusive ? "/exclusive.html" : isFilm ? "/film.html" : "/";
   const backHref =
-    typeof NaMeBase !== "undefined"
-      ? NaMeBase.path(isExclusive ? "/exclusive.html" : "/")
-      : isExclusive
-        ? "/exclusive.html"
-        : "/";
+    typeof NaMeBase !== "undefined" ? NaMeBase.path(backPath) : backPath;
   const backLabel = isExclusive
     ? NaMeI18n.t(lang, "editorsExclusive")
-    : NaMeI18n.t(lang, "backHome");
+    : isFilm
+      ? NaMeI18n.t(lang, "film")
+      : NaMeI18n.t(lang, "backHome");
   const backEl = document.querySelector(".post-page__back");
   if (backEl) {
     backEl.href = backHref;

@@ -93,6 +93,13 @@ const NaMeI18n = (function () {
       articlesPageIntro:
         "Interviews, essays, and conversation with filmmakers, writers, and artists before the world knows their names.",
       articlesEmpty: "No articles yet. Check back soon.",
+      filmPageTitle: "Film — NaMe Magazine",
+      filmPageDescription: "NaMe Magazine — fashion films and moving-image stories from emerging filmmakers",
+      filmLabel: "Film",
+      filmPageHeading: "Film",
+      filmPageIntro:
+        "Fashion films, documentaries, and moving-image stories from filmmakers before the world knows their name.",
+      filmEmpty: "No films yet. Check back soon.",
       exclusivePageTitle: "Editor's Exclusive — NaMe Magazine",
       exclusivePageDescription:
         "Editor's Exclusive — personal picks and unpublished work from the NaMe editor",
