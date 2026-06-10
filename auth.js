@@ -664,6 +664,118 @@ const NaMeAuth = (function () {
     return request(`/api/admin/submissions/${id}`, { method: "DELETE" });
   }
 
+  const POST_TYPES = ["article", "editorial", "film", "short", "exclusive"];
+
+  function postImageStoragePath(imageUrl) {
+    if (!imageUrl) return null;
+    const marker = "/post-images/";
+    const idx = imageUrl.indexOf(marker);
+    if (idx === -1) return null;
+    return decodeURIComponent(imageUrl.slice(idx + marker.length));
+  }
+
+  async function resolvePostImageUrl(formData) {
+    const file = formData.get("image");
+    const imageUrl = formData.get("imageUrl")?.toString().trim() || "";
+
+    if (file && file instanceof File && file.size > 0) {
+      if (!/^image\//.test(file.type)) {
+        throw new Error("Cover image must be an image file");
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error("Image must be 10 MB or smaller");
+      }
+
+      const sb = supabase();
+      const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+      const objectPath = `posts/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
+      const { error: uploadError } = await sb.storage
+        .from("post-images")
+        .upload(objectPath, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data: urlData } = sb.storage.from("post-images").getPublicUrl(objectPath);
+      return urlData.publicUrl;
+    }
+
+    return imageUrl || null;
+  }
+
+  async function createPost(formData) {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    const type = formData.get("type")?.toString() || "";
+    const title = formData.get("title")?.toString().trim() || "";
+    const meta = formData.get("meta")?.toString().trim() || null;
+    const body = formData.get("body")?.toString().trim() || "";
+    const videoUrl = formData.get("videoUrl")?.toString().trim() || null;
+    const section = formData.get("section")?.toString().trim() || null;
+    const featuredVal = formData.get("featured");
+    const featured = featuredVal === "1" || featuredVal === "true" || featuredVal === true;
+
+    if (!type || !title) throw new Error("Type and title required");
+    if (!POST_TYPES.includes(type)) throw new Error("Invalid type");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      const imageUrl = await resolvePostImageUrl(formData);
+      if (!imageUrl) throw new Error("Add a cover image or image URL");
+
+      const slug = await uniquePostSlug(sb, title);
+      const now = new Date().toISOString();
+
+      const { data, error } = await sb
+        .from("posts")
+        .insert({
+          slug,
+          type,
+          title,
+          meta,
+          image_url: imageUrl,
+          body: body || `<p>${escapeHtml(title)}</p>`,
+          video_url: videoUrl,
+          section,
+          featured,
+          author_id: user?.id || null,
+          published_at: now,
+        })
+        .select("*")
+        .single();
+      if (error) throw new Error(error.message);
+
+      return { post: mapPost(data) };
+    }
+
+    return request("/api/posts", { method: "POST", body: formData });
+  }
+
+  async function deletePost(id) {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data: row, error: fetchError } = await sb
+        .from("posts")
+        .select("image_url")
+        .eq("id", id)
+        .single();
+      if (fetchError) throw new Error(fetchError.message);
+
+      const { error } = await sb.from("posts").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+
+      const storagePath = postImageStoragePath(row?.image_url);
+      if (storagePath) {
+        await sb.storage.from("post-images").remove([storagePath]);
+      }
+
+      return { ok: true };
+    }
+
+    return request(`/api/posts/${id}`, { method: "DELETE" });
+  }
+
   function updateAuthUI() {
     const authLink = document.getElementById("auth-link");
     if (!authLink) return;
@@ -997,6 +1109,8 @@ const NaMeAuth = (function () {
     updateSubmission,
     publishSubmission,
     deleteSubmission,
+    createPost,
+    deletePost,
     request,
     initUI,
     initAuthModal,

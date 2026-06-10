@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (fd.get("featured")) fd.set("featured", "1");
 
     try {
-      const res = await NaMeAuth.request("/api/posts", { method: "POST", body: fd });
+      const res = await NaMeAuth.createPost(fd);
       const post = res.post;
       status.textContent = "";
       success.classList.remove("is-hidden");

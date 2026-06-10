@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
-      const res = await NaMeAuth.request("/api/posts", { method: "POST", body: fd });
+      const res = await NaMeAuth.createPost(fd);
       const post = res.post;
       success.classList.remove("is-hidden");
       success.innerHTML = `
@@ -110,7 +110,7 @@ async function loadExclusivePosts() {
       btn.addEventListener("click", async () => {
         const msg = NaMeI18n.t(NaMeI18n.getLang(), "adminRemoveExclusiveConfirm");
         if (!confirm(msg)) return;
-        await NaMeAuth.request(`/api/posts/${btn.dataset.deleteExclusive}`, { method: "DELETE" });
+        await NaMeAuth.deletePost(btn.dataset.deleteExclusive);
         loadExclusivePosts();
       });
     });
