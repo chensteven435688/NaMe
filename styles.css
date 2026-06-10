@@ -195,6 +195,11 @@ select {
   font-weight: inherit;
 }
 
+.nav-dropdown__main:not(a) {
+  cursor: default;
+  user-select: none;
+}
+
 .nav-dropdown__main:hover,
 .nav-dropdown.is-active .nav-dropdown__main {
   opacity: 0.7;
@@ -281,6 +286,10 @@ select {
     flex-wrap: wrap;
     width: 100%;
     gap: 0 0.35rem;
+  }
+
+  .nav-dropdown__main:not(a) {
+    cursor: pointer;
   }
 
   .nav-dropdown__menu {

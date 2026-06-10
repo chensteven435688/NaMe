@@ -1,7 +1,21 @@
 /**
- * NaMe — main nav (mobile menu + About dropdown)
+ * NaMe — main nav (mobile menu + dropdowns)
  */
 const NaMeNav = (function () {
+  const NAV_GROUPS = {
+    about: ["about.html", "business.html", "contact.html"],
+    stories: ["magazine.html", "editorial.html", "articles.html", "film.html"],
+  };
+
+  function pageName(path) {
+    const name = path.split("/").filter(Boolean).pop() || "";
+    return name || "index.html";
+  }
+
+  function pathMatches(path, file) {
+    return path.endsWith("/" + file) || path.endsWith(file) || pageName(path) === file;
+  }
+
   function initDropdowns() {
     document.querySelectorAll("[data-nav-dropdown]").forEach((dropdown) => {
       const toggle = dropdown.querySelector(".nav-dropdown__toggle");
@@ -11,16 +25,16 @@ const NaMeNav = (function () {
       let path = location.pathname;
       const base = typeof NaMeBase !== "undefined" ? NaMeBase.getBase() : "";
       if (base && path.startsWith(base)) path = path.slice(base.length) || "/";
-      if (
-        path.endsWith("/about.html") ||
-        path.endsWith("/business.html") ||
-        path.endsWith("/contact.html")
-      ) {
+
+      const group = dropdown.dataset.navDropdown;
+      const pages = NAV_GROUPS[group] || [];
+      if (pages.some((file) => pathMatches(path, file))) {
         dropdown.classList.add("is-active");
       }
 
       dropdown.querySelectorAll(".nav-dropdown__menu a").forEach((link) => {
-        if (link.pathname === path) link.classList.add("is-current");
+        const href = link.getAttribute("href")?.split("#")[0] || "";
+        if (pathMatches(path, href)) link.classList.add("is-current");
       });
 
       toggle.addEventListener("click", (e) => {
@@ -29,6 +43,15 @@ const NaMeNav = (function () {
         const open = dropdown.classList.toggle("is-open");
         toggle.setAttribute("aria-expanded", String(open));
       });
+
+      const main = dropdown.querySelector(".nav-dropdown__main");
+      if (main && main.tagName !== "A") {
+        main.addEventListener("click", () => {
+          if (!window.matchMedia("(max-width: 899px)").matches) return;
+          const open = dropdown.classList.toggle("is-open");
+          toggle.setAttribute("aria-expanded", String(open));
+        });
+      }
     });
 
     document.addEventListener("click", (e) => {

@@ -22,7 +22,7 @@
       </button>
     </div>
     <nav class="header__nav" id="main-nav" aria-label="Main">
-      <div class="nav-dropdown" data-nav-dropdown>
+      <div class="nav-dropdown" data-nav-dropdown="about">
         <a href="about.html" class="nav-dropdown__main" data-i18n="about">About</a>
         <button type="button" class="nav-dropdown__toggle" aria-expanded="false" data-i18n-aria="navAboutMenu" aria-label="About menu">
           <span class="nav-dropdown__caret" aria-hidden="true"></span>
@@ -34,10 +34,18 @@
       </div>
       <a href="community.html" data-i18n="community">Community</a>
       <a href="exclusive.html" data-i18n="editorsExclusive">Editor's Exclusive</a>
-      <a href="magazine.html" data-i18n="magazine">Magazine</a>
-      <a href="editorial.html" data-i18n="editorial">Editorial</a>
-      <a href="articles.html" data-i18n="article">Article</a>
-      <a href="film.html" data-i18n="film">Film</a>
+      <div class="nav-dropdown" data-nav-dropdown="stories">
+        <span class="nav-dropdown__main" data-i18n="navStories">Stories</span>
+        <button type="button" class="nav-dropdown__toggle" aria-expanded="false" data-i18n-aria="navStoriesMenu" aria-label="Stories menu">
+          <span class="nav-dropdown__caret" aria-hidden="true"></span>
+        </button>
+        <div class="nav-dropdown__menu">
+          <a href="magazine.html" data-i18n="magazine">Magazine</a>
+          <a href="editorial.html" data-i18n="editorial">Editorial</a>
+          <a href="articles.html" data-i18n="article">Article</a>
+          <a href="film.html" data-i18n="film">Film</a>
+        </div>
+      </div>
       <div class="lang-select">
         <select id="lang-select" data-i18n-aria="language" aria-label="Language">
           <option value="en">English</option>
