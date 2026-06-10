@@ -195,7 +195,8 @@ const NaMeAuth = (function () {
     if (error) throw new Error(error.message);
   }
 
-  async function register(email, password, displayName) {
+  async function register(email, password, displayName, options = {}) {
+    const { subscribe = false } = options;
     if (!displayName?.trim()) {
       throw new Error("Display name required");
     }
@@ -209,7 +210,10 @@ const NaMeAuth = (function () {
         email: email.trim(),
         password,
         options: {
-          data: { display_name: displayName.trim() },
+          data: {
+            display_name: displayName.trim(),
+            newsletter_opt_in: !!subscribe,
+          },
           emailRedirectTo: getAuthRedirectUrl(),
         },
       });
@@ -432,9 +436,14 @@ const NaMeAuth = (function () {
       const displayName = form.querySelector("[data-register-name]")?.value?.trim() || "";
       const email = form.querySelector("[data-register-email]")?.value?.trim() || "";
       const password = form.querySelector("[data-register-password]")?.value || "";
+      const agreeTerms = form.querySelector("[data-register-agree-terms]");
+      if (!agreeTerms?.checked) {
+        throw new Error(authT("authMustAgreeTerms"));
+      }
+      const subscribe = !!form.querySelector("[data-register-subscribe]")?.checked;
       setSubmitLoading(submitBtn, true);
       try {
-        const result = await register(email, password, displayName);
+        const result = await register(email, password, displayName, { subscribe });
         if (result?.needsConfirmation) {
           showAuthMessage(authT("authConfirmSent"), "success");
           switchAuthTab("login");
@@ -458,7 +467,62 @@ const NaMeAuth = (function () {
       });
     });
 
+    ensureAuthFormExtras();
+  }
+
+  function applyAuthFormI18n() {
+    if (typeof NaMeI18n === "undefined") return;
+    NaMeI18n.apply(NaMeI18n.getLang());
+  }
+
+  function ensureAuthFormExtras() {
+    ensureLoginTermsLink();
+    ensureRegisterCheckboxes();
     ensureResendConfirmationControl();
+    applyAuthFormI18n();
+  }
+
+  function ensureLoginTermsLink() {
+    const loginForm = document.getElementById("auth-login-form");
+    if (!loginForm || loginForm.querySelector("[data-auth-login-terms]")) return;
+
+    const note = document.createElement("p");
+    note.className = "auth-form__note";
+    note.dataset.authLoginTerms = "1";
+    note.innerHTML = '<a href="terms.html" data-i18n="terms">Terms of Service</a>';
+
+    const resend = loginForm.querySelector(".auth-resend");
+    if (resend) loginForm.insertBefore(note, resend);
+    else loginForm.appendChild(note);
+
+    if (typeof NaMeBase !== "undefined") NaMeBase.fixLinks(note);
+  }
+
+  function ensureRegisterCheckboxes() {
+    const form = document.getElementById("auth-register-form");
+    if (!form || form.querySelector("[data-register-agree-terms]")) return;
+
+    form.querySelectorAll(".auth-join-links").forEach((el) => el.remove());
+
+    const submitBtn = form.querySelector('[type="submit"]');
+    if (!submitBtn) return;
+
+    const termsLabel = document.createElement("label");
+    termsLabel.className = "auth-check";
+    termsLabel.innerHTML =
+      '<input type="checkbox" data-register-agree-terms required />' +
+      '<span data-i18n-html="authAgreeTerms">I agree to the <a href="terms.html">Terms of Service</a></span>';
+
+    const subscribeLabel = document.createElement("label");
+    subscribeLabel.className = "auth-check";
+    subscribeLabel.innerHTML =
+      '<input type="checkbox" data-register-subscribe />' +
+      '<span data-i18n="authSubscribeOptIn">I want to subscribe</span>';
+
+    form.insertBefore(subscribeLabel, submitBtn);
+    form.insertBefore(termsLabel, subscribeLabel);
+
+    if (typeof NaMeBase !== "undefined") NaMeBase.fixLinks(form);
   }
 
   function switchAuthTab(tab) {
