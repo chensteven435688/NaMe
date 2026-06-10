@@ -22,6 +22,7 @@ import { registerCommunityRoutes } from "./routes/community.js";
 import { registerSubmissionRoutes } from "./routes/submissions.js";
 import { seedCommunity } from "./seed-community.js";
 import { isAuthBypassEnabled } from "./middleware/auth.js";
+import { isSupabaseConfigured } from "./supabase.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, "..");
@@ -394,5 +395,10 @@ app.listen(port, () => {
     console.log(`Admin emails: ${admins.join(", ")}`);
   } else {
     console.log("Set ADMIN_EMAILS in server/.env to allow uploads.");
+  }
+  if (isSupabaseConfigured()) {
+    console.log("Supabase: connected (server client ready)");
+  } else {
+    console.log("Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in server/.env for Supabase.");
   }
 });
