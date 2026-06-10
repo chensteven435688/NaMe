@@ -50,10 +50,30 @@ const NaMeAuth = (function () {
   async function loadProfile(userId) {
     const sb = supabase();
     if (!sb) return null;
+
     const { data, error } = await sb.from("profiles").select("*").eq("id", userId).single();
-    if (error || !data) return null;
-    currentUser = mapProfile(data);
-    return currentUser;
+    if (data) {
+      currentUser = mapProfile(data);
+      return currentUser;
+    }
+
+    if (error) console.warn("NaMe: could not load profile", error.message);
+
+    const { data: authData } = await sb.auth.getUser();
+    const user = authData?.user;
+    if (user?.id === userId) {
+      currentUser = {
+        id: user.id,
+        email: user.email || "",
+        displayName:
+          user.user_metadata?.display_name ||
+          user.email?.split("@")[0] ||
+          "Member",
+        role: "member",
+      };
+      return currentUser;
+    }
+    return null;
   }
 
   function apiBase() {
@@ -362,6 +382,7 @@ const NaMeAuth = (function () {
       setSubmitLoading(submitBtn, true);
       try {
         await login(email, password);
+        updateAuthUI();
         closeAuthModal();
         form.reset();
         clearAuthError();

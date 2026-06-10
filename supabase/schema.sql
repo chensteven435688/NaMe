@@ -220,5 +220,24 @@ create policy "Admins manage submissions"
 create policy "Admins delete submissions"
   on public.submissions for delete using (public.is_admin());
 
+-- Table privileges (required — RLS alone is not enough)
+grant usage on schema public to anon, authenticated;
+grant select on table public.profiles to anon, authenticated;
+grant update on table public.profiles to authenticated;
+grant select on table public.posts to anon, authenticated;
+grant insert, update, delete on table public.posts to authenticated;
+grant select on table public.comments to anon, authenticated;
+grant insert, delete on table public.comments to authenticated;
+grant select on table public.comment_likes to anon, authenticated;
+grant insert, delete on table public.comment_likes to authenticated;
+grant select on table public.community_posts to anon, authenticated;
+grant insert, delete on table public.community_posts to authenticated;
+grant select on table public.community_likes to anon, authenticated;
+grant insert, delete on table public.community_likes to authenticated;
+grant select on table public.community_comments to anon, authenticated;
+grant insert, delete on table public.community_comments to authenticated;
+grant select, insert on table public.submissions to authenticated;
+grant update, delete on table public.submissions to authenticated;
+
 -- Make yourself admin (replace with your email after you sign up once)
 -- update public.profiles set role = 'admin' where email = 'chensteven435688@gmail.com';
