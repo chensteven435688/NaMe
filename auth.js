@@ -1,10 +1,60 @@
 /**
  * NaMe — client auth & API helpers
+ * GitHub Pages: Supabase auth + data. Local npm start (port 8080): Express API.
  */
 const NaMeAuth = (function () {
   let currentUser = null;
   const listeners = new Set();
   if (typeof window !== "undefined") window.NA_ME_DEV_BYPASS = false;
+
+  function supabase() {
+    return typeof NaMeSupabase !== "undefined" ? NaMeSupabase.getClient() : null;
+  }
+
+  function useSupabase() {
+    const sb = supabase();
+    if (!sb) return false;
+    const host = window.location.hostname;
+    const port = window.location.port;
+    if ((host === "localhost" || host === "127.0.0.1") && port === "8080") return false;
+    return true;
+  }
+
+  function mapProfile(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      email: row.email,
+      displayName: row.display_name,
+      role: row.role,
+    };
+  }
+
+  function mapPost(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      slug: row.slug,
+      type: row.type,
+      title: row.title,
+      meta: row.meta,
+      imageUrl: row.image_url,
+      body: row.body,
+      videoUrl: row.video_url,
+      section: row.section,
+      featured: !!row.featured,
+      publishedAt: row.published_at,
+    };
+  }
+
+  async function loadProfile(userId) {
+    const sb = supabase();
+    if (!sb) return null;
+    const { data, error } = await sb.from("profiles").select("*").eq("id", userId).single();
+    if (error || !data) return null;
+    currentUser = mapProfile(data);
+    return currentUser;
+  }
 
   function apiBase() {
     if (typeof window.NA_ME_API_BASE === "string") return window.NA_ME_API_BASE;
@@ -54,6 +104,22 @@ const NaMeAuth = (function () {
   }
 
   async function refresh() {
+    if (useSupabase()) {
+      try {
+        const sb = supabase();
+        const { data } = await sb.auth.getSession();
+        if (data.session?.user) {
+          await loadProfile(data.session.user.id);
+        } else {
+          currentUser = null;
+        }
+      } catch {
+        currentUser = null;
+      }
+      notify();
+      return currentUser;
+    }
+
     try {
       const cfg = await request("/api/dev/config");
       if (typeof window !== "undefined") {
@@ -70,6 +136,31 @@ const NaMeAuth = (function () {
   }
 
   async function register(email, password, displayName) {
+    if (!displayName?.trim()) {
+      throw new Error("Display name required");
+    }
+    if (password.length < 8) {
+      throw new Error("Password must be at least 8 characters");
+    }
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { display_name: displayName.trim() } },
+      });
+      if (error) throw new Error(error.message);
+      if (data.session?.user) {
+        await loadProfile(data.session.user.id);
+        notify();
+        return currentUser;
+      }
+      throw new Error(
+        "Account created. Check your email to confirm, then log in."
+      );
+    }
+
     const data = await request("/api/auth/register", {
       method: "POST",
       body: { email, password, displayName },
@@ -80,6 +171,18 @@ const NaMeAuth = (function () {
   }
 
   async function login(email, password) {
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw new Error(error.message);
+      await loadProfile(data.user.id);
+      notify();
+      return currentUser;
+    }
+
     const data = await request("/api/auth/login", {
       method: "POST",
       body: { email, password },
@@ -90,6 +193,14 @@ const NaMeAuth = (function () {
   }
 
   async function logout() {
+    if (useSupabase()) {
+      const sb = supabase();
+      await sb.auth.signOut();
+      currentUser = null;
+      notify();
+      return;
+    }
+
     await request("/api/auth/logout", { method: "POST" });
     currentUser = null;
     notify();
@@ -115,12 +226,35 @@ const NaMeAuth = (function () {
   }
 
   async function fetchPosts(query = {}) {
+    if (useSupabase()) {
+      const sb = supabase();
+      let q = sb.from("posts").select("*").order("published_at", { ascending: false });
+      if (query.type) q = q.eq("type", query.type);
+      if (query.section) q = q.eq("section", query.section);
+      if (query.featured === "1" || query.featured === 1) q = q.eq("featured", true);
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+      return (data || []).map(mapPost);
+    }
+
     const params = new URLSearchParams(query);
     const data = await request(`/api/posts?${params}`);
     return data.posts;
   }
 
   async function fetchPost(slug) {
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb
+        .from("posts")
+        .select("*")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("Not found");
+      return mapPost(data);
+    }
+
     const data = await request(`/api/posts/${encodeURIComponent(slug)}`);
     return data.post;
   }
@@ -308,4 +442,13 @@ const NaMeAuth = (function () {
 // Wire auth modal on every page (including admin gate without #auth-link)
 document.addEventListener("DOMContentLoaded", () => {
   NaMeAuth.initAuthModal();
+  const sb = typeof NaMeSupabase !== "undefined" ? NaMeSupabase.getClient() : null;
+  if (sb) {
+    sb.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) await NaMeAuth.refresh();
+      else {
+        NaMeAuth.refresh();
+      }
+    });
+  }
 });
