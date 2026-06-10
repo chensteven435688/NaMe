@@ -456,6 +456,214 @@ const NaMeAuth = (function () {
     return request("/api/submissions", { method: "POST", body: formData });
   }
 
+  function mapAdminSubmission(row) {
+    const submission = mapSubmission(row);
+    const profile = row.profiles;
+    const author = Array.isArray(profile) ? profile[0] : profile;
+    if (author) {
+      submission.author = {
+        id: author.id,
+        displayName: author.display_name,
+        email: author.email,
+      };
+    }
+    return submission;
+  }
+
+  function submissionStatusCounts(submissions) {
+    const counts = { pending: 0, published: 0, rejected: 0 };
+    for (const s of submissions) {
+      if (counts[s.status] !== undefined) counts[s.status] += 1;
+    }
+    return counts;
+  }
+
+  function slugifyTitle(text) {
+    return (
+      String(text || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "") || "post"
+    );
+  }
+
+  async function uniquePostSlug(sb, title) {
+    let base = slugifyTitle(title);
+    let slug = base;
+    let n = 2;
+    while (true) {
+      const { data } = await sb.from("posts").select("id").eq("slug", slug).maybeSingle();
+      if (!data) return slug;
+      slug = `${base}-${n++}`;
+    }
+  }
+
+  function escapeHtml(text) {
+    return String(text ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function buildPublishedPostBody(row) {
+    let body = row.description?.trim()
+      ? `<p>${escapeHtml(row.description.trim())}</p>`
+      : `<p>${escapeHtml(row.title)}</p>`;
+    if (row.file_mime === "application/pdf") {
+      body += `<p><a href="${row.file_url}" target="_blank" rel="noopener">View submitted PDF</a></p>`;
+    }
+    return body;
+  }
+
+  function submissionStoragePath(fileUrl) {
+    if (!fileUrl) return null;
+    const marker = "/submissions/";
+    const idx = fileUrl.indexOf(marker);
+    if (idx === -1) return null;
+    return decodeURIComponent(fileUrl.slice(idx + marker.length));
+  }
+
+  async function fetchAdminSubmissions() {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb
+        .from("submissions")
+        .select("*, profiles(id, display_name, email), posts(slug)")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw new Error(error.message);
+
+      const submissions = (data || []).map(mapAdminSubmission);
+      return { submissions, counts: submissionStatusCounts(submissions) };
+    }
+
+    return request("/api/admin/submissions");
+  }
+
+  async function updateSubmission(id, { status, adminNote } = {}) {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      const patch = {
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: user?.id || null,
+      };
+      if (status) patch.status = status;
+      if (adminNote !== undefined) patch.admin_note = adminNote || null;
+
+      const { data, error } = await sb
+        .from("submissions")
+        .update(patch)
+        .eq("id", id)
+        .select("*, profiles(id, display_name, email), posts(slug)")
+        .single();
+      if (error) throw new Error(error.message);
+
+      return { submission: mapAdminSubmission(data) };
+    }
+
+    return request(`/api/admin/submissions/${id}`, {
+      method: "PATCH",
+      body: { status, adminNote },
+    });
+  }
+
+  async function publishSubmission(id, { type, section, meta } = {}) {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      const { data: row, error: fetchError } = await sb
+        .from("submissions")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (fetchError) throw new Error(fetchError.message);
+      if (!row) throw new Error("Submission not found");
+      if (row.status === "published" && row.post_id) {
+        throw new Error("Already published");
+      }
+
+      const allowedTypes = ["article", "editorial", "film", "short"];
+      const postType = allowedTypes.includes(type) ? type : "article";
+      const isVideo = row.file_mime?.startsWith("video/");
+      const isImage = row.file_mime?.startsWith("image/");
+      const slug = await uniquePostSlug(sb, row.title);
+      const now = new Date().toISOString();
+
+      const { data: post, error: postError } = await sb
+        .from("posts")
+        .insert({
+          slug,
+          type: postType,
+          title: row.title,
+          meta: meta || `${row.medium} — submission`,
+          image_url: isImage ? row.file_url : null,
+          body: buildPublishedPostBody(row),
+          video_url: isVideo ? row.file_url : null,
+          section: section || "latest",
+          featured: false,
+          author_id: row.user_id,
+          published_at: now,
+        })
+        .select("id, slug, type, title")
+        .single();
+      if (postError) throw new Error(postError.message);
+
+      const { data: submission, error: subError } = await sb
+        .from("submissions")
+        .update({
+          status: "published",
+          post_id: post.id,
+          reviewed_at: now,
+          reviewed_by: user?.id || null,
+        })
+        .eq("id", id)
+        .select("*, profiles(id, display_name, email), posts(slug)")
+        .single();
+      if (subError) throw new Error(subError.message);
+
+      return { post, submission: mapAdminSubmission(submission) };
+    }
+
+    return request(`/api/admin/submissions/${id}/publish`, {
+      method: "POST",
+      body: { type, section, meta },
+    });
+  }
+
+  async function deleteSubmission(id) {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data: row, error: fetchError } = await sb
+        .from("submissions")
+        .select("file_url")
+        .eq("id", id)
+        .single();
+      if (fetchError) throw new Error(fetchError.message);
+
+      const { error } = await sb.from("submissions").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+
+      const storagePath = submissionStoragePath(row?.file_url);
+      if (storagePath) {
+        await sb.storage.from("submissions").remove([storagePath]);
+      }
+
+      return { ok: true };
+    }
+
+    return request(`/api/admin/submissions/${id}`, { method: "DELETE" });
+  }
+
   function updateAuthUI() {
     const authLink = document.getElementById("auth-link");
     if (!authLink) return;
@@ -785,6 +993,10 @@ const NaMeAuth = (function () {
     fetchPost,
     fetchMySubmissions,
     createSubmission,
+    fetchAdminSubmissions,
+    updateSubmission,
+    publishSubmission,
+    deleteSubmission,
     request,
     initUI,
     initAuthModal,

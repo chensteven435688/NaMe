@@ -21,7 +21,7 @@ async function loadSubmissions() {
   grid.innerHTML = `<p>${NaMeAdmin.esc(NaMeI18n.t(lang, "adminLoading"))}</p>`;
 
   try {
-    const data = await NaMeAuth.request("/api/admin/submissions");
+    const data = await NaMeAuth.fetchAdminSubmissions();
     allSubmissions = data.submissions || [];
     renderCounts(data.counts || {});
     renderGrid();
@@ -75,10 +75,9 @@ function renderCard(s, lang) {
       ? `<video src="${NaMeAdmin.esc(s.fileUrl)}" controls class="admin-submission-card__video"></video>`
       : `<a href="${NaMeAdmin.esc(s.fileUrl)}" target="_blank" rel="noopener" class="admin-submission-card__file">${NaMeAdmin.esc(s.fileName || "PDF")}</a>`;
 
-  const live =
-    s.postSlug
-      ? `<a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(s.postSlug)}" target="_blank" rel="noopener">${NaMeAdmin.esc(NaMeI18n.t(lang, "submissionViewLive"))}</a>`
-      : "";
+  const live = s.postSlug
+    ? `<a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(s.postSlug)}" target="_blank" rel="noopener">${NaMeAdmin.esc(NaMeI18n.t(lang, "submissionViewLive"))}</a>`
+    : "";
 
   return `
     <article class="admin-submission-card admin-submission-card--${NaMeAdmin.esc(s.status)}">
@@ -138,13 +137,10 @@ async function onPublish(e) {
   const fd = new FormData(e.target);
 
   try {
-    const res = await NaMeAuth.request(`/api/admin/submissions/${id}/publish`, {
-      method: "POST",
-      body: {
-        type: fd.get("type"),
-        section: fd.get("section"),
-        meta: fd.get("meta"),
-      },
+    const res = await NaMeAuth.publishSubmission(id, {
+      type: fd.get("type"),
+      section: fd.get("section"),
+      meta: fd.get("meta"),
     });
     statusEl.textContent = `${NaMeI18n.t(lang, "adminPublishSuccess")} ${res.post.title}`;
     setTimeout(() => {
@@ -161,16 +157,22 @@ async function rejectSubmission(id) {
   const note = prompt(NaMeI18n.t(lang, "adminRejectNotePrompt"));
   if (note === null) return;
 
-  await NaMeAuth.request(`/api/admin/submissions/${id}`, {
-    method: "PATCH",
-    body: { status: "rejected", adminNote: note || null },
-  });
-  loadSubmissions();
+  try {
+    await NaMeAuth.updateSubmission(id, { status: "rejected", adminNote: note || null });
+    loadSubmissions();
+  } catch (err) {
+    alert(err.message);
+  }
 }
 
 async function deleteSubmission(id) {
   const lang = NaMeI18n.getLang();
   if (!confirm(NaMeI18n.t(lang, "adminDeleteSubmissionConfirm"))) return;
-  await NaMeAuth.request(`/api/admin/submissions/${id}`, { method: "DELETE" });
-  loadSubmissions();
+
+  try {
+    await NaMeAuth.deleteSubmission(id);
+    loadSubmissions();
+  } catch (err) {
+    alert(err.message);
+  }
 }
