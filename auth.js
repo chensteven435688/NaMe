@@ -235,7 +235,7 @@ const NaMeAuth = (function () {
     });
     currentUser = data.user;
     notify();
-    return currentUser;
+    return { user: currentUser };
   }
 
   async function login(email, password) {
@@ -895,17 +895,16 @@ const NaMeAuth = (function () {
       setSubmitLoading(submitBtn, true);
       try {
         const result = await register(email, password, displayName, { subscribe });
-        if (result?.needsConfirmation) {
-          showAuthMessage(authT("authConfirmSent"), "success");
-          switchAuthTab("login");
-          prefillLoginEmail(result.email);
-          form.reset();
+        form.reset();
+
+        if (isLoggedIn()) {
+          updateAuthUI();
+          closeAuthModal();
+          clearAuthMessage();
           return;
         }
-        updateAuthUI();
-        closeAuthModal();
-        form.reset();
-        clearAuthMessage();
+
+        goToSignInAfterRegister(result?.email || email);
       } finally {
         setSubmitLoading(submitBtn, false);
       }
@@ -993,6 +992,21 @@ const NaMeAuth = (function () {
       loginForm?.querySelector("[data-login-email]") ||
       loginForm?.querySelector('input[name="loginEmail"]');
     if (emailInput && email) emailInput.value = email;
+  }
+
+  function focusLoginForm() {
+    const loginForm = document.getElementById("auth-login-form");
+    const passwordInput =
+      loginForm?.querySelector("[data-login-password]") ||
+      loginForm?.querySelector('input[name="loginPassword"]');
+    passwordInput?.focus({ preventScroll: true });
+  }
+
+  function goToSignInAfterRegister(email) {
+    showAuthMessage(authT("authConfirmSent"), "success");
+    switchAuthTab("login");
+    prefillLoginEmail(email);
+    focusLoginForm();
   }
 
   function ensureResendConfirmationControl() {
