@@ -961,6 +961,10 @@ select {
   text-transform: uppercase;
 }
 
+.footer__social a[aria-label="YouTube"] {
+  display: none;
+}
+
 .footer__social a:hover {
   opacity: 0.7;
 }
