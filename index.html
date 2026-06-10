@@ -28,8 +28,22 @@
         <a href="subscribe.html" data-i18n="subscribe">Subscribe</a>
         <a href="submission.html" data-i18n="submission">Submission</a>
         <a href="admin-upload.html" id="admin-link" hidden data-i18n="admin">Admin</a>
-        <a href="#auth" id="auth-link" data-i18n="loginJoin">Login / Join</a>
       </nav>
+      <div class="header__account">
+        <a href="#auth" id="auth-link" data-i18n="loginJoin">Login / Join</a>
+        <div class="lang-select">
+        <select id="lang-select" data-i18n-aria="language" aria-label="Language">
+          <option value="en">English</option>
+          <option value="ko">한국어</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+          <option value="ja">日本語</option>
+          <option value="zh-Hans">简体中文</option>
+          <option value="zh-Hant">繁體中文</option>
+        </select>
+      </div>
+      </div>
       <button class="header__menu-btn" type="button" data-i18n-aria="openMenu" aria-expanded="false" id="menu-btn">
         <span></span><span></span>
       </button>
@@ -58,18 +72,6 @@
           <a href="articles.html" data-i18n="article">Article</a>
           <a href="film.html" data-i18n="film">Film</a>
         </div>
-      </div>
-      <div class="lang-select">
-        <select id="lang-select" data-i18n-aria="language" aria-label="Language">
-          <option value="en">English</option>
-          <option value="ko">한국어</option>
-          <option value="it">Italiano</option>
-          <option value="fr">Français</option>
-          <option value="es">Español</option>
-          <option value="ja">日本語</option>
-          <option value="zh-Hans">简体中文</option>
-          <option value="zh-Hant">繁體中文</option>
-        </select>
       </div>
     </nav>
   </header>

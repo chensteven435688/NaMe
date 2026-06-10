@@ -12,8 +12,18 @@
       <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
       <nav class="header__actions">
         <a href="subscribe.html" data-i18n="subscribe">Subscribe</a>
-        <a href="#auth" id="auth-link" data-i18n="loginJoin">Login / Join</a>
       </nav>
+      <div class="header__account">
+        <a href="#auth" id="auth-link" data-i18n="loginJoin">Login / Join</a>
+        <div class="lang-select">
+        <select id="lang-select" data-i18n-aria="language" aria-label="Language">
+          <option value="en">English</option>
+          <option value="ko">한국어</option>
+          <option value="zh-Hans">简体中文</option>
+          <option value="zh-Hant">繁體中文</option>
+        </select>
+      </div>
+      </div>
       <button class="header__menu-btn" type="button" id="menu-btn"><span></span><span></span></button>
     </div>
     <nav class="header__nav" id="main-nav">
@@ -38,14 +48,6 @@
           <a href="articles.html" data-i18n="article">Article</a>
           <a href="film.html" data-i18n="film">Film</a>
         </div>
-      </div>
-      <div class="lang-select">
-        <select id="lang-select" data-i18n-aria="language" aria-label="Language">
-          <option value="en">English</option>
-          <option value="ko">한국어</option>
-          <option value="zh-Hans">简体中文</option>
-          <option value="zh-Hant">繁體中文</option>
-        </select>
       </div>
     </nav>
   </header>
