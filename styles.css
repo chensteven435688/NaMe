@@ -148,10 +148,7 @@ select {
   font-weight: inherit;
   letter-spacing: inherit;
   line-height: inherit;
-}
-
-.header__actions #auth-link.is-user {
-  text-transform: none;
+  text-transform: inherit;
 }
 
 .header__menu-btn {
