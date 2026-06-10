@@ -327,6 +327,13 @@ const NaMeAuth = (function () {
     }
     const adminLink = document.getElementById("admin-link");
     if (adminLink) adminLink.hidden = !isAdmin();
+
+    const subscribeLink = document.getElementById("header-subscribe-link");
+    if (subscribeLink) subscribeLink.hidden = !!user;
+
+    document.querySelectorAll('.mobile-bar a[href*="subscribe.html"]').forEach((el) => {
+      el.hidden = !!user;
+    });
   }
 
   function initUI() {

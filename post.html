@@ -12,7 +12,7 @@
     <div class="header__top">
       <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
       <nav class="header__actions" aria-label="Quick actions">
-        <a href="subscribe.html" data-i18n="subscribe">Subscribe</a>
+        <a href="subscribe.html" id="header-subscribe-link" data-i18n="subscribe">Subscribe</a>
         <a href="about.html" data-i18n="about">About</a>
         <a href="admin-upload.html" id="admin-link" hidden data-i18n="admin">Admin</a>
         <a href="#auth" id="auth-link" data-i18n="loginJoin">Login / Join</a>
@@ -70,7 +70,13 @@
         <input type="email" name="registerEmail" data-register-email data-i18n-placeholder="authEmail" placeholder="Email" required autocomplete="email" />
         <input type="password" name="registerPassword" data-register-password data-i18n-placeholder="authPasswordMin" placeholder="Password (8+ characters)" required minlength="8" autocomplete="new-password" />
         <button type="submit" class="btn btn--primary" data-i18n="authRegisterBtn">Create account</button>
+        <p class="auth-join-links">
+          <a href="subscribe.html" data-i18n="subscribe">Subscribe</a>
+          <span class="auth-join-links__sep" aria-hidden="true">&middot;</span>
+          <a href="terms.html" data-i18n="terms">Terms of Service</a>
+        </p>
       </form>
+
     </div>
   </div>
 

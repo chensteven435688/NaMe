@@ -1052,6 +1052,27 @@ select {
   display: none;
 }
 
+.auth-join-links {
+  margin: 0.35rem 0 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.auth-join-links a {
+  color: var(--text-dim);
+}
+
+.auth-join-links a:hover {
+  color: var(--text);
+}
+
+.auth-join-links__sep {
+  margin: 0 0.45rem;
+  opacity: 0.45;
+}
+
 .auth-form input {
   width: 100%;
   padding: 0.75rem 1rem;
