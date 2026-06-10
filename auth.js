@@ -364,9 +364,16 @@ const NaMeAuth = (function () {
     const subscribeLink = document.getElementById("header-subscribe-link");
     if (subscribeLink) subscribeLink.hidden = !!user;
 
-    document.querySelectorAll('.mobile-bar a[href*="subscribe.html"]').forEach((el) => {
+    document.querySelectorAll('.header__actions a[href*="subscribe.html"]').forEach((el) => {
       el.hidden = !!user;
     });
+
+    const hideSubmission = !!user && isAdmin();
+    document
+      .querySelectorAll('.header__actions a[href*="submission.html"], .mobile-bar a[href*="submission.html"]')
+      .forEach((el) => {
+        el.hidden = hideSubmission;
+      });
   }
 
   function initUI() {
