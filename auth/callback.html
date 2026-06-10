@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email verified — NaMe Magazine</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body class="page-static auth-callback">
+  <main class="auth-callback__main">
+    <p class="auth-callback__label">NaMe Magazine</p>
+    <h1 class="auth-callback__title" id="auth-callback-title">Confirming your email…</h1>
+    <p class="auth-callback__text" id="auth-callback-text">Please wait a moment.</p>
+    <a href="../index.html" class="btn btn--primary auth-callback__btn" id="auth-callback-btn" hidden>Continue to NaMe</a>
+  </main>
+
+  <script src="../base.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../supabase.js"></script>
+  <script src="../auth.js"></script>
+  <script src="callback.js"></script>
+</body>
+</html>

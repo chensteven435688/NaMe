@@ -103,9 +103,22 @@ const NaMeAuth = (function () {
     );
   }
 
+  async function absorbAuthCallback() {
+    if (!useSupabase()) return;
+    const sb = supabase();
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (code) {
+      const { error } = await sb.auth.exchangeCodeForSession(code);
+      if (error) throw error;
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
+
   async function refresh() {
     if (useSupabase()) {
       try {
+        await absorbAuthCallback();
         const sb = supabase();
         const { data } = await sb.auth.getSession();
         if (data.session?.user) {
@@ -145,10 +158,17 @@ const NaMeAuth = (function () {
 
     if (useSupabase()) {
       const sb = supabase();
+      const redirectTo =
+        typeof NaMeSupabase !== "undefined"
+          ? NaMeSupabase.getAuthRedirectUrl()
+          : `${window.location.origin}/auth/callback.html`;
       const { data, error } = await sb.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { display_name: displayName.trim() } },
+        options: {
+          data: { display_name: displayName.trim() },
+          emailRedirectTo: redirectTo,
+        },
       });
       if (error) throw new Error(error.message);
       if (data.session?.user) {
@@ -259,41 +279,47 @@ const NaMeAuth = (function () {
     return data.post;
   }
 
+  function updateAuthUI() {
+    const authLink = document.getElementById("auth-link");
+    if (!authLink) return;
+
+    const user = getUser();
+    const lang = typeof NaMeI18n !== "undefined" ? NaMeI18n.getLang() : "en";
+    if (user) {
+      authLink.textContent = user.displayName;
+      authLink.classList.add("is-user");
+      authLink.href = "#";
+      authLink.onclick = (e) => {
+        e.preventDefault();
+        if (confirm(typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "logoutConfirm") : "Log out?")) {
+          logout();
+        }
+      };
+    } else {
+      authLink.classList.remove("is-user");
+      authLink.textContent =
+        typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "loginJoin") : "Login / Join";
+      authLink.href = "#auth";
+      authLink.onclick = (e) => {
+        e.preventDefault();
+        openAuthModal("login");
+      };
+    }
+    const adminLink = document.getElementById("admin-link");
+    if (adminLink) adminLink.hidden = !isAdmin();
+  }
+
   function initUI() {
     initAuthModal();
 
     const authLink = document.getElementById("auth-link");
     if (!authLink) return;
 
-    const update = () => {
-      const user = getUser();
-      const lang = typeof NaMeI18n !== "undefined" ? NaMeI18n.getLang() : "en";
-      if (user) {
-        authLink.textContent = user.displayName;
-        authLink.classList.add("is-user");
-        authLink.href = "#";
-        authLink.onclick = (e) => {
-          e.preventDefault();
-          if (confirm(typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "logoutConfirm") : "Log out?")) {
-            logout();
-          }
-        };
-      } else {
-        authLink.classList.remove("is-user");
-        authLink.textContent =
-          typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "loginJoin") : "Login / Join";
-        authLink.href = "#auth";
-        authLink.onclick = (e) => {
-          e.preventDefault();
-          openAuthModal("login");
-        };
-      }
-      const adminLink = document.getElementById("admin-link");
-      if (adminLink) adminLink.hidden = !isAdmin();
-    };
-
-    onChange(update);
-    update();
+    if (!authLink.dataset.authUiBound) {
+      authLink.dataset.authUiBound = "1";
+      onChange(updateAuthUI);
+    }
+    updateAuthUI();
   }
 
   function initAuthModal() {
@@ -439,16 +465,17 @@ const NaMeAuth = (function () {
   };
 })();
 
-// Wire auth modal on every page (including admin gate without #auth-link)
-document.addEventListener("DOMContentLoaded", () => {
+// Wire auth on every page (including admin gate without #auth-link)
+document.addEventListener("DOMContentLoaded", async () => {
   NaMeAuth.initAuthModal();
+  await NaMeAuth.refresh();
+  NaMeAuth.initUI();
+
   const sb = typeof NaMeSupabase !== "undefined" ? NaMeSupabase.getClient() : null;
   if (sb) {
-    sb.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) await NaMeAuth.refresh();
-      else {
-        NaMeAuth.refresh();
-      }
+    sb.auth.onAuthStateChange(async () => {
+      await NaMeAuth.refresh();
+      NaMeAuth.initUI();
     });
   }
 });

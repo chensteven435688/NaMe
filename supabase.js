@@ -9,6 +9,12 @@ const NaMeSupabase = (function () {
 
   let client = null;
 
+  function getAuthRedirectUrl() {
+    if (typeof window === "undefined") return "";
+    const base = typeof NaMeBase !== "undefined" ? NaMeBase.getBase() : "";
+    return `${window.location.origin}${base}/auth/callback.html`;
+  }
+
   function getClient() {
     if (client) return client;
     const lib = typeof window !== "undefined" ? window.supabase : null;
@@ -16,12 +22,21 @@ const NaMeSupabase = (function () {
       console.warn("NaMe: @supabase/supabase-js is not loaded");
       return null;
     }
-    client = lib.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    client = lib.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        flowType: "pkce",
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true,
+        storage: window.localStorage,
+      },
+    });
     return client;
   }
 
   return {
     getClient,
+    getAuthRedirectUrl,
     getUrl: () => SUPABASE_URL,
     getPublishableKey: () => SUPABASE_PUBLISHABLE_KEY,
   };
