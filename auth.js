@@ -332,6 +332,130 @@ const NaMeAuth = (function () {
     return data.post;
   }
 
+  const SUBMISSION_MEDIA = [
+    "photography",
+    "design",
+    "film",
+    "writing",
+    "visual-art",
+    "other",
+  ];
+
+  function mapSubmission(row) {
+    if (!row) return null;
+    const post = row.posts;
+    const postSlug = Array.isArray(post) ? post[0]?.slug : post?.slug;
+    return {
+      id: row.id,
+      title: row.title,
+      medium: row.medium,
+      description: row.description,
+      fileUrl: row.file_url,
+      fileName: row.file_name,
+      fileMime: row.file_mime,
+      status: row.status,
+      postId: row.post_id,
+      postSlug: postSlug || null,
+      adminNote: row.admin_note,
+      createdAt: row.created_at,
+      reviewedAt: row.reviewed_at,
+    };
+  }
+
+  function submissionStats(rows) {
+    const stats = { total: 0, pending: 0, published: 0, rejected: 0 };
+    for (const row of rows) {
+      stats.total += 1;
+      if (stats[row.status] !== undefined) stats[row.status] += 1;
+    }
+    return stats;
+  }
+
+  function isAllowedSubmissionFile(file) {
+    if (!file) return false;
+    return (
+      /^image\//.test(file.type) ||
+      file.type === "application/pdf" ||
+      /^video\//.test(file.type)
+    );
+  }
+
+  async function fetchMySubmissions() {
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      if (!user) throw new Error("Log in required");
+
+      const { data, error } = await sb
+        .from("submissions")
+        .select("*, posts(slug)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+
+      const submissions = (data || []).map(mapSubmission);
+      return { submissions, stats: submissionStats(submissions) };
+    }
+
+    return request("/api/submissions/mine");
+  }
+
+  async function createSubmission(formData) {
+    const title = formData.get("title")?.toString().trim() || "";
+    const medium = formData.get("medium")?.toString() || "";
+    const description = formData.get("description")?.toString().trim() || "";
+    const file = formData.get("file");
+
+    if (!title) throw new Error("Title required");
+    if (!SUBMISSION_MEDIA.includes(medium)) throw new Error("Select a valid medium");
+    if (!file || !(file instanceof File) || !file.size) {
+      throw new Error("Upload a file (image, PDF, or video)");
+    }
+    if (!isAllowedSubmissionFile(file)) {
+      throw new Error("Allowed file types: images, PDF, or video");
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      throw new Error("File must be 25 MB or smaller");
+    }
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      if (!user) throw new Error("Log in required");
+
+      const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
+      const objectPath = `${user.id}/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
+
+      const { error: uploadError } = await sb.storage
+        .from("submissions")
+        .upload(objectPath, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data: urlData } = sb.storage.from("submissions").getPublicUrl(objectPath);
+      const fileUrl = urlData.publicUrl;
+
+      const { data, error } = await sb
+        .from("submissions")
+        .insert({
+          user_id: user.id,
+          title,
+          medium,
+          description: description || null,
+          file_url: fileUrl,
+          file_name: file.name,
+          file_mime: file.type,
+          status: "pending",
+        })
+        .select("*")
+        .single();
+      if (error) throw new Error(error.message);
+
+      return { submission: mapSubmission(data) };
+    }
+
+    return request("/api/submissions", { method: "POST", body: formData });
+  }
+
   function updateAuthUI() {
     const authLink = document.getElementById("auth-link");
     if (!authLink) return;
@@ -659,6 +783,8 @@ const NaMeAuth = (function () {
     getUser,
     fetchPosts,
     fetchPost,
+    fetchMySubmissions,
+    createSubmission,
     request,
     initUI,
     initAuthModal,

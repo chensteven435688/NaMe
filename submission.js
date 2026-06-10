@@ -27,7 +27,7 @@ async function loadMine() {
   list.innerHTML = `<p class="submission-list__loading">${esc(NaMeI18n.t(lang, "submissionLoading"))}</p>`;
 
   try {
-    const { submissions, stats } = await NaMeAuth.request("/api/submissions/mine");
+    const { submissions, stats } = await NaMeAuth.fetchMySubmissions();
     renderStats(stats, statsEl, lang);
     renderList(submissions, list, lang);
   } catch (err) {
@@ -109,7 +109,7 @@ async function onSubmit(e) {
   btn.disabled = true;
 
   try {
-    await NaMeAuth.request("/api/submissions", { method: "POST", body: fd });
+    await NaMeAuth.createSubmission(fd);
     status.textContent = NaMeI18n.t(lang, "submissionSuccess");
     form.reset();
     loadMine();
