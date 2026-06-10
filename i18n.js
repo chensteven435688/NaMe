@@ -316,6 +316,12 @@ const NaMeI18n = (function () {
       authDisplayName: "Display name",
       authLoginBtn: "Login",
       authRegisterBtn: "Create account",
+      authConfirmSent:
+        "Account created. Check your inbox (and spam) for a confirmation link, then log in.",
+      authResendConfirm: "Resend confirmation email",
+      authResendSent: "Confirmation email sent. Check your inbox and spam folder.",
+      authResendNeedEmail: "Enter your email above, then tap resend.",
+      authEmailNotConfirmed: "Please confirm your email first. Use resend below if you did not get it.",
       logoutConfirm: "Log out?",
       backHome: "← Back to NaMe",
       commentsTitle: "Comments",

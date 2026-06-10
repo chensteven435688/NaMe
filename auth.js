@@ -168,6 +168,33 @@ const NaMeAuth = (function () {
     return currentUser;
   }
 
+  function authT(key) {
+    const lang = typeof NaMeI18n !== "undefined" ? NaMeI18n.getLang() : "en";
+    return typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, key) : key;
+  }
+
+  function getAuthRedirectUrl() {
+    return typeof NaMeSupabase !== "undefined"
+      ? NaMeSupabase.getAuthRedirectUrl()
+      : `${window.location.origin}/auth/callback.html`;
+  }
+
+  async function resendConfirmationEmail(email) {
+    if (!email?.trim()) {
+      throw new Error(authT("authResendNeedEmail"));
+    }
+    if (!useSupabase()) {
+      throw new Error("Email confirmation is only available on the live site.");
+    }
+    const sb = supabase();
+    const { error } = await sb.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: getAuthRedirectUrl() },
+    });
+    if (error) throw new Error(error.message);
+  }
+
   async function register(email, password, displayName) {
     if (!displayName?.trim()) {
       throw new Error("Display name required");
@@ -178,27 +205,24 @@ const NaMeAuth = (function () {
 
     if (useSupabase()) {
       const sb = supabase();
-      const redirectTo =
-        typeof NaMeSupabase !== "undefined"
-          ? NaMeSupabase.getAuthRedirectUrl()
-          : `${window.location.origin}/auth/callback.html`;
       const { data, error } = await sb.auth.signUp({
         email: email.trim(),
         password,
         options: {
           data: { display_name: displayName.trim() },
-          emailRedirectTo: redirectTo,
+          emailRedirectTo: getAuthRedirectUrl(),
         },
       });
       if (error) throw new Error(error.message);
       if (data.session?.user) {
         await loadProfile(data.session.user.id);
         notify();
-        return currentUser;
+        return { user: currentUser };
       }
-      throw new Error(
-        "Account created. Check your email to confirm, then log in."
-      );
+      if (data.user) {
+        return { needsConfirmation: true, email: email.trim() };
+      }
+      throw new Error("Registration failed. Please try again.");
     }
 
     const data = await request("/api/auth/register", {
@@ -217,7 +241,12 @@ const NaMeAuth = (function () {
         email: email.trim(),
         password,
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (/confirm/i.test(error.message)) {
+          throw new Error(authT("authEmailNotConfirmed"));
+        }
+        throw new Error(error.message);
+      }
       await loadProfile(data.user.id);
       notify();
       return currentUser;
@@ -392,7 +421,7 @@ const NaMeAuth = (function () {
         updateAuthUI();
         closeAuthModal();
         form.reset();
-        clearAuthError();
+        clearAuthMessage();
       } finally {
         setSubmitLoading(submitBtn, false);
       }
@@ -405,10 +434,18 @@ const NaMeAuth = (function () {
       const password = form.querySelector("[data-register-password]")?.value || "";
       setSubmitLoading(submitBtn, true);
       try {
-        await register(email, password, displayName);
+        const result = await register(email, password, displayName);
+        if (result?.needsConfirmation) {
+          showAuthMessage(authT("authConfirmSent"), "success");
+          switchAuthTab("login");
+          prefillLoginEmail(result.email);
+          form.reset();
+          return;
+        }
+        updateAuthUI();
         closeAuthModal();
         form.reset();
-        clearAuthError();
+        clearAuthMessage();
       } finally {
         setSubmitLoading(submitBtn, false);
       }
@@ -420,6 +457,59 @@ const NaMeAuth = (function () {
         openAuthModal(el.dataset.openAuth || "login");
       });
     });
+
+    ensureResendConfirmationControl();
+  }
+
+  function switchAuthTab(tab) {
+    const modal = document.getElementById("auth-modal");
+    if (!modal) return;
+    modal.querySelectorAll("[data-auth-tab]").forEach((t) => {
+      t.classList.toggle("is-active", t.dataset.authTab === tab);
+    });
+    modal.querySelectorAll("[data-auth-panel]").forEach((p) => {
+      p.classList.toggle("is-hidden", p.dataset.authPanel !== tab);
+    });
+  }
+
+  function prefillLoginEmail(email) {
+    const loginForm = document.getElementById("auth-login-form");
+    const emailInput =
+      loginForm?.querySelector("[data-login-email]") ||
+      loginForm?.querySelector('input[name="loginEmail"]');
+    if (emailInput && email) emailInput.value = email;
+  }
+
+  function ensureResendConfirmationControl() {
+    const loginForm = document.getElementById("auth-login-form");
+    if (!loginForm || loginForm.querySelector("[data-resend-confirm]")) return;
+
+    const wrap = document.createElement("p");
+    wrap.className = "auth-resend";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "auth-resend__btn";
+    btn.dataset.resendConfirm = "1";
+    btn.textContent = authT("authResendConfirm");
+    btn.addEventListener("click", async () => {
+      clearAuthMessage();
+      const email = (
+        loginForm.querySelector("[data-login-email]")?.value ||
+        loginForm.querySelector('input[name="loginEmail"]')?.value ||
+        ""
+      ).trim();
+      btn.disabled = true;
+      try {
+        await resendConfirmationEmail(email);
+        showAuthMessage(authT("authResendSent"), "success");
+      } catch (err) {
+        showAuthError(err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    wrap.appendChild(btn);
+    loginForm.appendChild(wrap);
   }
 
   function bindAuthForm(id, handler) {
@@ -427,7 +517,7 @@ const NaMeAuth = (function () {
     if (!form) return;
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      clearAuthError();
+      clearAuthMessage();
       const fd = new FormData(form);
       try {
         await handler(fd, form);
@@ -461,17 +551,29 @@ const NaMeAuth = (function () {
     document.body.style.overflow = "";
   }
 
-  function showAuthError(msg) {
+  function showAuthMessage(msg, type = "error") {
     const el = document.getElementById("auth-error");
     if (el) {
       el.textContent = msg;
+      el.classList.toggle("auth-error--success", type === "success");
       el.hidden = false;
     }
   }
 
-  function clearAuthError() {
+  function showAuthError(msg) {
+    showAuthMessage(msg, "error");
+  }
+
+  function clearAuthMessage() {
     const el = document.getElementById("auth-error");
-    if (el) el.hidden = true;
+    if (el) {
+      el.hidden = true;
+      el.classList.remove("auth-error--success");
+    }
+  }
+
+  function clearAuthError() {
+    clearAuthMessage();
   }
 
   return {
@@ -479,6 +581,7 @@ const NaMeAuth = (function () {
     register,
     login,
     logout,
+    resendConfirmationEmail,
     onChange,
     isAdmin,
     isLoggedIn,
