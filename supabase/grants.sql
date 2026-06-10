@@ -26,3 +26,6 @@ grant insert, delete on table public.community_comments to authenticated;
 
 grant select, insert on table public.submissions to authenticated;
 grant update, delete on table public.submissions to authenticated;
+
+grant select, insert on table public.newsletter_subscribers to anon, authenticated;
+grant update on table public.newsletter_subscribers to authenticated;

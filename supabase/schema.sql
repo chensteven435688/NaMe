@@ -7,6 +7,7 @@ create table if not exists public.profiles (
   email text unique,
   display_name text not null,
   role text not null default 'member' check (role in ('admin', 'member')),
+  newsletter_opt_in boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -97,6 +98,21 @@ create table if not exists public.submissions (
 create index if not exists idx_submissions_user on public.submissions (user_id);
 create index if not exists idx_submissions_status on public.submissions (status);
 
+-- Newsletter emails from subscribe page (no account required)
+create table if not exists public.newsletter_subscribers (
+  id uuid primary key default gen_random_uuid(),
+  email text not null unique,
+  user_id uuid references public.profiles (id) on delete set null,
+  source text not null default 'subscribe_page'
+    check (source in ('subscribe_page', 'join', 'admin')),
+  opted_in boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_newsletter_subscribers_opted
+  on public.newsletter_subscribers (opted_in, created_at desc);
+
 -- Auto-create profile when someone signs up via Supabase Auth
 create or replace function public.handle_new_user ()
 returns trigger
@@ -105,12 +121,13 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, display_name, role)
+  insert into public.profiles (id, email, display_name, role, newsletter_opt_in)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data ->> 'display_name', split_part(new.email, '@', 1)),
-    'member'
+    'member',
+    coalesce((new.raw_user_meta_data ->> 'newsletter_opt_in')::boolean, false)
   );
   return new;
 end;
@@ -144,6 +161,7 @@ alter table public.community_posts enable row level security;
 alter table public.community_likes enable row level security;
 alter table public.community_comments enable row level security;
 alter table public.submissions enable row level security;
+alter table public.newsletter_subscribers enable row level security;
 
 -- Profiles
 create policy "Profiles are viewable by everyone"
@@ -220,6 +238,16 @@ create policy "Admins manage submissions"
 create policy "Admins delete submissions"
   on public.submissions for delete using (public.is_admin());
 
+-- Newsletter
+create policy "Anyone can subscribe"
+  on public.newsletter_subscribers for insert with check (true);
+
+create policy "Admins read newsletter list"
+  on public.newsletter_subscribers for select using (public.is_admin());
+
+create policy "Admins manage newsletter list"
+  on public.newsletter_subscribers for update using (public.is_admin());
+
 -- Table privileges (required — RLS alone is not enough)
 grant usage on schema public to anon, authenticated;
 grant select on table public.profiles to anon, authenticated;
@@ -238,6 +266,8 @@ grant select on table public.community_comments to anon, authenticated;
 grant insert, delete on table public.community_comments to authenticated;
 grant select, insert on table public.submissions to authenticated;
 grant update, delete on table public.submissions to authenticated;
+grant select, insert on table public.newsletter_subscribers to anon, authenticated;
+grant update on table public.newsletter_subscribers to authenticated;
 
 -- Make yourself admin (replace with your email after you sign up once)
 -- update public.profiles set role = 'admin' where email = 'chensteven435688@gmail.com';
