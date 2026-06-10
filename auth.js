@@ -136,6 +136,7 @@ const NaMeAuth = (function () {
       const lang = typeof NaMeI18n !== "undefined" ? NaMeI18n.getLang() : "en";
       if (user) {
         authLink.textContent = user.displayName;
+        authLink.classList.add("is-user");
         authLink.href = "#";
         authLink.onclick = (e) => {
           e.preventDefault();
@@ -144,6 +145,7 @@ const NaMeAuth = (function () {
           }
         };
       } else {
+        authLink.classList.remove("is-user");
         authLink.textContent =
           typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "loginJoin") : "Login / Join";
         authLink.href = "#auth";
