@@ -4,7 +4,7 @@
 const NaMeNav = (function () {
   const NAV_GROUPS = {
     about: ["about.html", "business.html", "contact.html"],
-    stories: ["magazine.html", "editorial.html", "articles.html", "film.html"],
+    stories: ["stories.html", "magazine.html", "editorial.html", "articles.html", "film.html"],
   };
 
   function pageName(path) {

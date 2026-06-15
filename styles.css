@@ -2201,6 +2201,48 @@ button.danger {
   font-size: 15px;
 }
 
+.stories-categories {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.stories-categories__inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 0.75rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.25rem clamp(1.5rem, 5vw, 3rem);
+}
+
+.stories-categories__link {
+  display: inline-block;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.stories-categories__link:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+  background: var(--bg-alt);
+}
+
+.browse-grid .card__type {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
 .browse-hero--exclusive {
   background: var(--bg-elevated);
 }

@@ -102,6 +102,14 @@ const NaMeI18n = (function () {
       filmPageIntro:
         "Fashion films, documentaries, and moving-image stories from filmmakers before the world knows their name.",
       filmEmpty: "No films yet. Check back soon.",
+      storiesPageTitle: "Stories — NaMe Magazine",
+      storiesPageDescription:
+        "NaMe Magazine — magazine features, editorials, articles, and film from emerging artists",
+      storiesLabel: "Stories",
+      storiesPageHeading: "All Stories",
+      storiesPageIntro:
+        "Magazine features, editorials, articles, and film — every story from NaMe in one place.",
+      storiesEmpty: "No stories yet. Check back soon.",
       exclusivePageTitle: "Editor's Exclusive — NaMe Magazine",
       exclusivePageDescription:
         "Editor's Exclusive — personal picks and unpublished work from the NaMe editor",
