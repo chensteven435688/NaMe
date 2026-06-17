@@ -78,35 +78,43 @@
 
   <main>
     <!-- Cover hero -->
-    <section class="hero" data-i18n-aria="coverStory" aria-label="Cover story">
-      <div class="hero__slides" id="hero-slides">
-        <article class="hero__slide hero__slide--active" data-slide="0">
-          <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1920&q=80" alt="FOLIE" />
-          <div class="hero__overlay">
-            <p class="hero__vol" data-i18n="heroVolCover">VOL.01 COVER STORY</p>
-            <h1 class="hero__title">FOLIE</h1>
+    <section class="hero hero--split" id="hero" data-i18n-aria="coverStory" aria-label="Cover story">
+      <div class="hero__layout">
+        <aside class="hero__panel">
+          <p class="hero__vol" id="hero-label" data-i18n="heroVolCover">VOL.01 COVER STORY</p>
+          <h1 class="hero__title" id="hero-title">FOLIE</h1>
+          <p class="hero__meta" id="hero-meta" hidden></p>
+          <a class="hero__cta" id="hero-cta" href="#" data-i18n="heroReadStory">Read story →</a>
+          <div class="hero__controls">
+            <button type="button" class="hero__arrow" id="hero-prev" data-i18n-aria="previous" aria-label="Previous">‹</button>
+            <span class="hero__counter" id="hero-counter" aria-live="polite">01 / 03</span>
+            <button type="button" class="hero__arrow" id="hero-next" data-i18n-aria="next" aria-label="Next">›</button>
           </div>
-        </article>
-        <article class="hero__slide" data-slide="1">
-          <img src="https://images.unsplash.com/photo-1469334031218-e382a71abbee?w=1920&q=80" alt="EQUIPOISE" />
-          <div class="hero__overlay">
-            <p class="hero__vol" data-i18n="heroEditorial">EDITORIAL</p>
-            <h1 class="hero__title">EQUIPOISE</h1>
-          </div>
-        </article>
-        <article class="hero__slide" data-slide="2">
-          <img src="https://images.unsplash.com/photo-1483985988354-763728e3685b?w=1920&q=80" alt="BIRDS DON'T CRY" />
-          <div class="hero__overlay">
-            <p class="hero__vol" data-i18n="heroEditorial">EDITORIAL</p>
-            <h1 class="hero__title">BIRDS DON'T CRY</h1>
-          </div>
-        </article>
+          <div class="hero__progress" aria-hidden="true"><span id="hero-progress"></span></div>
+        </aside>
+        <div class="hero__media" id="hero-media" aria-hidden="true"></div>
       </div>
-      <div class="hero__dots" id="hero-dots" data-i18n-aria="coverSlides" aria-label="Cover slides"></div>
+    </section>
+
+    <div class="home-marquee" aria-hidden="true">
+      <div class="home-marquee__track">
+        <span>Before the Name</span><span>NaMe Magazine</span><span>Before the Name</span><span>NaMe Magazine</span>
+        <span>Before the Name</span><span>NaMe Magazine</span><span>Before the Name</span><span>NaMe Magazine</span>
+      </div>
+    </div>
+
+    <section class="home-index" id="home-index">
+      <div class="home-index__head">
+        <span class="section__label" data-i18n="homeIndexLabel">Index</span>
+        <h2 class="home-index__title" data-i18n="homeIndexTitle">Latest Stories</h2>
+      </div>
+      <ol class="home-index__list" id="home-index-list">
+        <li class="home-index__loading" data-i18n="browseLoading">Loading…</li>
+      </ol>
     </section>
 
     <!-- Community CTA -->
-    <section class="community-banner" id="community">
+    <section class="community-banner home-reveal" id="community">
       <div class="community-banner__inner">
         <span class="community-banner__label" data-i18n="communityLabel">Before the Name</span>
         <h2 class="community-banner__title" data-i18n="communityTitle">Before the world knows your name</h2>
@@ -116,7 +124,7 @@
     </section>
 
     <!-- Editor's Exclusive -->
-    <section class="section section--exclusive" id="exclusive">
+    <section class="section section--exclusive home-reveal" id="exclusive">
       <div class="section__head">
         <div class="section__head-text">
           <span class="section__label" data-i18n="exclusiveLabel">Editor's Exclusive</span>
@@ -135,7 +143,7 @@
     </section>
 
     <!-- Latest articles -->
-    <section class="section" id="articles">
+    <section class="section home-reveal" id="articles">
       <div class="section__head">
         <h2 class="section__title" data-i18n="latestArticles">Latest Articles</h2>
         <div class="section__head-actions">
@@ -150,7 +158,7 @@
     </section>
 
     <!-- Latest editorials -->
-    <section class="section section--alt" id="editorial">
+    <section class="section section--alt home-reveal" id="editorial">
       <div class="section__head">
         <h2 class="section__title" data-i18n="latestEditorials">Latest Editorials</h2>
         <div class="section__head-actions">
@@ -165,7 +173,7 @@
     </section>
 
     <!-- Popular editorials -->
-    <section class="section" id="magazine">
+    <section class="section home-reveal" id="magazine">
       <div class="section__head">
         <h2 class="section__title" data-i18n="popularEditorials">Popular Editorials</h2>
         <div class="section__head-actions">
@@ -180,7 +188,7 @@
     </section>
 
     <!-- Film -->
-    <section class="section section--film" id="film">
+    <section class="section section--film home-reveal" id="film">
       <div class="section__head">
         <h2 class="section__title" data-i18n="filmSection">Film</h2>
         <div class="section__head-actions">

@@ -41,6 +41,10 @@ const NaMeI18n = (function () {
       film: "Film",
       heroVolCover: "VOL.01 COVER STORY",
       heroEditorial: "EDITORIAL",
+      heroReadStory: "Read story →",
+      homeIndexLabel: "Index",
+      homeIndexTitle: "Latest Stories",
+      homeIndexEmpty: "No stories yet. Check back soon.",
       communityLabel: "Before the Name",
       communityTitle: "Before the world knows your name",
       communityText:
