@@ -1,8 +1,18 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const ok = await NaMeAdmin.init("upload");
   if (!ok) return;
+  bootUpload();
+});
 
+document.addEventListener("name:adminpage", (e) => {
+  if (e.detail?.page === "upload") bootUpload();
+});
+
+function bootUpload() {
   const form = document.getElementById("upload-form");
+  if (!form) return;
+  if (form.dataset.booted) return;
+  form.dataset.booted = "1";
   const status = document.getElementById("upload-status");
   const success = document.getElementById("upload-success");
   const imageInput = document.getElementById("upload-image");
@@ -88,4 +98,4 @@ document.addEventListener("DOMContentLoaded", async () => {
       status.textContent = err.message;
     }
   });
-});
+}

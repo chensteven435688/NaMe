@@ -1,8 +1,21 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const ok = await NaMeAdmin.init("exclusive");
   if (!ok) return;
+  bootExclusive();
+});
 
+document.addEventListener("name:adminpage", (e) => {
+  if (e.detail?.page === "exclusive") bootExclusive();
+});
+
+function bootExclusive() {
   const form = document.getElementById("exclusive-form");
+  if (!form) return;
+  if (form.dataset.booted) {
+    loadExclusivePosts();
+    return;
+  }
+  form.dataset.booted = "1";
   const status = document.getElementById("exclusive-status");
   const success = document.getElementById("exclusive-success");
   const imageInput = document.getElementById("exclusive-image");
@@ -79,7 +92,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("exclusive-refresh")?.addEventListener("click", loadExclusivePosts);
   loadExclusivePosts();
-});
+}
 
 async function loadExclusivePosts() {
   const tbody = document.getElementById("exclusive-table-body");

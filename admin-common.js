@@ -1,8 +1,21 @@
 /**
- * NaMe — shared admin layout (gate, sidebar, auth)
+ * NaMe — shared admin layout (gate, sidebar, auth, in-app navigation)
  */
 const NaMeAdmin = (function () {
   const ADMIN_SESSION_KEY = "name-admin-ok";
+
+  const PAGE_SCRIPTS = {
+    dashboard: "admin.js",
+    content: "admin.js",
+    users: "admin.js",
+    upload: "admin-upload.js",
+    exclusive: "admin-exclusive.js",
+    submissions: "admin-submissions.js",
+    comments: "admin-comments.js",
+  };
+
+  const loadedScripts = new Set();
+  let renderedPage = resolvePage(location.pathname, location.hash);
 
   try {
     if (sessionStorage.getItem(ADMIN_SESSION_KEY) === "1" && document.body) {
@@ -11,6 +24,10 @@ const NaMeAdmin = (function () {
   } catch {
     /* ignore */
   }
+
+  document.querySelectorAll('script[src]').forEach((s) => {
+    if (s.src) loadedScripts.add(s.src.split("?")[0]);
+  });
 
   const NAV = [
     { href: "/admin.html", key: "adminNavDashboard", page: "dashboard" },
@@ -31,6 +48,30 @@ const NaMeAdmin = (function () {
     return typeof NaMeBase !== "undefined" ? NaMeBase.path(p) : p;
   }
 
+  function pageFile(pathname) {
+    const name = pathname.split("/").filter(Boolean).pop() || "";
+    return name || "index.html";
+  }
+
+  function resolvePage(pathname, hash) {
+    const file = pageFile(pathname);
+    const h = (hash || "").replace("#", "");
+    if (file === "admin.html") {
+      if (h === "content") return "content";
+      if (h === "users") return "users";
+      return "dashboard";
+    }
+    if (file === "admin-upload.html") return "upload";
+    if (file === "admin-exclusive.html") return "exclusive";
+    if (file === "admin-submissions.html") return "submissions";
+    if (file === "admin-comments.html") return "comments";
+    return null;
+  }
+
+  function isDashboardFile(pathname) {
+    return pageFile(pathname) === "admin.html";
+  }
+
   function renderSidebar(activePage) {
     const nav = document.getElementById("admin-sidebar-nav");
     if (!nav) return;
@@ -44,7 +85,7 @@ const NaMeAdmin = (function () {
     nav.innerHTML = NAV.map((item) => {
       const label = t(item.key);
       const active = item.page === current ? " is-active" : "";
-      return `<a href="${path(item.href)}" class="admin-nav__item${active}">${label}</a>`;
+      return `<a href="${path(item.href)}" class="admin-nav__item${active}" data-admin-nav>${label}</a>`;
     }).join("");
   }
 
@@ -132,24 +173,156 @@ const NaMeAdmin = (function () {
     return isAdmin;
   }
 
+  function setNavLoading(loading) {
+    document.body.classList.toggle("admin-nav-loading", loading);
+  }
+
+  function syncPageModals(doc) {
+    document.querySelectorAll("body > .modal:not(#auth-modal)").forEach((el) => el.remove());
+    doc.querySelectorAll("body > .modal:not(#auth-modal)").forEach((el) => {
+      document.body.appendChild(el.cloneNode(true));
+    });
+  }
+
+  function swapAdminMain(doc) {
+    const incoming = doc.querySelector(".admin-main");
+    const current = document.querySelector(".admin-main");
+    if (!incoming || !current) return false;
+    current.innerHTML = incoming.innerHTML;
+    return true;
+  }
+
+  function ensureScript(filename) {
+    const src = new URL(filename, window.location.href).href.split("?")[0];
+    if (loadedScripts.has(src)) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = filename;
+      script.onload = () => {
+        loadedScripts.add(src);
+        resolve();
+      };
+      script.onerror = reject;
+      document.body.appendChild(script);
+    });
+  }
+
+  async function navigateTo(url, { push = true } = {}) {
+    const target = new URL(url, window.location.href);
+    const page = resolvePage(target.pathname, target.hash);
+    if (!page) {
+      window.location.href = url;
+      return;
+    }
+
+    if (
+      page === renderedPage &&
+      target.pathname === location.pathname &&
+      target.hash === location.hash
+    ) {
+      return;
+    }
+
+    if (isDashboardFile(target.pathname) && isDashboardFile(location.pathname)) {
+      if (push) history.pushState({ adminPage: page }, "", target.pathname + target.hash);
+      renderSidebar(page === "dashboard" ? "dashboard" : page);
+      document.title = docTitleForPage(page);
+      renderedPage = page;
+      document.dispatchEvent(new CustomEvent("name:adminpage", { detail: { page } }));
+      return;
+    }
+
+    setNavLoading(true);
+    try {
+      const res = await fetch(target.pathname + target.search, { credentials: "same-origin" });
+      if (!res.ok) throw new Error("fetch failed");
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+
+      if (!swapAdminMain(doc)) throw new Error("missing admin main");
+      syncPageModals(doc);
+
+      const title = doc.querySelector("title")?.textContent;
+      if (title) document.title = title;
+
+      if (push) history.pushState({ adminPage: page }, "", target.pathname + target.hash);
+
+      renderSidebar(page === "dashboard" ? "dashboard" : page);
+      initMobileNav();
+      updateGate();
+
+      const scriptFile = PAGE_SCRIPTS[page];
+      if (scriptFile) await ensureScript(scriptFile);
+
+      if (typeof NaMeI18n !== "undefined") NaMeI18n.apply(NaMeI18n.getLang());
+      renderedPage = page;
+      document.dispatchEvent(new CustomEvent("name:adminpage", { detail: { page } }));
+    } catch {
+      window.location.href = url;
+    } finally {
+      setNavLoading(false);
+    }
+  }
+
+  function docTitleForPage(page) {
+    const titles = {
+      dashboard: "NaMe — Admin",
+      content: "NaMe — Admin",
+      users: "NaMe — Admin",
+      upload: "NaMe — Upload post",
+      exclusive: "NaMe — Editor's Exclusive",
+      submissions: "NaMe — Review submissions",
+      comments: "NaMe — Moderate comments",
+    };
+    return titles[page] || document.title;
+  }
+
+  function onAdminNavClick(e) {
+    const link = e.target.closest("[data-admin-nav]");
+    if (!link || link.target === "_blank") return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+    const href = link.getAttribute("href");
+    if (!href || href.startsWith("http")) return;
+
+    const target = new URL(link.href, window.location.href);
+    if (target.origin !== window.location.origin) return;
+
+    e.preventDefault();
+    navigateTo(link.href);
+  }
+
+  function onAdminPopState() {
+    navigateTo(window.location.href, { push: false });
+  }
+
+  function initClientNav() {
+    if (document.body.dataset.adminNavBound) return;
+    document.body.dataset.adminNavBound = "1";
+    document.addEventListener("click", onAdminNavClick);
+    window.addEventListener("popstate", onAdminPopState);
+  }
+
   function initMobileNav() {
     const sidebar = document.querySelector(".admin-sidebar");
     const topbar = document.querySelector(".admin-topbar");
-    if (!sidebar || !topbar || topbar.querySelector("[data-admin-menu]")) return;
+    if (!sidebar || !topbar) return;
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "admin-topbar__menu";
-    btn.dataset.adminMenu = "1";
-    btn.setAttribute("aria-expanded", "false");
-    btn.setAttribute("aria-label", t("openMenu"));
-    btn.innerHTML = "<span></span><span></span>";
-    topbar.prepend(btn);
-
-    btn.addEventListener("click", () => {
-      const open = sidebar.classList.toggle("is-open");
-      btn.setAttribute("aria-expanded", String(open));
-    });
+    let btn = topbar.querySelector("[data-admin-menu]");
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "admin-topbar__menu";
+      btn.dataset.adminMenu = "1";
+      btn.setAttribute("aria-expanded", "false");
+      btn.setAttribute("aria-label", t("openMenu"));
+      btn.innerHTML = "<span></span><span></span>";
+      topbar.prepend(btn);
+      btn.addEventListener("click", () => {
+        const open = sidebar.classList.toggle("is-open");
+        btn.setAttribute("aria-expanded", String(open));
+      });
+    }
   }
 
   async function init(activePage) {
@@ -160,13 +333,18 @@ const NaMeAdmin = (function () {
     NaMeAuth.initUI();
     renderSidebar(activePage);
     initMobileNav();
+    initClientNav();
 
-    document.getElementById("admin-logout")?.addEventListener("click", () => {
-      if (confirm(t("logoutConfirm"))) {
-        setAdminSession(false);
-        NaMeAuth.logout();
-      }
-    });
+    const logoutBtn = document.getElementById("admin-logout");
+    if (logoutBtn && !logoutBtn.dataset.bound) {
+      logoutBtn.dataset.bound = "1";
+      logoutBtn.addEventListener("click", () => {
+        if (confirm(t("logoutConfirm"))) {
+          setAdminSession(false);
+          NaMeAuth.logout();
+        }
+      });
+    }
 
     NaMeAuth.onChange(() => finishAuthCheck());
     return finishAuthCheck();
@@ -195,5 +373,5 @@ const NaMeAdmin = (function () {
     onDone?.();
   }
 
-  return { init, renderSidebar, updateGate, esc, formatDate, deleteComment };
+  return { init, renderSidebar, updateGate, navigateTo, esc, formatDate, deleteComment };
 })();

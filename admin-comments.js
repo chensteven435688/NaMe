@@ -3,12 +3,25 @@ let allComments = [];
 document.addEventListener("DOMContentLoaded", async () => {
   const ok = await NaMeAdmin.init("comments");
   if (!ok) return;
-
-  document.getElementById("comments-refresh")?.addEventListener("click", loadComments);
-  document.getElementById("comments-search")?.addEventListener("input", renderComments);
-
-  await loadComments();
+  bootComments();
 });
+
+document.addEventListener("name:adminpage", (e) => {
+  if (e.detail?.page === "comments") bootComments();
+});
+
+function bootComments() {
+  const tbody = document.getElementById("comments-table-body");
+  if (!tbody) return;
+
+  if (!tbody.dataset.booted) {
+    tbody.dataset.booted = "1";
+    document.getElementById("comments-refresh")?.addEventListener("click", loadComments);
+    document.getElementById("comments-search")?.addEventListener("input", renderComments);
+  }
+
+  loadComments();
+}
 
 async function loadComments() {
   const tbody = document.getElementById("comments-table-body");

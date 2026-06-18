@@ -1677,15 +1677,31 @@ html.admin-optimistic-early .page-admin #admin-app {
 }
 
 .page-admin:not(.admin-auth-checked):not(.admin-optimistic)::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  z-index: 200;
+  display: none;
 }
 
-html.admin-optimistic-early .page-admin::after {
-  display: none;
+.admin-nav-loading .admin-main {
+  pointer-events: none;
+}
+
+.admin-nav-loading .admin-topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--text), transparent);
+  animation: admin-nav-progress 0.9s ease-in-out infinite;
+}
+
+@keyframes admin-nav-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .admin-gate {

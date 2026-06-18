@@ -7,15 +7,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const ok = await NaMeAdmin.init("dashboard");
   if (!ok) return;
 
-  initPanels();
-  initEditModal();
-  initFilters();
-
-  if (location.hash === "#content") {
-    showPanel("content");
-  } else if (location.hash === "#users") {
-    showPanel("users");
-  }
+  bootDashboard();
 
   window.addEventListener("hashchange", () => {
     const hash = location.hash.replace("#", "");
@@ -23,19 +15,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     else if (!hash) showPanel("dashboard");
     NaMeAdmin.renderSidebar("dashboard");
   });
+});
 
-  NaMeAuth.onChange(() => {
-    if (NaMeAuth.isAdmin()) {
-      loadDashboard();
-      loadContent();
-      loadUsers();
-    }
-  });
+document.addEventListener("name:adminpage", (e) => {
+  const page = e.detail?.page;
+  if (page === "dashboard" || page === "content" || page === "users") {
+    bootDashboard(page);
+  }
+});
+
+function bootDashboard(page = null) {
+  initEditModal();
+  initFilters();
+
+  const target =
+    page ||
+    (location.hash === "#content" ? "content" : location.hash === "#users" ? "users" : "dashboard");
+
+  showPanel(target);
 
   loadDashboard();
   loadContent();
   loadUsers();
-});
+}
 
 function showPanel(panel) {
   const titles = {
@@ -146,6 +148,10 @@ function renderContentTable(posts) {
 function initFilters() {
   const search = document.getElementById("content-search");
   const typeFilter = document.getElementById("content-filter-type");
+  if (!search && !typeFilter) return;
+  if (search?.dataset.booted) return;
+  if (search) search.dataset.booted = "1";
+
   const apply = () => {
     let list = [...allPosts];
     const q = search?.value.trim().toLowerCase();
@@ -166,7 +172,10 @@ function bindEditButtons(root) {
 
 function initEditModal() {
   const modal = document.getElementById("edit-modal");
-  modal?.querySelectorAll("[data-close-edit]").forEach((el) => {
+  if (!modal || modal.dataset.booted) return;
+  modal.dataset.booted = "1";
+
+  modal.querySelectorAll("[data-close-edit]").forEach((el) => {
     el.addEventListener("click", () => closeEditModal());
   });
 

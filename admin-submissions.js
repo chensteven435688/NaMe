@@ -3,17 +3,29 @@ let allSubmissions = [];
 document.addEventListener("DOMContentLoaded", async () => {
   const ok = await NaMeAdmin.init("submissions");
   if (!ok) return;
+  bootSubmissions();
+});
 
-  document.getElementById("submissions-refresh")?.addEventListener("click", loadSubmissions);
-  document.getElementById("submissions-filter")?.addEventListener("change", renderGrid);
-  document.getElementById("publish-form")?.addEventListener("submit", onPublish);
+document.addEventListener("name:adminpage", (e) => {
+  if (e.detail?.page === "submissions") bootSubmissions();
+});
 
-  document.querySelectorAll("[data-close-publish]").forEach((el) => {
-    el.addEventListener("click", closePublishModal);
-  });
+function bootSubmissions() {
+  const grid = document.getElementById("submissions-grid");
+  if (!grid) return;
+
+  if (!grid.dataset.booted) {
+    grid.dataset.booted = "1";
+    document.getElementById("submissions-refresh")?.addEventListener("click", loadSubmissions);
+    document.getElementById("submissions-filter")?.addEventListener("change", renderGrid);
+    document.getElementById("publish-form")?.addEventListener("submit", onPublish);
+    document.querySelectorAll("[data-close-publish]").forEach((el) => {
+      el.addEventListener("click", closePublishModal);
+    });
+  }
 
   loadSubmissions();
-});
+}
 
 async function loadSubmissions() {
   const grid = document.getElementById("submissions-grid");
