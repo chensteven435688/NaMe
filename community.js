@@ -33,7 +33,7 @@ async function loadStats() {
   const el = document.getElementById("community-stats");
   if (!el) return;
   try {
-    const { posts, members } = await NaMeAuth.request("/api/community/stats");
+    const { posts, members } = await NaMeAuth.fetchCommunityStats();
     const lang = NaMeI18n.getLang();
     el.innerHTML = `
       <span>${posts} ${NaMeI18n.t(lang, "communityStatPins")}</span>
@@ -48,7 +48,7 @@ async function loadFeed() {
   if (!grid) return;
   const lang = NaMeI18n.getLang();
   try {
-    const { posts } = await NaMeAuth.request("/api/community/posts");
+    const { posts } = await NaMeAuth.fetchCommunityPosts();
     if (!posts.length) {
       grid.innerHTML = `<p class="community-feed__empty" data-i18n="communityEmpty">${esc(NaMeI18n.t(lang, "communityEmpty"))}</p>`;
       return;
@@ -92,8 +92,8 @@ async function openPin(id) {
   document.body.style.overflow = "hidden";
 
   try {
-    const { post } = await NaMeAuth.request(`/api/community/posts/${id}`);
-    const { comments } = await NaMeAuth.request(`/api/community/posts/${id}/comments`);
+    const { post } = await NaMeAuth.fetchCommunityPost(id);
+    const { comments } = await NaMeAuth.fetchCommunityPostComments(id);
     const initial = (post.author?.displayName || "?")[0].toUpperCase();
     const canDelete =
       NaMeAuth.isLoggedIn() &&
@@ -138,9 +138,7 @@ async function openPin(id) {
         NaMeAuth.openAuthModal("login");
         return;
       }
-      const res = await NaMeAuth.request(`/api/community/posts/${post.id}/like`, {
-        method: "POST",
-      });
+      const res = await NaMeAuth.toggleCommunityPostLike(post.id);
       const btn = detail.querySelector("[data-pin-like]");
       btn.classList.toggle("is-liked", res.liked);
       btn.querySelector("span").textContent = res.likeCount;
@@ -149,7 +147,7 @@ async function openPin(id) {
 
     detail.querySelector("[data-pin-delete]")?.addEventListener("click", async () => {
       if (!confirm(NaMeI18n.t(lang, "communityDeletePinConfirm"))) return;
-      await NaMeAuth.request(`/api/community/posts/${post.id}`, { method: "DELETE" });
+      await NaMeAuth.deleteCommunityPost(post.id);
       closePinModal();
       loadFeed();
       loadStats();
@@ -162,10 +160,7 @@ async function openPin(id) {
         return;
       }
       const input = e.target.querySelector("input");
-      await NaMeAuth.request(`/api/community/posts/${post.id}/comments`, {
-        method: "POST",
-        body: { body: input.value },
-      });
+      await NaMeAuth.createCommunityPostComment(post.id, input.value);
       input.value = "";
       openPin(post.id);
       loadFeed();
@@ -237,7 +232,7 @@ function initShareForm() {
       return;
     }
     try {
-      await NaMeAuth.request("/api/community/posts", { method: "POST", body: fd });
+      await NaMeAuth.createCommunityPost(fd);
       status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "communityShareSuccess");
       e.target.reset();
       closeShareModal();

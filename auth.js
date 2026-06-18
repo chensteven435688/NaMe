@@ -1046,6 +1046,296 @@ const NaMeAuth = (function () {
     return request(`/api/admin/posts/${id}`, { method: "PATCH", body: formData });
   }
 
+  function mapCommunityPost(row, userId, liked = false) {
+    const profile = row.profiles;
+    const author = Array.isArray(profile) ? profile[0] : profile;
+    const likesEmbed = row.community_likes;
+    const commentsEmbed = row.community_comments;
+    const likeCount = Array.isArray(likesEmbed)
+      ? likesEmbed[0]?.count ?? 0
+      : likesEmbed?.count ?? 0;
+    const commentCount = Array.isArray(commentsEmbed)
+      ? commentsEmbed[0]?.count ?? 0
+      : commentsEmbed?.count ?? 0;
+
+    return {
+      id: row.id,
+      title: row.title,
+      caption: row.caption,
+      imageUrl: row.image_url,
+      createdAt: row.created_at,
+      author: {
+        id: row.user_id,
+        displayName: author?.display_name || "NaMe Member",
+      },
+      likeCount,
+      commentCount,
+      liked: !!liked,
+    };
+  }
+
+  function mapCommunityComment(row) {
+    const profile = row.profiles;
+    const author = Array.isArray(profile) ? profile[0] : profile;
+    return {
+      id: row.id,
+      body: row.body,
+      createdAt: row.created_at,
+      author: {
+        id: row.user_id,
+        displayName: author?.display_name || "NaMe Member",
+      },
+    };
+  }
+
+  function communityImageStoragePath(imageUrl) {
+    if (!imageUrl) return null;
+    const marker = "/community-images/";
+    const idx = imageUrl.indexOf(marker);
+    if (idx === -1) return null;
+    return decodeURIComponent(imageUrl.slice(idx + marker.length));
+  }
+
+  const COMMUNITY_POST_SELECT =
+    "*, profiles!user_id(display_name), community_likes(count), community_comments(count)";
+
+  async function fetchCommunityLikedSet(postIds, userId) {
+    if (!userId || !postIds.length) return new Set();
+    const sb = supabase();
+    const { data } = await sb
+      .from("community_likes")
+      .select("post_id")
+      .eq("user_id", userId)
+      .in("post_id", postIds);
+    return new Set((data || []).map((l) => l.post_id));
+  }
+
+  async function fetchCommunityStats() {
+    if (useSupabase()) {
+      const sb = supabase();
+      const [postsRes, membersRes] = await Promise.all([
+        sb.from("community_posts").select("*", { count: "exact", head: true }),
+        sb.from("profiles").select("*", { count: "exact", head: true }),
+      ]);
+      if (postsRes.error) throw new Error(postsRes.error.message);
+      if (membersRes.error) throw new Error(membersRes.error.message);
+      return { posts: postsRes.count ?? 0, members: membersRes.count ?? 0 };
+    }
+
+    return request("/api/community/stats");
+  }
+
+  async function fetchCommunityPosts() {
+    if (useSupabase()) {
+      const sb = supabase();
+      const userId = getUser()?.id || null;
+      const { data, error } = await sb
+        .from("community_posts")
+        .select(COMMUNITY_POST_SELECT)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw new Error(error.message);
+
+      const likedSet = await fetchCommunityLikedSet(
+        (data || []).map((p) => p.id),
+        userId
+      );
+      return {
+        posts: (data || []).map((row) =>
+          mapCommunityPost(row, userId, likedSet.has(row.id))
+        ),
+      };
+    }
+
+    return request("/api/community/posts");
+  }
+
+  async function fetchCommunityPost(id) {
+    if (useSupabase()) {
+      const sb = supabase();
+      const userId = getUser()?.id || null;
+      const { data, error } = await sb
+        .from("community_posts")
+        .select(COMMUNITY_POST_SELECT)
+        .eq("id", id)
+        .single();
+      if (error) throw new Error(error.message);
+
+      const likedSet = await fetchCommunityLikedSet([id], userId);
+      return { post: mapCommunityPost(data, userId, likedSet.has(id)) };
+    }
+
+    return request(`/api/community/posts/${id}`);
+  }
+
+  async function createCommunityPost(formData) {
+    const title = formData.get("title")?.toString().trim() || null;
+    const caption = formData.get("caption")?.toString().trim() || null;
+    const file = formData.get("image");
+    const imageUrlField = formData.get("imageUrl")?.toString().trim() || "";
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      if (!user) throw new Error("Log in required");
+
+      let image_url = imageUrlField || null;
+      if (file && file instanceof File && file.size > 0) {
+        if (!/^image\//.test(file.type)) throw new Error("Image required");
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error("Image must be 10 MB or smaller");
+        }
+        const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+        const objectPath = `${user.id}/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
+        const { error: uploadError } = await sb.storage
+          .from("community-images")
+          .upload(objectPath, file, { contentType: file.type, upsert: false });
+        if (uploadError) throw new Error(uploadError.message);
+        const { data: urlData } = sb.storage.from("community-images").getPublicUrl(objectPath);
+        image_url = urlData.publicUrl;
+      }
+
+      if (!image_url) throw new Error("Image required");
+
+      const { data, error } = await sb
+        .from("community_posts")
+        .insert({
+          user_id: user.id,
+          title,
+          caption,
+          image_url,
+        })
+        .select(COMMUNITY_POST_SELECT)
+        .single();
+      if (error) throw new Error(error.message);
+
+      return { post: mapCommunityPost(data, user.id, false) };
+    }
+
+    return request("/api/community/posts", { method: "POST", body: formData });
+  }
+
+  async function toggleCommunityPostLike(id) {
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      if (!user) throw new Error("Log in required");
+
+      const { data: existing } = await sb
+        .from("community_likes")
+        .select("post_id")
+        .eq("user_id", user.id)
+        .eq("post_id", id)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await sb
+          .from("community_likes")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("post_id", id);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await sb.from("community_likes").insert({
+          user_id: user.id,
+          post_id: id,
+        });
+        if (error) throw new Error(error.message);
+      }
+
+      const { count, error: countError } = await sb
+        .from("community_likes")
+        .select("*", { count: "exact", head: true })
+        .eq("post_id", id);
+      if (countError) throw new Error(countError.message);
+
+      return { likeCount: count ?? 0, liked: !existing };
+    }
+
+    return request(`/api/community/posts/${id}/like`, { method: "POST" });
+  }
+
+  async function fetchCommunityPostComments(id) {
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb
+        .from("community_comments")
+        .select("*, profiles!user_id(display_name)")
+        .eq("post_id", id)
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(error.message);
+      return { comments: (data || []).map(mapCommunityComment) };
+    }
+
+    return request(`/api/community/posts/${id}/comments`);
+  }
+
+  async function createCommunityPostComment(id, body) {
+    if (!body?.trim()) throw new Error("Comment required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      if (!user) throw new Error("Log in required");
+
+      const { data: post, error: postError } = await sb
+        .from("community_posts")
+        .select("id")
+        .eq("id", id)
+        .maybeSingle();
+      if (postError) throw new Error(postError.message);
+      if (!post) throw new Error("Not found");
+
+      const { data, error } = await sb
+        .from("community_comments")
+        .insert({
+          post_id: id,
+          user_id: user.id,
+          body: body.trim(),
+        })
+        .select("*, profiles!user_id(display_name)")
+        .single();
+      if (error) throw new Error(error.message);
+
+      return { comment: mapCommunityComment(data) };
+    }
+
+    return request(`/api/community/posts/${id}/comments`, {
+      method: "POST",
+      body: { body },
+    });
+  }
+
+  async function deleteCommunityPost(id) {
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      if (!user) throw new Error("Log in required");
+
+      const { data: row, error: fetchError } = await sb
+        .from("community_posts")
+        .select("user_id, image_url")
+        .eq("id", id)
+        .single();
+      if (fetchError) throw new Error(fetchError.message);
+      if (row.user_id !== user.id && !isAdmin()) {
+        throw new Error("Not allowed");
+      }
+
+      const { error } = await sb.from("community_posts").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+
+      const storagePath = communityImageStoragePath(row.image_url);
+      if (storagePath) {
+        await sb.storage.from("community-images").remove([storagePath]);
+      }
+
+      return { ok: true };
+    }
+
+    return request(`/api/community/posts/${id}`, { method: "DELETE" });
+  }
+
   function updateAuthUI() {
     const authLink = document.getElementById("auth-link");
     if (!authLink) return;
@@ -1403,6 +1693,14 @@ const NaMeAuth = (function () {
     deleteAdminUser,
     fetchAdminComments,
     deleteAdminComment,
+    fetchCommunityStats,
+    fetchCommunityPosts,
+    fetchCommunityPost,
+    createCommunityPost,
+    toggleCommunityPostLike,
+    fetchCommunityPostComments,
+    createCommunityPostComment,
+    deleteCommunityPost,
     request,
     initUI,
     initAuthModal,
