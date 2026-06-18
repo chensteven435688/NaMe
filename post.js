@@ -148,14 +148,15 @@ function renderComment(comment, slug, isReply = false) {
   });
 
   el.querySelector("[data-delete]")?.addEventListener("click", async () => {
-    const path = NaMeAuth.isAdmin()
-      ? `/api/admin/comments/${comment.id}`
-      : `/api/comments/${comment.id}`;
     const msg = NaMeAuth.isAdmin()
       ? NaMeI18n.t(NaMeI18n.getLang(), "adminRemoveCommentConfirm")
       : "Delete this comment?";
     if (!confirm(msg)) return;
-    await NaMeAuth.request(path, { method: "DELETE" });
+    if (NaMeAuth.isAdmin()) {
+      await NaMeAuth.deleteAdminComment(comment.id);
+    } else {
+      await NaMeAuth.request(`/api/comments/${comment.id}`, { method: "DELETE" });
+    }
     await loadComments(slug);
   });
 

@@ -170,6 +170,12 @@ create policy "Profiles are viewable by everyone"
 create policy "Users can update own profile"
   on public.profiles for update using (auth.uid() = id);
 
+create policy "Admins update any profile"
+  on public.profiles for update using (public.is_admin());
+
+create policy "Admins delete profiles"
+  on public.profiles for delete using (public.is_admin());
+
 -- Posts: public read, admin write
 create policy "Posts are public"
   on public.posts for select using (true);
@@ -251,7 +257,7 @@ create policy "Admins manage newsletter list"
 -- Table privileges (required — RLS alone is not enough)
 grant usage on schema public to anon, authenticated;
 grant select on table public.profiles to anon, authenticated;
-grant update on table public.profiles to authenticated;
+grant update, delete on table public.profiles to authenticated;
 grant select on table public.posts to anon, authenticated;
 grant insert, update, delete on table public.posts to authenticated;
 grant select on table public.comments to anon, authenticated;
@@ -271,3 +277,22 @@ grant update on table public.newsletter_subscribers to authenticated;
 
 -- Make yourself admin (replace with your email after you sign up once)
 -- update public.profiles set role = 'admin' where email = 'chensteven435688@gmail.com';
+
+create or replace function public.admin_delete_user(target_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Not allowed';
+  end if;
+  if target_id = auth.uid() then
+    raise exception 'Cannot delete your own account';
+  end if;
+  delete from auth.users where id = target_id;
+end;
+$$;
+
+grant execute on function public.admin_delete_user(uuid) to authenticated;

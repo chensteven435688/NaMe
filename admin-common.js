@@ -369,7 +369,7 @@ const NaMeAdmin = (function () {
 
   async function deleteComment(id, onDone) {
     if (!confirm(t("adminRemoveCommentConfirm"))) return;
-    await NaMeAuth.request(`/api/admin/comments/${id}`, { method: "DELETE" });
+    await NaMeAuth.deleteAdminComment(id);
     onDone?.();
   }
 

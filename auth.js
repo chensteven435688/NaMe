@@ -781,6 +781,271 @@ const NaMeAuth = (function () {
     return request(`/api/posts/${id}`, { method: "DELETE" });
   }
 
+  function mapAdminUser(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      email: row.email,
+      displayName: row.display_name,
+      role: row.role,
+      createdAt: row.created_at,
+    };
+  }
+
+  function mapAdminComment(row) {
+    const profile = row.profiles;
+    const post = row.posts;
+    const author = Array.isArray(profile) ? profile[0] : profile;
+    const postRow = Array.isArray(post) ? post[0] : post;
+    const likes = row.comment_likes;
+    const likeCount = Array.isArray(likes)
+      ? likes[0]?.count ?? 0
+      : likes?.count ?? 0;
+
+    return {
+      id: row.id,
+      body: row.body,
+      createdAt: row.created_at,
+      parentId: row.parent_id,
+      postId: row.post_id,
+      postTitle: postRow?.title || "",
+      postSlug: postRow?.slug || "",
+      author: {
+        id: author?.id || row.user_id,
+        displayName: author?.display_name || "Member",
+        email: author?.email || "",
+      },
+      likeCount,
+    };
+  }
+
+  async function fetchAdminStats() {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const [postsRes, usersRes, commentsRes, rolesRes] = await Promise.all([
+        sb.from("posts").select("type"),
+        sb.from("profiles").select("*", { count: "exact", head: true }),
+        sb.from("comments").select("*", { count: "exact", head: true }),
+        sb.from("profiles").select("role"),
+      ]);
+
+      if (postsRes.error) throw new Error(postsRes.error.message);
+      if (usersRes.error) throw new Error(usersRes.error.message);
+      if (commentsRes.error) throw new Error(commentsRes.error.message);
+      if (rolesRes.error) throw new Error(rolesRes.error.message);
+
+      const postsByType = {};
+      for (const row of postsRes.data || []) {
+        postsByType[row.type] = (postsByType[row.type] || 0) + 1;
+      }
+
+      const users = usersRes.count ?? 0;
+      const roles = rolesRes.data || [];
+      const members = roles.filter((r) => r.role === "member").length;
+      const admins = roles.filter((r) => r.role === "admin").length;
+
+      return {
+        posts: (postsRes.data || []).length,
+        users,
+        comments: commentsRes.count ?? 0,
+        members,
+        admins,
+        postsByType,
+      };
+    }
+
+    return request("/api/admin/stats");
+  }
+
+  async function fetchAdminUsers() {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return { users: (data || []).map(mapAdminUser) };
+    }
+
+    return request("/api/admin/users");
+  }
+
+  async function updateAdminUser(id, { role, displayName } = {}) {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const me = getUser();
+      if (me?.id === id && role && role !== "admin") {
+        throw new Error("Cannot demote yourself");
+      }
+
+      const patch = {};
+      if (role !== undefined) {
+        if (!["admin", "member"].includes(role)) throw new Error("Invalid role");
+        patch.role = role;
+      }
+      if (displayName?.trim()) patch.display_name = displayName.trim();
+
+      const { data, error } = await sb
+        .from("profiles")
+        .update(patch)
+        .eq("id", id)
+        .select("*")
+        .single();
+      if (error) throw new Error(error.message);
+      return { user: mapAdminUser(data) };
+    }
+
+    return request(`/api/admin/users/${id}`, {
+      method: "PATCH",
+      body: { role, displayName },
+    });
+  }
+
+  async function deleteAdminUser(id) {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { error } = await sb.rpc("admin_delete_user", { target_id: id });
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
+    return request(`/api/admin/users/${id}`, { method: "DELETE" });
+  }
+
+  async function fetchAdminComments() {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb
+        .from("comments")
+        .select(
+          "*, profiles(id, display_name, email), posts(title, slug), comment_likes(count)"
+        )
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw new Error(error.message);
+      return { comments: (data || []).map(mapAdminComment) };
+    }
+
+    return request("/api/admin/comments");
+  }
+
+  async function deleteAdminComment(id) {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { error: childError } = await sb
+        .from("comments")
+        .delete()
+        .eq("parent_id", id);
+      if (childError) throw new Error(childError.message);
+
+      const { error } = await sb.from("comments").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
+    return request(`/api/admin/comments/${id}`, { method: "DELETE" });
+  }
+
+  async function fetchAdminPost(id) {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb.from("posts").select("*").eq("id", id).single();
+      if (error) throw new Error(error.message);
+      return { post: mapPost(data) };
+    }
+
+    return request(`/api/admin/posts/${id}`);
+  }
+
+  async function updatePost(id, formData) {
+    if (!isAdmin()) throw new Error("Admin access required");
+
+    const type = formData.get("type")?.toString() || "";
+    const title = formData.get("title")?.toString().trim() || "";
+    const meta = formData.get("meta")?.toString().trim() || null;
+    const body = formData.get("body")?.toString().trim() || "";
+    const videoUrl = formData.get("videoUrl")?.toString().trim() || null;
+    const section = formData.get("section")?.toString().trim() || null;
+    const newSlug = formData.get("slug")?.toString().trim() || "";
+    const featuredVal = formData.get("featured");
+    const featured = featuredVal === "1" || featuredVal === "true" || featuredVal === true;
+    const imageUrlField = formData.get("imageUrl")?.toString().trim() || "";
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data: row, error: fetchError } = await sb
+        .from("posts")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (fetchError) throw new Error(fetchError.message);
+
+      let image_url = row.image_url;
+      const file = formData.get("image");
+      if (file && file instanceof File && file.size > 0) {
+        image_url = await resolvePostImageUrl(formData);
+      } else if (formData.has("imageUrl")) {
+        image_url = imageUrlField || null;
+      }
+
+      let slug = row.slug;
+      if (newSlug) {
+        const normalized = newSlug.toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+        if (normalized && normalized !== row.slug) {
+          const { data: existing } = await sb
+            .from("posts")
+            .select("id")
+            .eq("slug", normalized)
+            .neq("id", id)
+            .maybeSingle();
+          if (existing) throw new Error("Slug already in use");
+          slug = normalized;
+        }
+      } else if (title && title !== row.title) {
+        slug = await uniquePostSlug(sb, title);
+      }
+
+      const patch = {
+        type: type || row.type,
+        title: title || row.title,
+        meta: formData.has("meta") ? meta : row.meta,
+        body: body || row.body,
+        video_url: formData.has("videoUrl") ? videoUrl : row.video_url,
+        section: formData.has("section") ? section : row.section,
+        featured,
+        image_url,
+        slug,
+      };
+
+      const { data, error } = await sb
+        .from("posts")
+        .update(patch)
+        .eq("id", id)
+        .select("*")
+        .single();
+      if (error) throw new Error(error.message);
+
+      return { post: mapPost(data) };
+    }
+
+    return request(`/api/admin/posts/${id}`, { method: "PATCH", body: formData });
+  }
+
   function updateAuthUI() {
     const authLink = document.getElementById("auth-link");
     if (!authLink) return;
@@ -1130,6 +1395,14 @@ const NaMeAuth = (function () {
     deleteSubmission,
     createPost,
     deletePost,
+    updatePost,
+    fetchAdminPost,
+    fetchAdminStats,
+    fetchAdminUsers,
+    updateAdminUser,
+    deleteAdminUser,
+    fetchAdminComments,
+    deleteAdminComment,
     request,
     initUI,
     initAuthModal,

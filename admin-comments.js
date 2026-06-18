@@ -29,7 +29,7 @@ async function loadComments() {
   status.textContent = "";
 
   try {
-    const { comments } = await NaMeAuth.request("/api/admin/comments");
+    const { comments } = await NaMeAuth.fetchAdminComments();
     allComments = comments;
     renderComments();
     if (!comments.length) {

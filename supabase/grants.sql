@@ -4,7 +4,7 @@
 grant usage on schema public to anon, authenticated;
 
 grant select on table public.profiles to anon, authenticated;
-grant update on table public.profiles to authenticated;
+grant update, delete on table public.profiles to authenticated;
 
 grant select on table public.posts to anon, authenticated;
 grant insert, update, delete on table public.posts to authenticated;

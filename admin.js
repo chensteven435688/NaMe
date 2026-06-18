@@ -60,14 +60,10 @@ function initPanels() {
   showPanel("dashboard");
 }
 
-async function adminApi(path, options = {}) {
-  return NaMeAuth.request(path, options);
-}
-
 async function loadDashboard() {
   try {
     const { posts, users, comments, members, admins, postsByType } =
-      await adminApi("/api/admin/stats");
+      await NaMeAuth.fetchAdminStats();
     document.getElementById("admin-stats").innerHTML = `
       <div class="admin-stat"><span class="admin-stat__n">${posts}</span><span class="admin-stat__l">Posts</span></div>
       <div class="admin-stat"><span class="admin-stat__n">${users}</span><span class="admin-stat__l">Users</span></div>
@@ -138,7 +134,7 @@ function renderContentTable(posts) {
   tbody.querySelectorAll("[data-delete-post]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       if (!confirm("Delete this post permanently?")) return;
-      await adminApi(`/api/posts/${btn.dataset.deletePost}`, { method: "DELETE" });
+      await NaMeAuth.deletePost(btn.dataset.deletePost);
       loadContent();
       loadDashboard();
     });
@@ -189,10 +185,7 @@ function initEditModal() {
     if (fd.get("featured")) fd.set("featured", "1");
     else fd.delete("featured");
     try {
-      const res = await adminApi(`/api/admin/posts/${id}`, {
-        method: "PATCH",
-        body: fd,
-      });
+      const res = await NaMeAuth.updatePost(id, fd);
       status.textContent = `Saved: ${res.post.title}`;
       allPosts = await NaMeAuth.fetchPosts();
       loadContent();
@@ -207,7 +200,7 @@ function initEditModal() {
 async function openEditModal(id) {
   const modal = document.getElementById("edit-modal");
   const form = document.getElementById("edit-form");
-  const { post } = await adminApi(`/api/admin/posts/${id}`);
+  const { post } = await NaMeAuth.fetchAdminPost(id);
   const f = document.getElementById("edit-form");
   document.getElementById("edit-id").value = post.id;
   f.elements.type.value = post.type;
@@ -236,7 +229,7 @@ function closeEditModal() {
 async function loadUsers() {
   const tbody = document.getElementById("users-table-body");
   try {
-    const { users } = await adminApi("/api/admin/users");
+    const { users } = await NaMeAuth.fetchAdminUsers();
     const me = NaMeAuth.getUser()?.id;
     tbody.innerHTML = users
       .map(
@@ -261,9 +254,8 @@ async function loadUsers() {
     tbody.querySelectorAll("[data-user-role]").forEach((sel) => {
       sel.addEventListener("change", async () => {
         try {
-          await adminApi(`/api/admin/users/${sel.dataset.userRole}`, {
-            method: "PATCH",
-            body: { role: sel.value },
+          await NaMeAuth.updateAdminUser(sel.dataset.userRole, {
+            role: sel.value,
           });
         } catch (err) {
           alert(err.message);
@@ -276,9 +268,7 @@ async function loadUsers() {
       btn.addEventListener("click", async () => {
         if (!confirm("Delete this user and all their comments?")) return;
         try {
-          await adminApi(`/api/admin/users/${btn.dataset.deleteUser}`, {
-            method: "DELETE",
-          });
+          await NaMeAuth.deleteAdminUser(btn.dataset.deleteUser);
           loadUsers();
           loadDashboard();
         } catch (err) {
