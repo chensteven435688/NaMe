@@ -266,6 +266,11 @@ const NaMeAuth = (function () {
   }
 
   async function logout() {
+    try {
+      sessionStorage.removeItem("name-admin-ok");
+    } catch {
+      /* ignore */
+    }
     if (useSupabase()) {
       const sb = supabase();
       await sb.auth.signOut();

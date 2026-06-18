@@ -1646,6 +1646,48 @@ select {
   background: var(--bg);
 }
 
+/* Hide gate + app until auth is checked — prevents flash on every admin page load */
+.page-admin #admin-gate,
+.page-admin #admin-app {
+  display: none !important;
+}
+
+.page-admin.admin-auth-checked #admin-gate:not(.is-hidden) {
+  display: flex !important;
+}
+
+.page-admin.admin-auth-checked #admin-app:not(.is-hidden) {
+  display: grid !important;
+}
+
+.page-admin.admin-optimistic #admin-gate {
+  display: none !important;
+}
+
+.page-admin.admin-optimistic #admin-app {
+  display: grid !important;
+}
+
+html.admin-optimistic-early .page-admin #admin-gate {
+  display: none !important;
+}
+
+html.admin-optimistic-early .page-admin #admin-app {
+  display: grid !important;
+}
+
+.page-admin:not(.admin-auth-checked):not(.admin-optimistic)::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 200;
+}
+
+html.admin-optimistic-early .page-admin::after {
+  display: none;
+}
+
 .admin-gate {
   min-height: 100vh;
   display: flex;

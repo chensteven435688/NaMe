@@ -2,6 +2,16 @@
  * NaMe — shared admin layout (gate, sidebar, auth)
  */
 const NaMeAdmin = (function () {
+  const ADMIN_SESSION_KEY = "name-admin-ok";
+
+  try {
+    if (sessionStorage.getItem(ADMIN_SESSION_KEY) === "1" && document.body) {
+      document.body.classList.add("admin-optimistic");
+    }
+  } catch {
+    /* ignore */
+  }
+
   const NAV = [
     { href: "/admin.html", key: "adminNavDashboard", page: "dashboard" },
     { href: "/admin-upload.html", key: "adminNavUpload", page: "upload" },
@@ -88,6 +98,23 @@ const NaMeAdmin = (function () {
     status.hidden = true;
   }
 
+  function setAdminSession(isAdmin) {
+    try {
+      if (isAdmin) sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
+      else sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    } catch {
+      /* ignore */
+    }
+    document.body?.classList.toggle("admin-optimistic", isAdmin);
+  }
+
+  function finishAuthCheck() {
+    document.body.classList.add("admin-auth-checked");
+    const isAdmin = updateGate();
+    setAdminSession(isAdmin);
+    return isAdmin;
+  }
+
   function updateGate() {
     const bypass = typeof window !== "undefined" && window.NA_ME_DEV_BYPASS === true;
     const isAdmin = bypass || NaMeAuth.isAdmin();
@@ -135,11 +162,14 @@ const NaMeAdmin = (function () {
     initMobileNav();
 
     document.getElementById("admin-logout")?.addEventListener("click", () => {
-      if (confirm(t("logoutConfirm"))) NaMeAuth.logout();
+      if (confirm(t("logoutConfirm"))) {
+        setAdminSession(false);
+        NaMeAuth.logout();
+      }
     });
 
-    NaMeAuth.onChange(() => updateGate());
-    return updateGate();
+    NaMeAuth.onChange(() => finishAuthCheck());
+    return finishAuthCheck();
   }
 
   function esc(s) {
