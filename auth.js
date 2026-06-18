@@ -536,7 +536,7 @@ const NaMeAuth = (function () {
       const sb = supabase();
       const { data, error } = await sb
         .from("submissions")
-        .select("*, profiles(id, display_name, email), posts(slug)")
+        .select("*, profiles!user_id(id, display_name, email), posts(slug)")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw new Error(error.message);
@@ -565,7 +565,7 @@ const NaMeAuth = (function () {
         .from("submissions")
         .update(patch)
         .eq("id", id)
-        .select("*, profiles(id, display_name, email), posts(slug)")
+        .select("*, profiles!user_id(id, display_name, email), posts(slug)")
         .single();
       if (error) throw new Error(error.message);
 
@@ -630,7 +630,7 @@ const NaMeAuth = (function () {
           reviewed_by: user?.id || null,
         })
         .eq("id", id)
-        .select("*, profiles(id, display_name, email), posts(slug)")
+        .select("*, profiles!user_id(id, display_name, email), posts(slug)")
         .single();
       if (subError) throw new Error(subError.message);
 
