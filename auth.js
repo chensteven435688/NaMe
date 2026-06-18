@@ -929,7 +929,7 @@ const NaMeAuth = (function () {
       const { data, error } = await sb
         .from("comments")
         .select(
-          "*, profiles(id, display_name, email), posts(title, slug), comment_likes(count)"
+          "*, profiles!user_id(id, display_name, email), posts(title, slug), comment_likes(count)"
         )
         .order("created_at", { ascending: false })
         .limit(200);
