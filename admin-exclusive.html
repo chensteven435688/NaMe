@@ -8,12 +8,21 @@
 </head>
 <body class="page-admin">
   <div id="admin-gate" class="admin-gate">
-    <div class="admin-gate__panel">
-      <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
-      <h1 data-i18n="adminGateTitle">Admin access</h1>
-      <p data-i18n="adminExclusiveDenied">Only the editor can manage Editor's Exclusive posts.</p>
-      <button type="button" class="btn btn--primary" data-open-auth="login" data-i18n="authLoginBtn">Login</button>
-      <a href="./" class="admin-gate__back" data-i18n="backHome">← Back to NaMe</a>
+    <div class="admin-gate__shell">
+      <div class="admin-gate__brand">
+        <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
+        <p class="admin-gate__eyebrow" data-i18n="adminGateLabel">Editorial desk</p>
+      </div>
+      <div class="admin-gate__panel">
+        <h1 data-i18n="adminGateTitle">Admin access</h1>
+        <p class="admin-gate__text" data-i18n="adminExclusiveDenied">Only the editor can manage Editor's Exclusive posts.</p>
+        <p class="admin-gate__hint" data-i18n="adminGateHint">Sign in with your editor account to continue.</p>
+        <p id="admin-gate-status" class="admin-gate__status" hidden></p>
+        <div class="admin-gate__actions">
+          <button type="button" class="btn btn--primary" data-open-auth="login" data-i18n="authLoginBtn">Login</button>
+          <a href="./" class="admin-gate__back" data-i18n="backHome">← Back to NaMe</a>
+        </div>
+      </div>
     </div>
   </div>
 

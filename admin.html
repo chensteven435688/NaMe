@@ -8,12 +8,21 @@
 </head>
 <body class="page-admin">
   <div id="admin-gate" class="admin-gate">
-    <div class="admin-gate__panel">
-      <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
-      <h1 data-i18n="adminGateTitle">Admin access</h1>
-      <p data-i18n="adminDenied">You need an admin account to use this panel.</p>
-      <button type="button" class="btn btn--primary" data-open-auth="login" data-i18n="authLoginBtn">Login</button>
-      <a href="./" class="admin-gate__back" data-i18n="backHome">← Back to NaMe</a>
+    <div class="admin-gate__shell">
+      <div class="admin-gate__brand">
+        <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
+        <p class="admin-gate__eyebrow" data-i18n="adminGateLabel">Editorial desk</p>
+      </div>
+      <div class="admin-gate__panel">
+        <h1 data-i18n="adminGateTitle">Admin access</h1>
+        <p class="admin-gate__text" data-i18n="adminDeniedPanel">You need an admin account to use this panel.</p>
+        <p class="admin-gate__hint" data-i18n="adminGateHint">Sign in with your editor account to continue.</p>
+        <p id="admin-gate-status" class="admin-gate__status" hidden></p>
+        <div class="admin-gate__actions">
+          <button type="button" class="btn btn--primary" data-open-auth="login" data-i18n="authLoginBtn">Login</button>
+          <a href="./" class="admin-gate__back" data-i18n="backHome">← Back to NaMe</a>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -21,17 +30,7 @@
     <aside class="admin-sidebar">
       <a href="./" class="logo admin-sidebar__logo"><span class="brand-mark">NaMe</span></a>
       <p class="admin-sidebar__label" data-i18n="adminPanel">Admin</p>
-      <nav class="admin-nav" id="admin-sidebar-nav">
-        <button type="button" class="admin-nav__item is-active" data-panel="dashboard" data-i18n="adminNavDashboard">Dashboard</button>
-        <button type="button" class="admin-nav__item" data-panel="content" data-i18n="adminNavContent">Content</button>
-        <button type="button" class="admin-nav__item" data-panel="users" data-i18n="adminNavUsers">Users</button>
-      </nav>
-      <p class="admin-sidebar__sublinks">
-        <a href="admin-upload.html" data-i18n="adminNavUpload">Upload post</a>
-        <a href="admin-exclusive.html" data-i18n="adminNavExclusive">Editor's Exclusive</a>
-        <a href="admin-submissions.html" data-i18n="adminNavSubmissions">Review submissions</a>
-        <a href="admin-comments.html" data-i18n="adminNavModerate">Moderate comments</a>
-      </p>
+      <nav class="admin-nav" id="admin-sidebar-nav"></nav>
       <div class="admin-sidebar__foot">
         <a href="./" target="_blank" rel="noopener" data-i18n="adminViewSite">View site →</a>
         <button type="button" id="admin-logout" data-i18n="adminLogout">Log out</button>
@@ -168,31 +167,6 @@
         </div>
         <p id="edit-status" class="admin__status"></p>
       </form>
-    </div>
-  </div>
-
-  <div class="modal" id="auth-modal" aria-hidden="true">
-    <div class="modal__backdrop" data-close-auth></div>
-    <div class="modal__panel modal__panel--wide" role="dialog">
-      <button class="modal__close" type="button" data-close-auth>&times;</button>
-      <h2 class="modal__title" data-i18n="authTitle">NaMe Account</h2>
-      <p id="auth-error" class="auth-error" hidden></p>
-      <div class="auth-tabs">
-        <button type="button" class="auth-tabs__btn is-active" data-auth-tab="login" data-i18n="authLogin">Login</button>
-        <button type="button" class="auth-tabs__btn" data-auth-tab="register" data-i18n="authRegister">Join</button>
-      </div>
-      <form id="auth-login-form" class="auth-form" data-auth-panel="login" autocomplete="on">
-        <input type="email" name="loginEmail" data-login-email autocomplete="username" value="chensteven435688@gmail.com" required />
-        <input type="password" name="loginPassword" data-login-password autocomplete="current-password" required />
-        <button type="submit" class="btn btn--primary" data-i18n="authLoginBtn">Login</button>
-      </form>
-      <form id="auth-register-form" class="auth-form is-hidden" data-auth-panel="register" autocomplete="on">
-        <input type="text" name="registerName" data-register-name autocomplete="name" required />
-        <input type="email" name="registerEmail" data-register-email autocomplete="email" required />
-        <input type="password" name="registerPassword" data-register-password autocomplete="new-password" required minlength="8" />
-        <button type="submit" class="btn btn--primary" data-i18n="authRegisterBtn">Create account</button>
-      </form>
-
     </div>
   </div>
 

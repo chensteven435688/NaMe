@@ -11,9 +11,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   initEditModal();
   initFilters();
 
-  if (location.hash === "content") {
-    document.querySelector('[data-panel="content"]')?.click();
+  if (location.hash === "#content") {
+    showPanel("content");
+  } else if (location.hash === "#users") {
+    showPanel("users");
   }
+
+  window.addEventListener("hashchange", () => {
+    const hash = location.hash.replace("#", "");
+    if (hash === "content" || hash === "users") showPanel(hash);
+    else if (!hash) showPanel("dashboard");
+    NaMeAdmin.renderSidebar("dashboard");
+  });
 
   NaMeAuth.onChange(() => {
     if (NaMeAuth.isAdmin()) {
@@ -28,28 +37,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadUsers();
 });
 
-function initPanels() {
+function showPanel(panel) {
   const titles = {
     dashboard: "adminNavDashboard",
     content: "adminNavContent",
     users: "adminNavUsers",
   };
 
-  document.querySelectorAll("[data-panel]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const panel = btn.dataset.panel;
-      document.querySelectorAll("[data-panel]").forEach((b) =>
-        b.classList.toggle("is-active", b === btn)
-      );
-      document.querySelectorAll("[data-panel-view]").forEach((v) =>
-        v.classList.toggle("is-active", v.dataset.panelView === panel)
-      );
-      const titleEl = document.getElementById("admin-page-title");
-      if (titleEl) {
-        titleEl.textContent = NaMeI18n.t(NaMeI18n.getLang(), titles[panel] || panel);
-      }
-    });
+  document.querySelectorAll("[data-panel-view]").forEach((v) => {
+    v.classList.toggle("is-active", v.dataset.panelView === panel);
   });
+
+  const titleEl = document.getElementById("admin-page-title");
+  if (titleEl) {
+    titleEl.textContent = NaMeI18n.t(NaMeI18n.getLang(), titles[panel] || panel);
+  }
+}
+
+function initPanels() {
+  showPanel("dashboard");
 }
 
 async function adminApi(path, options = {}) {
