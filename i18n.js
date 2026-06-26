@@ -160,7 +160,7 @@ const NaMeI18n = (function () {
       subscribePerk3Text: "Submission windows, community features, and opportunities for emerging voices.",
       subscribePrivacyNote: 'No spam. Unsubscribe anytime. See our <a href="privacy.html">Privacy Policy</a>.',
       footerMagazine: "NaMe Magazine",
-      footerAddress: "NaMe Publishing<br />Editorial Studio · New York<br />hello@NaMe-magazine.com",
+      footerAddress: "NaMe Publishing<br />Editorial Studio · New York<br />namemagazinenyc@gmail.com",
       terms: "Terms of Service",
       privacy: "Privacy Policy",
       footerCopy: "© 2026 NaMe Magazine. All rights reserved.",
@@ -253,13 +253,13 @@ const NaMeI18n = (function () {
         "<h2>What we offer</h2>" +
         "<ul><li>Sponsored editorials &amp; branded films</li><li>Newsletter &amp; social integrations</li><li>Event coverage &amp; activations</li><li>Custom content for campaigns</li></ul>" +
         "<h2>Contact</h2>" +
-        "<p>Email <a href=\"mailto:business@name-magazine.com\">business@NaMe-magazine.com</a> with your brand, timeline, and objectives. We respond within 3–5 business days.</p>",
+        "<p>Email <a href=\"mailto:namemagazinenyc@gmail.com\">namemagazinenyc@gmail.com</a> with your brand, timeline, and objectives. We respond within 3–5 business days.</p>",
       contactPageTitle: "Contact — NaMe Magazine",
       contactPageDescription: "Contact NaMe Magazine",
       contactLabel: "Contact",
       contactTitle: "Get in touch",
       contactIntro:
-        "<p>For general inquiries, press, and collaborations, send us a message below or email <a href=\"mailto:hello@name-magazine.com\">hello@NaMe-magazine.com</a>.</p>" +
+        "<p>For general inquiries, press, and collaborations, send us a message below or email <a href=\"mailto:namemagazinenyc@gmail.com\">namemagazinenyc@gmail.com</a>.</p>" +
         "<p><strong>NaMe Publishing</strong><br />Editorial Studio · New York</p>",
       contactFormName: "Name",
       contactFormEmail: "Email",
@@ -325,7 +325,7 @@ const NaMeI18n = (function () {
       privacyBody:
         "<p>NaMe collects email and account information when you register, subscribe, or contact us. We use this data to operate the site and send newsletters you opt into.</p>" +
         "<p>We do not sell personal data. Cookies may be used for language preferences and session login.</p>" +
-        "<p>Questions: <a href=\"mailto:hello@name-magazine.com\">hello@NaMe-magazine.com</a></p>",
+        "<p>Questions: <a href=\"mailto:namemagazinenyc@gmail.com\">namemagazinenyc@gmail.com</a></p>",
       authTitle: "NaMe Account",
       authLogin: "Login",
       authRegister: "Join",
@@ -426,7 +426,7 @@ const NaMeI18n = (function () {
       newsletterBtn: "구독하기",
       newsletterThanks: "구독해 주셔서 감사합니다! (데모 — 이메일 서비스를 연결하세요.)",
       footerMagazine: "NaMe 매거진",
-      footerAddress: "NaMe Publishing<br />에디토리얼 스튜디오 · 뉴욕<br />hello@NaMe-magazine.com",
+      footerAddress: "NaMe Publishing<br />에디토리얼 스튜디오 · 뉴욕<br />namemagazinenyc@gmail.com",
       terms: "이용약관",
       privacy: "개인정보처리방침",
       footerCopy: "© 2026 NaMe Magazine. All rights reserved.",
@@ -492,7 +492,7 @@ const NaMeI18n = (function () {
       newsletterBtn: "Abbonati",
       newsletterThanks: "Grazie per l'iscrizione! (Demo — collega il tuo servizio email.)",
       footerMagazine: "NaMe Magazine",
-      footerAddress: "NaMe Publishing<br />Studio editoriale · New York<br />hello@NaMe-magazine.com",
+      footerAddress: "NaMe Publishing<br />Studio editoriale · New York<br />namemagazinenyc@gmail.com",
       terms: "Termini di servizio",
       privacy: "Informativa sulla privacy",
       footerCopy: "© 2026 NaMe Magazine. Tutti i diritti riservati.",
@@ -558,7 +558,7 @@ const NaMeI18n = (function () {
       newsletterBtn: "S'abonner",
       newsletterThanks: "Merci pour votre inscription ! (Démo — connectez votre service e-mail.)",
       footerMagazine: "NaMe Magazine",
-      footerAddress: "NaMe Publishing<br />Studio éditorial · New York<br />hello@NaMe-magazine.com",
+      footerAddress: "NaMe Publishing<br />Studio éditorial · New York<br />namemagazinenyc@gmail.com",
       terms: "Conditions d'utilisation",
       privacy: "Politique de confidentialité",
       footerCopy: "© 2026 NaMe Magazine. Tous droits réservés.",
@@ -624,7 +624,7 @@ const NaMeI18n = (function () {
       newsletterBtn: "Suscribirse",
       newsletterThanks: "¡Gracias por suscribirte! (Demo — conecta tu servicio de correo.)",
       footerMagazine: "NaMe Magazine",
-      footerAddress: "NaMe Publishing<br />Estudio editorial · Nueva York<br />hello@NaMe-magazine.com",
+      footerAddress: "NaMe Publishing<br />Estudio editorial · Nueva York<br />namemagazinenyc@gmail.com",
       terms: "Términos de servicio",
       privacy: "Política de privacidad",
       footerCopy: "© 2026 NaMe Magazine. Todos los derechos reservados.",
@@ -689,7 +689,7 @@ const NaMeI18n = (function () {
       newsletterBtn: "購読する",
       newsletterThanks: "ご登録ありがとうございます！（デモ — メールサービスを接続してください。）",
       footerMagazine: "NaMe Magazine",
-      footerAddress: "NaMe Publishing<br />エディトリアルスタジオ · ニューヨーク<br />hello@NaMe-magazine.com",
+      footerAddress: "NaMe Publishing<br />エディトリアルスタジオ · ニューヨーク<br />namemagazinenyc@gmail.com",
       terms: "利用規約",
       privacy: "プライバシーポリシー",
       footerCopy: "© 2026 NaMe Magazine. All rights reserved.",
@@ -754,7 +754,7 @@ const NaMeI18n = (function () {
       newsletterBtn: "订阅",
       newsletterThanks: "感谢订阅！（演示 — 请连接您的邮件服务。）",
       footerMagazine: "NaMe 杂志",
-      footerAddress: "NaMe Publishing<br />专题工作室 · 纽约<br />hello@NaMe-magazine.com",
+      footerAddress: "NaMe Publishing<br />专题工作室 · 纽约<br />namemagazinenyc@gmail.com",
       terms: "服务条款",
       privacy: "隐私政策",
       footerCopy: "© 2026 NaMe Magazine. 保留所有权利。",
@@ -819,7 +819,7 @@ const NaMeI18n = (function () {
       newsletterBtn: "訂閱",
       newsletterThanks: "感謝訂閱！（示範 — 請連接您的郵件服務。）",
       footerMagazine: "NaMe 雜誌",
-      footerAddress: "NaMe Publishing<br />專題工作室 · 紐約<br />hello@NaMe-magazine.com",
+      footerAddress: "NaMe Publishing<br />專題工作室 · 紐約<br />namemagazinenyc@gmail.com",
       terms: "服務條款",
       privacy: "隱私權政策",
       footerCopy: "© 2026 NaMe Magazine. 版權所有。",
