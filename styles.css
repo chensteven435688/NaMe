@@ -162,6 +162,37 @@ select {
   text-transform: inherit;
 }
 
+html.auth-optimistic-early #header-subscribe-link,
+html.auth-optimistic-early .header__actions a[href*="subscribe.html"],
+html.auth-optimistic-early .mobile-bar a[href*="subscribe.html"] {
+  display: none !important;
+}
+
+html.auth-optimistic-early.auth-optimistic-admin .header__actions a[href*="submission.html"],
+html.auth-optimistic-early.auth-optimistic-admin .mobile-bar a[href*="submission.html"] {
+  display: none !important;
+}
+
+html.auth-optimistic-early.auth-optimistic-admin #admin-link {
+  display: inline !important;
+}
+
+html.auth-optimistic-early:not(.auth-ui-checked) #auth-link {
+  font-size: 0;
+}
+
+html.auth-optimistic-early:not(.auth-ui-checked) #auth-link::after {
+  content: var(--auth-user-label);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+html.auth-optimistic-early.auth-ui-checked #auth-link::after {
+  content: none;
+}
+
 .header__menu-btn {
   display: flex;
   flex-direction: column;

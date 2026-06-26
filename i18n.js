@@ -860,7 +860,15 @@ const NaMeI18n = (function () {
 
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const key = el.getAttribute("data-i18n");
-      if (key) el.textContent = t(lang, key);
+      if (!key) return;
+      if (
+        el.id === "auth-link" &&
+        (el.classList.contains("is-user") ||
+          document.documentElement.classList.contains("auth-optimistic-early"))
+      ) {
+        return;
+      }
+      el.textContent = t(lang, key);
     });
 
     document.querySelectorAll("[data-i18n-html]").forEach((el) => {

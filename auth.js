@@ -5,7 +5,23 @@
 const NaMeAuth = (function () {
   let currentUser = null;
   const listeners = new Set();
+  const AUTH_SNAPSHOT_KEY = "name-auth-snapshot";
   if (typeof window !== "undefined") window.NA_ME_DEV_BYPASS = false;
+
+  function readAuthSnapshot() {
+    try {
+      if (typeof window !== "undefined" && window.__NAME_AUTH_SNAPSHOT__) {
+        return window.__NAME_AUTH_SNAPSHOT__;
+      }
+      const raw = localStorage.getItem(AUTH_SNAPSHOT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  const cachedUser = readAuthSnapshot();
+  if (cachedUser?.id) currentUser = cachedUser;
 
   function supabase() {
     return typeof NaMeSupabase !== "undefined" ? NaMeSupabase.getClient() : null;
@@ -117,10 +133,44 @@ const NaMeAuth = (function () {
   }
 
   function notify() {
+    persistAuthSnapshot(currentUser);
     listeners.forEach((fn) => fn(currentUser));
     document.dispatchEvent(
       new CustomEvent("name:authchange", { detail: { user: currentUser } })
     );
+  }
+
+  function persistAuthSnapshot(user) {
+    try {
+      const root = document.documentElement;
+      if (user) {
+        const snap = {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          role: user.role,
+        };
+        localStorage.setItem(AUTH_SNAPSHOT_KEY, JSON.stringify(snap));
+        window.__NAME_AUTH_SNAPSHOT__ = snap;
+        root.classList.add("auth-optimistic-early");
+        root.classList.toggle("auth-optimistic-admin", user.role === "admin");
+        root.style.setProperty(
+          "--auth-user-label",
+          `"${String(user.displayName || "Member").replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+        );
+      } else {
+        localStorage.removeItem(AUTH_SNAPSHOT_KEY);
+        delete window.__NAME_AUTH_SNAPSHOT__;
+        root.classList.remove("auth-optimistic-early", "auth-optimistic-admin", "auth-ui-checked");
+        root.style.removeProperty("--auth-user-label");
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function markAuthUIReady() {
+    document.documentElement.classList.add("auth-ui-checked");
   }
 
   async function absorbAuthCallback() {
@@ -1378,6 +1428,8 @@ const NaMeAuth = (function () {
       .forEach((el) => {
         el.hidden = hideSubmission;
       });
+
+    markAuthUIReady();
   }
 
   function initUI() {
@@ -1709,9 +1761,14 @@ const NaMeAuth = (function () {
   };
 })();
 
-// Wire auth on every page (including admin gate without #auth-link)
+if (document.body && document.getElementById("auth-link")) {
+  NaMeAuth.initAuthModal();
+  NaMeAuth.initUI();
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   NaMeAuth.initAuthModal();
+  NaMeAuth.initUI();
   await NaMeAuth.refresh();
   NaMeAuth.initUI();
 
