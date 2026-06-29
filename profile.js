@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const account =
         typeof NaMeBase !== "undefined" ? NaMeBase.path("/account.html") : "/account.html";
       window.location.replace(account);
-    } else {
+    } else if (!NaMeAuth.isProfileSaveLocked()) {
       fillProfileForm(user);
     }
   });
@@ -50,8 +50,10 @@ function bootProfileForm() {
   const logoutBtn = document.getElementById("profile-logout");
 
   let pendingAvatarFile = null;
+  let pendingAvatarUrl = null;
   let removeAvatar = false;
   let photoSelected = false;
+  let avatarUploadPromise = null;
 
   fillProfileForm(NaMeAuth.getUser());
 
@@ -59,16 +61,37 @@ function bootProfileForm() {
     const file = avatarInput.files?.[0];
     if (!file) return;
     pendingAvatarFile = file;
+    pendingAvatarUrl = null;
     photoSelected = true;
     removeAvatar = false;
     removeBtn.hidden = false;
     previewAvatarFile(file);
-    status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "profilePhotoPending");
+    status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "profilePhotoUploading");
     status.classList.remove("is-success");
+
+    avatarUploadPromise = NaMeAuth.uploadMyProfileAvatar(file)
+      .then((url) => {
+        if (url) pendingAvatarUrl = url;
+        status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "profilePhotoReady");
+      })
+      .catch((err) => {
+        pendingAvatarFile = null;
+        pendingAvatarUrl = null;
+        photoSelected = false;
+        avatarInput.value = "";
+        removeBtn.hidden = true;
+        renderAvatarPreview(null, NaMeAuth.getUser()?.displayName || "?");
+        status.textContent = err.message;
+        status.classList.remove("is-success");
+      })
+      .finally(() => {
+        avatarUploadPromise = null;
+      });
   });
 
   removeBtn?.addEventListener("click", () => {
     pendingAvatarFile = null;
+    pendingAvatarUrl = null;
     photoSelected = false;
     removeAvatar = true;
     avatarInput.value = "";
@@ -90,10 +113,15 @@ function bootProfileForm() {
     if (submitBtn) submitBtn.disabled = true;
 
     try {
+      if (avatarUploadPromise) {
+        status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "profilePhotoUploading");
+        await avatarUploadPromise;
+      }
+
       const displayName = form.displayName.value.trim();
       const signature = form.signature.value.trim();
       const avatarFile = pendingAvatarFile || avatarInput?.files?.[0] || null;
-      if (photoSelected && !removeAvatar && !avatarFile?.size) {
+      if (photoSelected && !removeAvatar && !pendingAvatarUrl && !avatarFile?.size) {
         throw new Error(
           NaMeI18n.t(NaMeI18n.getLang(), "profilePhotoLost")
         );
@@ -101,10 +129,12 @@ function bootProfileForm() {
       const res = await NaMeAuth.updateMyProfile({
         displayName,
         signature,
-        avatarFile,
+        avatarFile: pendingAvatarUrl ? null : avatarFile,
+        avatarUrl: pendingAvatarUrl,
         removeAvatar,
       });
       pendingAvatarFile = null;
+      pendingAvatarUrl = null;
       photoSelected = false;
       removeAvatar = false;
       avatarInput.value = "";
