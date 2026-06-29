@@ -25,10 +25,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (btn) {
       btn.hidden = false;
       btn.textContent = "Log in to NaMe";
-      btn.href = `${home}#auth`;
+      btn.href =
+        typeof NaMeBase !== "undefined" ? NaMeBase.path("/account.html") : "../account.html";
     }
     setTimeout(() => {
-      window.location.href = `${home}#auth`;
+      window.location.href =
+        typeof NaMeBase !== "undefined" ? NaMeBase.path("/account.html") : "../account.html";
     }, 3500);
   } catch (err) {
     title.textContent = "Verification issue";

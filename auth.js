@@ -92,6 +92,62 @@ const NaMeAuth = (function () {
     return null;
   }
 
+  function isAuthPage() {
+    if (typeof window === "undefined") return false;
+    const file = location.pathname.split("/").filter(Boolean).pop() || "";
+    return file === "account.html";
+  }
+
+  function getReturnUrl() {
+    const params = new URLSearchParams(location.search);
+    const ret = params.get("return");
+    if (ret) {
+      try {
+        if (/^https?:\/\//i.test(ret)) {
+          const url = new URL(ret);
+          if (url.origin === location.origin) {
+            return url.pathname + url.search + url.hash;
+          }
+        } else {
+          const path = ret.startsWith("/") ? ret : `/${ret}`;
+          return typeof NaMeBase !== "undefined" ? NaMeBase.path(path) : path;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return typeof NaMeBase !== "undefined" ? NaMeBase.path("/") : "/";
+  }
+
+  function authPageUrl(tab = "login", returnTo) {
+    const base =
+      typeof NaMeBase !== "undefined" ? NaMeBase.path("/account.html") : "/account.html";
+    const url = new URL(base, window.location.origin);
+    if (tab === "register") url.searchParams.set("tab", "register");
+    if (returnTo) url.searchParams.set("return", returnTo);
+    return `${url.pathname}${url.search}`;
+  }
+
+  function completeAuthSuccess(form) {
+    form.reset();
+    clearAuthMessage();
+    if (isAuthPage()) {
+      window.location.href = getReturnUrl();
+      return;
+    }
+    closeAuthModal();
+  }
+
+  function absorbAuthHashRedirect() {
+    if (typeof window === "undefined" || isAuthPage()) return;
+    if (location.hash !== "#auth") return;
+    const tab =
+      new URLSearchParams(location.search).get("tab") === "register" ? "register" : "login";
+    location.replace(authPageUrl(tab, `${location.pathname}${location.search}`));
+  }
+
+  absorbAuthHashRedirect();
+
   function apiBase() {
     if (typeof window.NA_ME_API_BASE === "string") return window.NA_ME_API_BASE;
     if (window.location.protocol === "file:") return "http://localhost:8080";
@@ -1406,11 +1462,9 @@ const NaMeAuth = (function () {
       authLink.classList.remove("is-user");
       authLink.textContent =
         typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "loginJoin") : "Login / Join";
-      authLink.href = "#auth";
-      authLink.onclick = (e) => {
-        e.preventDefault();
-        openAuthModal("login");
-      };
+      authLink.href =
+        typeof NaMeBase !== "undefined" ? NaMeBase.path("/account.html") : "account.html";
+      authLink.onclick = null;
     }
     const adminLink = document.getElementById("admin-link");
     if (adminLink) adminLink.hidden = !isAdmin();
@@ -1446,23 +1500,23 @@ const NaMeAuth = (function () {
   }
 
   function initAuthModal() {
-    const modal = document.getElementById("auth-modal");
-    if (!modal || modal.dataset.bound === "2") return;
-    modal.dataset.bound = "2";
+    const loginForm = document.getElementById("auth-login-form");
+    if (!loginForm || document.body.dataset.authBound === "2") return;
+    document.body.dataset.authBound = "2";
 
-    modal.querySelectorAll("[data-auth-tab]").forEach((tab) => {
+    document.querySelectorAll("[data-auth-tab]").forEach((tab) => {
       tab.addEventListener("click", () => {
-        const name = tab.dataset.authTab;
-        modal.querySelectorAll("[data-auth-tab]").forEach((t) =>
-          t.classList.toggle("is-active", t === tab)
-        );
-        modal.querySelectorAll("[data-auth-panel]").forEach((p) =>
-          p.classList.toggle("is-hidden", p.dataset.authPanel !== name)
-        );
+        switchAuthTab(tab.dataset.authTab);
+        if (isAuthPage()) {
+          const url = new URL(location.href);
+          if (tab.dataset.authTab === "register") url.searchParams.set("tab", "register");
+          else url.searchParams.delete("tab");
+          history.replaceState({}, "", `${url.pathname}${url.search}`);
+        }
       });
     });
 
-    modal.querySelectorAll("[data-close-auth]").forEach((el) => {
+    document.querySelectorAll("[data-close-auth]").forEach((el) => {
       el.addEventListener("click", closeAuthModal);
     });
 
@@ -1486,9 +1540,7 @@ const NaMeAuth = (function () {
       try {
         await login(email, password);
         updateAuthUI();
-        closeAuthModal();
-        form.reset();
-        clearAuthMessage();
+        completeAuthSuccess(form);
       } finally {
         setSubmitLoading(submitBtn, false);
       }
@@ -1499,6 +1551,10 @@ const NaMeAuth = (function () {
       const displayName = form.querySelector("[data-register-name]")?.value?.trim() || "";
       const email = form.querySelector("[data-register-email]")?.value?.trim() || "";
       const password = form.querySelector("[data-register-password]")?.value || "";
+      const passwordConfirm = form.querySelector("[data-register-password-confirm]")?.value || "";
+      if (password !== passwordConfirm) {
+        throw new Error(authT("authPasswordMismatch"));
+      }
       const agreeTerms = form.querySelector("[data-register-agree-terms]");
       if (!agreeTerms?.checked) {
         throw new Error(authT("authMustAgreeTerms"));
@@ -1511,8 +1567,7 @@ const NaMeAuth = (function () {
 
         if (isLoggedIn()) {
           updateAuthUI();
-          closeAuthModal();
-          clearAuthMessage();
+          completeAuthSuccess(form);
           return;
         }
 
@@ -1525,7 +1580,7 @@ const NaMeAuth = (function () {
     document.querySelectorAll("[data-open-auth]").forEach((el) => {
       el.addEventListener("click", (e) => {
         e.preventDefault();
-        openAuthModal(el.dataset.openAuth || "login");
+        openAuthPage(el.dataset.openAuth || "login");
       });
     });
 
@@ -1539,6 +1594,7 @@ const NaMeAuth = (function () {
 
   function ensureAuthFormExtras() {
     ensureLoginTermsLink();
+    ensureRegisterConfirmPassword();
     ensureRegisterCheckboxes();
     ensureResendConfirmationControl();
     applyAuthFormI18n();
@@ -1558,6 +1614,37 @@ const NaMeAuth = (function () {
     else loginForm.appendChild(note);
 
     if (typeof NaMeBase !== "undefined") NaMeBase.fixLinks(note);
+  }
+
+  function ensureRegisterConfirmPassword() {
+    const form = document.getElementById("auth-register-form");
+    if (!form || form.querySelector("[data-register-password-confirm]")) return;
+
+    const passwordInput = form.querySelector("[data-register-password]");
+    if (!passwordInput) return;
+
+    if (form.classList.contains("auth-form--luxury")) {
+      const label = document.createElement("label");
+      label.className = "auth-field";
+      label.innerHTML =
+        '<span data-i18n="authPasswordConfirm">Confirm password</span>' +
+        '<input type="password" name="registerPasswordConfirm" data-register-password-confirm autocomplete="new-password" required minlength="8" />';
+      const passwordField = passwordInput.closest(".auth-field");
+      if (passwordField) passwordField.after(label);
+      else passwordInput.after(label);
+      return;
+    }
+
+    const confirmInput = document.createElement("input");
+    confirmInput.type = "password";
+    confirmInput.name = "registerPasswordConfirm";
+    confirmInput.dataset.registerPasswordConfirm = "1";
+    confirmInput.required = true;
+    confirmInput.minLength = 8;
+    confirmInput.autocomplete = "new-password";
+    confirmInput.setAttribute("data-i18n-placeholder", "authPasswordConfirm");
+    confirmInput.placeholder = "Confirm password";
+    passwordInput.after(confirmInput);
   }
 
   function ensureRegisterCheckboxes() {
@@ -1588,12 +1675,10 @@ const NaMeAuth = (function () {
   }
 
   function switchAuthTab(tab) {
-    const modal = document.getElementById("auth-modal");
-    if (!modal) return;
-    modal.querySelectorAll("[data-auth-tab]").forEach((t) => {
+    document.querySelectorAll("[data-auth-tab]").forEach((t) => {
       t.classList.toggle("is-active", t.dataset.authTab === tab);
     });
-    modal.querySelectorAll("[data-auth-panel]").forEach((p) => {
+    document.querySelectorAll("[data-auth-panel]").forEach((p) => {
       p.classList.toggle("is-hidden", p.dataset.authPanel !== tab);
     });
   }
@@ -1674,14 +1759,19 @@ const NaMeAuth = (function () {
     btn.setAttribute("aria-busy", loading ? "true" : "false");
   }
 
+  function openAuthPage(tab = "login") {
+    if (isAuthPage()) {
+      switchAuthTab(tab);
+      clearAuthError();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    const returnTo = `${location.pathname}${location.search}`;
+    location.href = authPageUrl(tab, returnTo);
+  }
+
   function openAuthModal(tab = "login") {
-    const modal = document.getElementById("auth-modal");
-    if (!modal) return;
-    modal.classList.add("is-open");
-    modal.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
-    modal.querySelector(`[data-auth-tab="${tab}"]`)?.click();
-    clearAuthError();
+    openAuthPage(tab);
   }
 
   function closeAuthModal() {
@@ -1757,6 +1847,10 @@ const NaMeAuth = (function () {
     initUI,
     initAuthModal,
     openAuthModal,
+    openAuthPage,
+    switchAuthTab,
+    getReturnUrl,
+    isAuthPage,
     closeAuthModal,
   };
 })();
