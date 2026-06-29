@@ -61,7 +61,8 @@ function bootProfileForm() {
     removeAvatar = false;
     removeBtn.hidden = false;
     previewAvatarFile(file);
-    status.textContent = "";
+    status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "profilePhotoPending");
+    status.classList.remove("is-success");
   });
 
   removeBtn?.addEventListener("click", () => {
@@ -88,10 +89,11 @@ function bootProfileForm() {
     try {
       const displayName = form.displayName.value.trim();
       const signature = form.signature.value.trim();
+      const avatarFile = pendingAvatarFile || avatarInput?.files?.[0] || null;
       const res = await NaMeAuth.updateMyProfile({
         displayName,
         signature,
-        avatarFile: pendingAvatarFile,
+        avatarFile,
         removeAvatar,
       });
       pendingAvatarFile = null;

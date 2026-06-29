@@ -1921,6 +1921,16 @@ html.auth-optimistic-early.auth-ui-checked #mobile-auth-link::after {
   cursor: pointer;
 }
 
+.profile-form__hint {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text-dim);
+  max-width: 16rem;
+  line-height: 1.45;
+}
+
 .profile-field {
   display: flex;
   flex-direction: column;

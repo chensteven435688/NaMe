@@ -11,6 +11,17 @@ const NaMeAuth = (function () {
   const MAX_SUBMISSION_VIDEO_BYTES = 4 * 1024 * 1024 * 1024;
   const MAX_SUBMISSION_FILE_BYTES = 50 * 1024 * 1024;
   const MAX_AVATAR_BYTES = 30 * 1024 * 1024;
+  const IMAGE_EXTENSIONS = new Set([
+    "jpg",
+    "jpeg",
+    "png",
+    "webp",
+    "gif",
+    "heic",
+    "heif",
+    "avif",
+    "bmp",
+  ]);
   if (typeof window !== "undefined") window.NA_ME_DEV_BYPASS = false;
 
   function readAuthSnapshot() {
@@ -849,13 +860,44 @@ const NaMeAuth = (function () {
     return "latest";
   }
 
-  function mapSupabaseWriteError(error) {
+  function fileExtension(name) {
+    const parts = String(name || "").split(".");
+    return parts.length > 1 ? parts.pop().toLowerCase() : "";
+  }
+
+  function isImageUpload(file) {
+    if (!file || !file.size) return false;
+    if (file.type && /^image\//.test(file.type)) return true;
+    return IMAGE_EXTENSIONS.has(fileExtension(file.name));
+  }
+
+  function imageContentType(file) {
+    if (file.type && /^image\//.test(file.type)) return file.type;
+    const ext = fileExtension(file.name);
+    const map = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      webp: "image/webp",
+      gif: "image/gif",
+      heic: "image/heic",
+      heif: "image/heif",
+      avif: "image/avif",
+      bmp: "image/bmp",
+    };
+    return map[ext] || "image/jpeg";
+  }
+
+  function mapSupabaseWriteError(error, context = "save") {
     const msg = error?.message || "Request failed";
     if (/permission denied|row-level security|not authorized|jwt/i.test(msg)) {
-      return "Could not save — your session may have expired. Log out, log in again, then publish.";
+      return "Could not save — your session may have expired. Log out, log in again, then try again.";
     }
     if (/bucket not found/i.test(msg)) {
-      return "Image storage is not set up. Run supabase/storage-posts.sql in the Supabase SQL editor.";
+      if (context === "avatar") {
+        return "Avatar storage is not set up. Run supabase/storage-avatars.sql in the Supabase SQL editor.";
+      }
+      return "Image storage is not set up. Run the matching supabase/storage-*.sql file in the Supabase SQL editor.";
     }
     return msg;
   }
@@ -889,26 +931,31 @@ const NaMeAuth = (function () {
     const marker = "/avatars/";
     const idx = imageUrl.indexOf(marker);
     if (idx === -1) return null;
-    return decodeURIComponent(imageUrl.slice(idx + marker.length));
+    let path = decodeURIComponent(imageUrl.slice(idx + marker.length));
+    const q = path.indexOf("?");
+    if (q !== -1) path = path.slice(0, q);
+    return path;
   }
 
   async function uploadProfileAvatar(sb, userId, file) {
-    if (!/^image\//.test(file.type)) {
-      throw new Error("Profile picture must be an image file");
+    if (!isImageUpload(file)) {
+      throw new Error("Profile picture must be an image file (JPG, PNG, WEBP, HEIC, etc.)");
     }
     if (file.size > MAX_AVATAR_BYTES) {
       throw new Error("Profile picture must be 30 MB or smaller");
     }
 
-    const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
-    const objectPath = `${userId}/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
+    const ext = fileExtension(file.name) || "jpg";
+    const safeExt = ext.replace(/[^a-zA-Z0-9]/g, "") || "jpg";
+    const objectPath = `${userId}/avatar.${safeExt}`;
+    const contentType = imageContentType(file);
     const { error: uploadError } = await sb.storage
       .from("avatars")
-      .upload(objectPath, file, { contentType: file.type, upsert: false });
-    if (uploadError) throw new Error(mapSupabaseWriteError(uploadError));
+      .upload(objectPath, file, { contentType, upsert: true });
+    if (uploadError) throw new Error(mapSupabaseWriteError(uploadError, "avatar"));
 
     const { data: urlData } = sb.storage.from("avatars").getPublicUrl(objectPath);
-    return urlData.publicUrl;
+    return `${urlData.publicUrl}?v=${Date.now()}`;
   }
 
   async function updateMyProfile({ displayName, signature, avatarFile, removeAvatar } = {}) {
@@ -925,7 +972,7 @@ const NaMeAuth = (function () {
       const { sb, user } = await requireSupabaseAuth();
       const { data: row, error: fetchError } = await sb
         .from("profiles")
-        .select("avatar_url")
+        .select("avatar_url, display_name, signature")
         .eq("id", user.id)
         .single();
       if (fetchError) throw new Error(fetchError.message);
@@ -935,16 +982,21 @@ const NaMeAuth = (function () {
         const oldPath = avatarStoragePath(avatar_url);
         if (oldPath) await sb.storage.from("avatars").remove([oldPath]);
         avatar_url = null;
-      } else if (avatarFile && avatarFile instanceof File && avatarFile.size > 0) {
-        const oldPath = avatarStoragePath(avatar_url);
+      } else if (avatarFile && avatarFile.size > 0) {
+        if (!isImageUpload(avatarFile)) {
+          throw new Error("Profile picture must be an image file (JPG, PNG, WEBP, HEIC, etc.)");
+        }
         avatar_url = await uploadProfileAvatar(sb, user.id, avatarFile);
-        if (oldPath) await sb.storage.from("avatars").remove([oldPath]);
       }
 
-      const patch = {};
-      if (displayName !== undefined) patch.display_name = displayName.trim();
-      if (signature !== undefined) patch.signature = signature.trim() || null;
-      if (removeAvatar || avatarFile) patch.avatar_url = avatar_url;
+      const patch = {
+        display_name: (displayName ?? row.display_name ?? "").trim(),
+        signature:
+          signature !== undefined ? signature.trim() || null : row.signature ?? null,
+      };
+      if (removeAvatar || (avatarFile && avatarFile.size > 0)) {
+        patch.avatar_url = avatar_url;
+      }
 
       const { data, error } = await sb
         .from("profiles")
@@ -952,7 +1004,7 @@ const NaMeAuth = (function () {
         .eq("id", user.id)
         .select("*")
         .single();
-      if (error) throw new Error(mapSupabaseWriteError(error));
+      if (error) throw new Error(mapSupabaseWriteError(error, "avatar"));
 
       currentUser = mapProfile(data);
       notify();

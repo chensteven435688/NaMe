@@ -20,6 +20,10 @@ create policy "Users update own avatar"
   using (
     bucket_id = 'avatars'
     and (storage.foldername(name))[1] = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
   );
 
 drop policy if exists "Anyone can read avatars" on storage.objects;
