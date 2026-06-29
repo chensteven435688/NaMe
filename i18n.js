@@ -286,7 +286,7 @@ const NaMeI18n = (function () {
         "Upload your work directly to NaMe. All mediums welcome — our editors review every submission and publish selected pieces on the site.",
       submissionLoginRequired: "Log in or create a NaMe account to submit your work.",
       submissionUploadTitle: "Upload your work",
-      submissionUploadHint: "Images, PDF, or video up to 25 MB. Your submission goes to our editorial team for review.",
+      submissionUploadHint: "Videos up to 4 GB; images and PDF up to 50 MB. Your submission goes to our editorial team for review.",
       submissionFieldTitle: "Title",
       submissionFieldMedium: "Medium",
       submissionFieldMediumChoose: "Choose a medium…",
