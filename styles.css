@@ -485,7 +485,7 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
 
 .hero__layout {
   display: grid;
-  grid-template-columns: minmax(300px, 36%) 1fr;
+  grid-template-columns: auto 1fr;
   height: 100%;
 }
 
@@ -500,6 +500,16 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
   background: var(--bg-dark);
   color: var(--text-inverse);
   border-right: 1px solid var(--border-strong);
+}
+
+.hero__panel--controls-only {
+  justify-content: flex-end;
+  gap: 0;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.hero__panel--controls-only .hero__controls {
+  margin-top: 0;
 }
 
 .hero__media {
@@ -524,29 +534,8 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
 .hero__slide img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transform: scale(1.08);
-}
-
-.hero__slide--active img {
-  animation: hero-ken-burns 7s ease-out forwards;
-}
-
-@keyframes hero-ken-burns {
-  from {
-    transform: scale(1.08);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-
-.hero__vol {
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--text-inverse-muted);
+  object-fit: contain;
+  background: var(--bg-dark);
 }
 
 .hero__title {
@@ -657,8 +646,11 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
     min-height: 42vh;
   }
 
-  .hero__title {
-    font-size: clamp(2.25rem, 12vw, 3.5rem);
+  .hero__panel--controls-only {
+    min-height: auto;
+    flex-direction: row;
+    justify-content: center;
+    padding: 1.25rem;
   }
 }
 
@@ -837,11 +829,6 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
 @media (prefers-reduced-motion: reduce) {
   .home-marquee__track {
     animation: none;
-  }
-
-  .hero__slide--active img {
-    animation: none;
-    transform: scale(1);
   }
 
   .home-reveal {
