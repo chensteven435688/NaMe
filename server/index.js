@@ -102,6 +102,8 @@ function publicUser(row) {
     id: row.id,
     email: row.email,
     displayName: row.display_name,
+    avatarUrl: row.avatar_url || null,
+    signature: row.signature || null,
     role: row.role,
   };
 }
@@ -178,6 +180,45 @@ app.get("/api/auth/me", optionalAuth, (req, res) => {
   let row = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.sub);
   row = syncUserRole(row);
   res.json({ user: publicUser(row) });
+});
+
+app.patch("/api/auth/profile", requireAuth, upload.single("avatar"), (req, res) => {
+  const { displayName, signature, removeAvatar } = req.body;
+  const row = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.sub);
+  if (!row) return res.status(404).json({ error: "Not found" });
+
+  if (displayName !== undefined && !displayName?.trim()) {
+    return res.status(400).json({ error: "Display name required" });
+  }
+  if (signature !== undefined && signature.length > 160) {
+    return res.status(400).json({ error: "Signature must be 160 characters or fewer" });
+  }
+
+  let avatar_url = row.avatar_url || null;
+  if (removeAvatar === "1") {
+    if (avatar_url?.startsWith("/uploads/")) {
+      const filePath = path.join(__dirname, avatar_url);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+    avatar_url = null;
+  } else if (req.file) {
+    if (avatar_url?.startsWith("/uploads/")) {
+      const oldPath = path.join(__dirname, avatar_url);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+    avatar_url = `/uploads/${req.file.filename}`;
+  }
+
+  const nextName = displayName !== undefined ? displayName.trim() : row.display_name;
+  const nextSignature =
+    signature !== undefined ? signature.trim() || null : row.signature;
+
+  db.prepare(
+    `UPDATE users SET display_name = ?, signature = ?, avatar_url = ? WHERE id = ?`
+  ).run(nextName, nextSignature, avatar_url, req.user.sub);
+
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.sub);
+  res.json({ user: publicUser(user) });
 });
 
 app.get("/api/dev/config", (_req, res) => {
@@ -294,6 +335,8 @@ function commentWithMeta(row, userId) {
     author: {
       id: row.user_id,
       displayName: row.display_name,
+      avatarUrl: row.avatar_url || null,
+      signature: row.signature || null,
     },
     likeCount: likes,
     liked,
@@ -305,7 +348,7 @@ app.get("/api/posts/:slug/comments", optionalAuth, (req, res) => {
   if (!post) return res.status(404).json({ error: "Post not found" });
   const rows = db
     .prepare(
-      `SELECT c.*, u.display_name
+      `SELECT c.*, u.display_name, u.avatar_url, u.signature
        FROM comments c
        JOIN users u ON u.id = c.user_id
        WHERE c.post_id = ?
@@ -350,7 +393,7 @@ app.post("/api/posts/:slug/comments", requireAuth, (req, res) => {
   ).run(id, post.id, req.user.sub, parentId || null, body.trim(), now);
   const row = db
     .prepare(
-      `SELECT c.*, u.display_name FROM comments c JOIN users u ON u.id = c.user_id WHERE c.id = ?`
+      `SELECT c.*, u.display_name, u.avatar_url, u.signature FROM comments c JOIN users u ON u.id = c.user_id WHERE c.id = ?`
     )
     .get(id);
   res.status(201).json({ comment: commentWithMeta(row, req.user.sub) });

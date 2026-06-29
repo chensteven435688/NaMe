@@ -166,4 +166,16 @@ function migratePostsContentDate() {
 
 migratePostsContentDate();
 
+function migrateUsersProfile() {
+  const cols = db.prepare("PRAGMA table_info(users)").all();
+  if (!cols.some((c) => c.name === "avatar_url")) {
+    db.exec("ALTER TABLE users ADD COLUMN avatar_url TEXT");
+  }
+  if (!cols.some((c) => c.name === "signature")) {
+    db.exec("ALTER TABLE users ADD COLUMN signature TEXT");
+  }
+}
+
+migrateUsersProfile();
+
 export default db;

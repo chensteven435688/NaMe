@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Customize your NaMe member profile" />
+  <title>Profile — NaMe Magazine</title>
+  <script src="auth-boot.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page-profile" data-page-title="profilePageTitle" data-page-description="profilePageDescription">
+  <header class="header header--minimal" id="header">
+    <div class="header__top">
+      <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
+      <nav class="header__actions" aria-label="Quick actions">
+        <a href="./" class="auth-page__back" data-i18n="backHome">← Back to NaMe</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="profile-page">
+    <div class="profile-page__shell">
+      <header class="profile-page__head">
+        <p class="profile-page__eyebrow" data-i18n="profileEyebrow">Your NaMe identity</p>
+        <h1 class="profile-page__title" data-i18n="profileTitle">Profile</h1>
+        <p class="profile-page__lead" data-i18n="profileLead">
+          Set your picture and signature — they appear on comments and community posts.
+        </p>
+      </header>
+
+      <form class="profile-form" id="profile-form">
+        <div class="profile-form__avatar-block">
+          <div class="profile-form__avatar" id="profile-avatar-preview">
+            <span class="user-avatar user-avatar--initial user-avatar--xl" aria-hidden="true">?</span>
+          </div>
+          <div class="profile-form__avatar-actions">
+            <label class="btn btn--ghost btn--sm profile-form__upload">
+              <span data-i18n="profileChangePhoto">Change photo</span>
+              <input type="file" name="avatar" id="profile-avatar-input" accept="image/*" hidden />
+            </label>
+            <button type="button" class="btn btn--ghost btn--sm" id="profile-remove-avatar" data-i18n="profileRemovePhoto" hidden>
+              Remove photo
+            </button>
+          </div>
+        </div>
+
+        <label class="profile-field">
+          <span data-i18n="profileDisplayName">Display name</span>
+          <input type="text" name="displayName" id="profile-display-name" maxlength="60" required />
+        </label>
+
+        <label class="profile-field">
+          <span data-i18n="profileSignature">Signature</span>
+          <textarea name="signature" id="profile-signature" rows="3" maxlength="160" data-i18n-placeholder="profileSignaturePlaceholder" placeholder="A short line about you — shown beside your name"></textarea>
+          <span class="profile-field__hint" data-i18n="profileSignatureHint">Up to 160 characters. Optional.</span>
+        </label>
+
+        <p class="profile-field profile-field--readonly">
+          <span data-i18n="profileEmail">Email</span>
+          <span id="profile-email" class="profile-field__value"></span>
+        </p>
+
+        <div class="profile-form__actions">
+          <button type="submit" class="btn btn--primary btn--luxury" data-i18n="profileSave">Save profile</button>
+          <button type="button" class="btn btn--ghost" id="profile-logout" data-i18n="profileLogout">Log out</button>
+        </div>
+        <p id="profile-status" class="profile-form__status" role="status"></p>
+      </form>
+    </div>
+  </main>
+
+  <script src="base.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase.js"></script>
+  <script src="i18n.js"></script>
+  <script src="auth.js"></script>
+  <script src="profile.js"></script>
+</body>
+</html>

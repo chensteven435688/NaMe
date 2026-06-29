@@ -42,8 +42,37 @@ const NaMeAuth = (function () {
       id: row.id,
       email: row.email,
       displayName: row.display_name,
+      avatarUrl: row.avatar_url || null,
+      signature: row.signature || null,
       role: row.role,
     };
+  }
+
+  const PROFILE_PUBLIC_SELECT = "id, display_name, avatar_url, signature";
+
+  function mapPublicAuthor(row, userId) {
+    const profile = row?.profiles;
+    const author = Array.isArray(profile) ? profile[0] : profile;
+    return {
+      id: userId || row?.user_id || author?.id,
+      displayName: author?.display_name || row?.display_name || "Member",
+      avatarUrl: author?.avatar_url || row?.avatar_url || null,
+      signature: author?.signature || row?.signature || null,
+    };
+  }
+
+  function formatUserAvatar(author, className = "user-avatar") {
+    const name = author?.displayName || "Member";
+    const esc = (value) =>
+      String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/"/g, "&quot;");
+    if (author?.avatarUrl) {
+      return `<img class="${esc(className)}" src="${esc(author.avatarUrl)}" alt="${esc(name)}" loading="lazy" />`;
+    }
+    const initial = (name[0] || "?").toUpperCase();
+    return `<span class="${esc(className)} user-avatar--initial" aria-hidden="true">${esc(initial)}</span>`;
   }
 
   function mapPost(row) {
@@ -86,6 +115,8 @@ const NaMeAuth = (function () {
           user.user_metadata?.display_name ||
           user.email?.split("@")[0] ||
           "Member",
+        avatarUrl: null,
+        signature: null,
         role: "member",
       };
       return currentUser;
@@ -209,6 +240,7 @@ const NaMeAuth = (function () {
           id: user.id,
           email: user.email,
           displayName: user.displayName,
+          avatarUrl: user.avatarUrl || null,
           role: user.role,
         };
         localStorage.setItem(AUTH_SNAPSHOT_KEY, JSON.stringify(snap));
@@ -819,7 +851,7 @@ const NaMeAuth = (function () {
     return msg;
   }
 
-  async function requireSupabaseAdmin() {
+  async function requireSupabaseAuth() {
     const sb = supabase();
     if (!sb) throw new Error("Supabase is not configured");
 
@@ -834,11 +866,101 @@ const NaMeAuth = (function () {
     }
 
     await loadProfile(session.user.id);
-    if (!isAdmin()) {
-      throw new Error("Admin access required");
+    return { sb, user: session.user };
+  }
+
+  async function requireSupabaseAdmin() {
+    const ctx = await requireSupabaseAuth();
+    if (!isAdmin()) throw new Error("Admin access required");
+    return ctx;
+  }
+
+  function avatarStoragePath(imageUrl) {
+    if (!imageUrl) return null;
+    const marker = "/avatars/";
+    const idx = imageUrl.indexOf(marker);
+    if (idx === -1) return null;
+    return decodeURIComponent(imageUrl.slice(idx + marker.length));
+  }
+
+  async function uploadProfileAvatar(sb, userId, file) {
+    if (!/^image\//.test(file.type)) {
+      throw new Error("Profile picture must be an image file");
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error("Profile picture must be 5 MB or smaller");
     }
 
-    return { sb, user: session.user };
+    const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+    const objectPath = `${userId}/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
+    const { error: uploadError } = await sb.storage
+      .from("avatars")
+      .upload(objectPath, file, { contentType: file.type, upsert: false });
+    if (uploadError) throw new Error(mapSupabaseWriteError(uploadError));
+
+    const { data: urlData } = sb.storage.from("avatars").getPublicUrl(objectPath);
+    return urlData.publicUrl;
+  }
+
+  async function updateMyProfile({ displayName, signature, avatarFile, removeAvatar } = {}) {
+    if (!isLoggedIn()) throw new Error("Log in required");
+
+    if (displayName !== undefined && !displayName?.trim()) {
+      throw new Error("Display name required");
+    }
+    if (signature !== undefined && signature.length > 160) {
+      throw new Error("Signature must be 160 characters or fewer");
+    }
+
+    if (useSupabase()) {
+      const { sb, user } = await requireSupabaseAuth();
+      const { data: row, error: fetchError } = await sb
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", user.id)
+        .single();
+      if (fetchError) throw new Error(fetchError.message);
+
+      let avatar_url = row?.avatar_url || null;
+      if (removeAvatar) {
+        const oldPath = avatarStoragePath(avatar_url);
+        if (oldPath) await sb.storage.from("avatars").remove([oldPath]);
+        avatar_url = null;
+      } else if (avatarFile && avatarFile instanceof File && avatarFile.size > 0) {
+        const oldPath = avatarStoragePath(avatar_url);
+        avatar_url = await uploadProfileAvatar(sb, user.id, avatarFile);
+        if (oldPath) await sb.storage.from("avatars").remove([oldPath]);
+      }
+
+      const patch = {};
+      if (displayName !== undefined) patch.display_name = displayName.trim();
+      if (signature !== undefined) patch.signature = signature.trim() || null;
+      if (removeAvatar || avatarFile) patch.avatar_url = avatar_url;
+
+      const { data, error } = await sb
+        .from("profiles")
+        .update(patch)
+        .eq("id", user.id)
+        .select("*")
+        .single();
+      if (error) throw new Error(mapSupabaseWriteError(error));
+
+      currentUser = mapProfile(data);
+      notify();
+      return { user: currentUser };
+    }
+
+    const fd = new FormData();
+    if (displayName !== undefined) fd.append("displayName", displayName.trim());
+    if (signature !== undefined) fd.append("signature", signature.trim());
+    if (removeAvatar) fd.append("removeAvatar", "1");
+    if (avatarFile && avatarFile instanceof File && avatarFile.size > 0) {
+      fd.append("avatar", avatarFile);
+    }
+    const data = await request("/api/auth/profile", { method: "PATCH", body: fd });
+    currentUser = data.user;
+    notify();
+    return data;
   }
 
   function postImageStoragePath(imageUrl) {
@@ -1016,10 +1138,7 @@ const NaMeAuth = (function () {
       parentId: row.parent_id,
       body: row.body,
       createdAt: row.created_at,
-      author: {
-        id: row.user_id,
-        displayName: author?.display_name || "Member",
-      },
+      author: mapPublicAuthor(row, row.user_id),
       likeCount,
       liked,
     };
@@ -1066,7 +1185,7 @@ const NaMeAuth = (function () {
 
       const { data, error } = await sb
         .from("comments")
-        .select("*, profiles!user_id(id, display_name), comment_likes(count)")
+        .select("*, profiles!user_id(id, display_name, avatar_url, signature), comment_likes(count)")
         .eq("post_id", post.id)
         .order("created_at", { ascending: true });
       if (error) throw new Error(error.message);
@@ -1116,7 +1235,7 @@ const NaMeAuth = (function () {
           parent_id: parentId || null,
           body: body.trim(),
         })
-        .select("*, profiles!user_id(id, display_name), comment_likes(count)")
+        .select("*, profiles!user_id(id, display_name, avatar_url, signature), comment_likes(count)")
         .single();
       if (error) throw new Error(error.message);
 
@@ -1479,10 +1598,7 @@ const NaMeAuth = (function () {
       caption: row.caption,
       imageUrl: row.image_url,
       createdAt: row.created_at,
-      author: {
-        id: row.user_id,
-        displayName: author?.display_name || "NaMe Member",
-      },
+      author: mapPublicAuthor(row, row.user_id),
       likeCount,
       commentCount,
       liked: !!liked,
@@ -1490,16 +1606,11 @@ const NaMeAuth = (function () {
   }
 
   function mapCommunityComment(row) {
-    const profile = row.profiles;
-    const author = Array.isArray(profile) ? profile[0] : profile;
     return {
       id: row.id,
       body: row.body,
       createdAt: row.created_at,
-      author: {
-        id: row.user_id,
-        displayName: author?.display_name || "NaMe Member",
-      },
+      author: mapPublicAuthor(row, row.user_id),
     };
   }
 
@@ -1512,7 +1623,7 @@ const NaMeAuth = (function () {
   }
 
   const COMMUNITY_POST_SELECT =
-    "*, profiles!user_id(display_name), community_likes(count), community_comments(count)";
+    "*, profiles!user_id(id, display_name, avatar_url, signature), community_likes(count), community_comments(count)";
 
   async function fetchCommunityLikedSet(postIds, userId) {
     if (!userId || !postIds.length) return new Set();
@@ -1675,7 +1786,7 @@ const NaMeAuth = (function () {
       const sb = supabase();
       const { data, error } = await sb
         .from("community_comments")
-        .select("*, profiles!user_id(display_name)")
+        .select("*, profiles!user_id(id, display_name, avatar_url, signature)")
         .eq("post_id", id)
         .order("created_at", { ascending: true });
       if (error) throw new Error(error.message);
@@ -1708,7 +1819,7 @@ const NaMeAuth = (function () {
           user_id: user.id,
           body: body.trim(),
         })
-        .select("*, profiles!user_id(display_name)")
+        .select("*, profiles!user_id(id, display_name, avatar_url, signature)")
         .single();
       if (error) throw new Error(error.message);
 
@@ -1756,13 +1867,9 @@ const NaMeAuth = (function () {
     if (user) {
       link.textContent = user.displayName;
       link.classList.add("is-user");
-      link.href = "#";
-      link.onclick = (e) => {
-        e.preventDefault();
-        if (confirm(typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "logoutConfirm") : "Log out?")) {
-          logout();
-        }
-      };
+      link.href =
+        typeof NaMeBase !== "undefined" ? NaMeBase.path("/profile.html") : "/profile.html";
+      link.onclick = null;
     } else {
       link.classList.remove("is-user");
       link.textContent =
@@ -2139,6 +2246,8 @@ const NaMeAuth = (function () {
     isAdmin,
     isLoggedIn,
     getUser,
+    updateMyProfile,
+    formatUserAvatar,
     fetchPosts,
     fetchPost,
     fetchPostComments,
