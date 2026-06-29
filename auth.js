@@ -23,6 +23,7 @@ const NaMeAuth = (function () {
     "bmp",
   ]);
   if (typeof window !== "undefined") window.NA_ME_DEV_BYPASS = false;
+  let profileSaveLock = 0;
 
   function readAuthSnapshot() {
     try {
@@ -937,6 +938,29 @@ const NaMeAuth = (function () {
     return path;
   }
 
+  function isProfileSaveLocked() {
+    return profileSaveLock > 0;
+  }
+
+  async function runProfileSaveLocked(fn) {
+    profileSaveLock += 1;
+    try {
+      return await fn();
+    } finally {
+      profileSaveLock -= 1;
+    }
+  }
+
+  async function uploadMyProfileAvatar(file) {
+    if (!isLoggedIn()) throw new Error("Log in required");
+    if (!useSupabase()) return null;
+    if (!file?.size) return null;
+    return runProfileSaveLocked(async () => {
+      const { sb, user } = await requireSupabaseAuth();
+      return uploadProfileAvatar(sb, user.id, file);
+    });
+  }
+
   async function uploadProfileAvatar(sb, userId, file) {
     if (!isImageUpload(file)) {
       throw new Error("Profile picture must be an image file (JPG, PNG, WEBP, HEIC, etc.)");
@@ -958,7 +982,13 @@ const NaMeAuth = (function () {
     return `${urlData.publicUrl}?v=${Date.now()}`;
   }
 
-  async function updateMyProfile({ displayName, signature, avatarFile, removeAvatar } = {}) {
+  async function updateMyProfile({
+    displayName,
+    signature,
+    avatarFile,
+    avatarUrl,
+    removeAvatar,
+  } = {}) {
     if (!isLoggedIn()) throw new Error("Log in required");
 
     if (displayName !== undefined && !displayName?.trim()) {
@@ -969,51 +999,58 @@ const NaMeAuth = (function () {
     }
 
     if (useSupabase()) {
-      const { sb, user } = await requireSupabaseAuth();
-      const { data: row, error: fetchError } = await sb
-        .from("profiles")
-        .select("avatar_url, display_name, signature")
-        .eq("id", user.id)
-        .single();
-      if (fetchError) throw new Error(fetchError.message);
+      return runProfileSaveLocked(async () => {
+        const { sb, user } = await requireSupabaseAuth();
+        const { data: row, error: fetchError } = await sb
+          .from("profiles")
+          .select("avatar_url, display_name, signature")
+          .eq("id", user.id)
+          .single();
+        if (fetchError) throw new Error(fetchError.message);
 
-      let avatar_url = row?.avatar_url || null;
-      if (removeAvatar) {
-        const oldPath = avatarStoragePath(avatar_url);
-        if (oldPath) await sb.storage.from("avatars").remove([oldPath]);
-        avatar_url = null;
-      } else if (avatarFile && avatarFile.size > 0) {
-        if (!isImageUpload(avatarFile)) {
-          throw new Error("Profile picture must be an image file (JPG, PNG, WEBP, HEIC, etc.)");
+        let avatar_url = row?.avatar_url || null;
+        const wantsAvatarChange =
+          removeAvatar || !!avatarUrl || (avatarFile && avatarFile.size > 0);
+
+        if (removeAvatar) {
+          const oldPath = avatarStoragePath(avatar_url);
+          if (oldPath) await sb.storage.from("avatars").remove([oldPath]);
+          avatar_url = null;
+        } else if (avatarUrl) {
+          avatar_url = avatarUrl;
+        } else if (avatarFile && avatarFile.size > 0) {
+          if (!isImageUpload(avatarFile)) {
+            throw new Error("Profile picture must be an image file (JPG, PNG, WEBP, HEIC, etc.)");
+          }
+          avatar_url = await uploadProfileAvatar(sb, user.id, avatarFile);
         }
-        avatar_url = await uploadProfileAvatar(sb, user.id, avatarFile);
-      }
 
-      const patch = {
-        display_name: (displayName ?? row.display_name ?? "").trim(),
-        signature:
-          signature !== undefined ? signature.trim() || null : row.signature ?? null,
-      };
-      if (removeAvatar || (avatarFile && avatarFile.size > 0)) {
-        patch.avatar_url = avatar_url;
-      }
+        const patch = {
+          display_name: (displayName ?? row.display_name ?? "").trim(),
+          signature:
+            signature !== undefined ? signature.trim() || null : row.signature ?? null,
+        };
+        if (wantsAvatarChange) {
+          patch.avatar_url = avatar_url;
+        }
 
-      const { data, error } = await sb
-        .from("profiles")
-        .update(patch)
-        .eq("id", user.id)
-        .select("*")
-        .single();
-      if (error) throw new Error(mapSupabaseWriteError(error, "avatar"));
+        const { data, error } = await sb
+          .from("profiles")
+          .update(patch)
+          .eq("id", user.id)
+          .select("*")
+          .single();
+        if (error) throw new Error(mapSupabaseWriteError(error, "avatar"));
 
-      currentUser = mapProfile(data);
-      if (avatarFile?.size > 0 && !currentUser?.avatarUrl) {
-        throw new Error(
-          "Photo uploaded but your profile did not update. Log out, log in again, then try once more."
-        );
-      }
-      notify();
-      return { user: currentUser };
+        currentUser = mapProfile(data);
+        if (wantsAvatarChange && !removeAvatar && !currentUser?.avatarUrl) {
+          throw new Error(
+            "Photo uploaded but your profile did not update. Log out, log in again, then try once more."
+          );
+        }
+        notify();
+        return { user: currentUser };
+      });
     }
 
     const fd = new FormData();
@@ -2313,6 +2350,8 @@ const NaMeAuth = (function () {
     isLoggedIn,
     getUser,
     updateMyProfile,
+    uploadMyProfileAvatar,
+    isProfileSaveLocked,
     formatUserAvatar,
     fetchPosts,
     fetchPost,
@@ -2369,7 +2408,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const sb = typeof NaMeSupabase !== "undefined" ? NaMeSupabase.getClient() : null;
   if (sb) {
-    sb.auth.onAuthStateChange(async () => {
+    sb.auth.onAuthStateChange(async (event) => {
+      if (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") return;
+      if (NaMeAuth.isProfileSaveLocked()) return;
       await NaMeAuth.refresh();
       NaMeAuth.initUI();
     });
