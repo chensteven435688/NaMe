@@ -10,6 +10,7 @@ const NaMeAuth = (function () {
   const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
   const MAX_SUBMISSION_VIDEO_BYTES = 4 * 1024 * 1024 * 1024;
   const MAX_SUBMISSION_FILE_BYTES = 50 * 1024 * 1024;
+  const MAX_AVATAR_BYTES = 30 * 1024 * 1024;
   if (typeof window !== "undefined") window.NA_ME_DEV_BYPASS = false;
 
   function readAuthSnapshot() {
@@ -895,8 +896,8 @@ const NaMeAuth = (function () {
     if (!/^image\//.test(file.type)) {
       throw new Error("Profile picture must be an image file");
     }
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error("Profile picture must be 5 MB or smaller");
+    if (file.size > MAX_AVATAR_BYTES) {
+      throw new Error("Profile picture must be 30 MB or smaller");
     }
 
     const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";

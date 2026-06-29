@@ -1,7 +1,7 @@
 -- NaMe Magazine — member profile avatars (run once in Supabase SQL Editor)
 
 insert into storage.buckets (id, name, public, file_size_limit)
-values ('avatars', 'avatars', true, 5242880)
+values ('avatars', 'avatars', true, 31457280)
 on conflict (id) do update
 set public = excluded.public,
     file_size_limit = excluded.file_size_limit;
