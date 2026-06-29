@@ -2103,6 +2103,123 @@ img.user-avatar {
   margin-bottom: 2rem;
 }
 
+.post-gallery {
+  position: relative;
+  margin-bottom: 2rem;
+  outline: none;
+}
+
+.post-gallery__viewport {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-elevated, #111);
+  cursor: pointer;
+  user-select: none;
+}
+
+.post-gallery__track {
+  display: flex;
+  transition: transform 0.32s ease;
+  will-change: transform;
+}
+
+.post-gallery__slide {
+  flex: 0 0 100%;
+  margin: 0;
+}
+
+.post-gallery__slide img {
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  display: block;
+  background: var(--bg-elevated, #111);
+}
+
+.post-gallery__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.post-gallery__viewport:hover .post-gallery__nav,
+.post-gallery__nav:focus-visible {
+  opacity: 1;
+}
+
+.post-gallery__nav:hover {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.post-gallery__nav--prev {
+  left: 0.75rem;
+}
+
+.post-gallery__nav--next {
+  right: 0.75rem;
+}
+
+.post-gallery__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0 0;
+}
+
+.post-gallery__dots {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.post-gallery__dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--border-strong);
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.post-gallery__dot.is-active {
+  background: var(--text);
+  transform: scale(1.25);
+}
+
+.post-gallery__counter {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .post-gallery__nav {
+    opacity: 1;
+    width: 1.85rem;
+    height: 1.85rem;
+    font-size: 1.1rem;
+  }
+}
+
 .post__meta {
   font-size: 11px;
   letter-spacing: 0.12em;

@@ -54,9 +54,19 @@ function renderPost(post) {
     backEl.textContent = isExclusive ? `← ${backLabel}` : NaMeI18n.t(lang, "backHome");
   }
 
-  const media = post.videoUrl
-    ? `<video class="post__video" controls poster="${post.imageUrl || ""}" src="${post.videoUrl}"></video>`
-    : `<img class="post__hero-img" src="${post.imageUrl || ""}" alt="${escapeHtml(post.title)}" />`;
+  const bodyImages = extractImagesFromBody(post.body);
+  const galleryImages = collectGalleryImages(post.imageUrl, bodyImages);
+  const contentHtml = bodyImages.length ? stripGalleryImagesFromBody(post.body) : post.body || "";
+
+  let media;
+  if (post.videoUrl) {
+    media = `<video class="post__video" controls poster="${post.imageUrl || ""}" src="${post.videoUrl}"></video>`;
+  } else if (galleryImages.length > 1) {
+    media = buildPostGallery(galleryImages, post.title, lang);
+  } else {
+    const src = galleryImages[0] || post.imageUrl || "";
+    media = `<img class="post__hero-img" src="${escapeAttr(src)}" alt="${escapeHtml(post.title)}" />`;
+  }
 
   const datesHtml = buildPostDates(post, lang);
 
@@ -68,11 +78,153 @@ function renderPost(post) {
         <h1 class="post__title">${escapeHtml(post.title)}</h1>
         <p class="post__type${isExclusive ? " post__type--exclusive" : ""}">${escapeHtml(typeLabel)}</p>
         ${datesHtml}
-        <div class="post__content">${post.body || ""}</div>
+        <div class="post__content">${contentHtml}</div>
       </div>
     </article>
   `;
+
+  const gallery = root.querySelector(".post-gallery");
+  if (gallery) initPostGallery(gallery);
+
   document.title = `${post.title} — NaMe Magazine`;
+}
+
+function collectGalleryImages(coverUrl, bodyImages) {
+  const images = [];
+  const cover = coverUrl?.trim();
+  if (cover) images.push(cover);
+  for (const url of bodyImages) {
+    const trimmed = url?.trim();
+    if (trimmed && !images.includes(trimmed)) images.push(trimmed);
+  }
+  return images;
+}
+
+function extractImagesFromBody(html) {
+  if (!html) return [];
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const urls = [];
+  doc.querySelectorAll("figure img, .post__figure img, img").forEach((img) => {
+    const src = img.getAttribute("src")?.trim();
+    if (src && !urls.includes(src)) urls.push(src);
+  });
+  return urls;
+}
+
+function stripGalleryImagesFromBody(html) {
+  if (!html) return "";
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.querySelectorAll("figure, .post__figure").forEach((node) => {
+    if (node.querySelector("img")) node.remove();
+  });
+  return doc.body.innerHTML.trim();
+}
+
+function buildPostGallery(images, title, lang) {
+  const prevLabel = NaMeI18n.t(lang, "previous");
+  const nextLabel = NaMeI18n.t(lang, "next");
+  const slides = images
+    .map(
+      (url, i) => `
+      <figure class="post-gallery__slide" data-index="${i}">
+        <img src="${escapeAttr(url)}" alt="${escapeHtml(title)} (${i + 1}/${images.length})" />
+      </figure>`
+    )
+    .join("");
+  const dots = images
+    .map(
+      (_, i) =>
+        `<button type="button" class="post-gallery__dot${i === 0 ? " is-active" : ""}" data-go="${i}" aria-label="${i + 1} / ${images.length}"></button>`
+    )
+    .join("");
+
+  return `
+    <div class="post-gallery" data-count="${images.length}" tabindex="0">
+      <div class="post-gallery__viewport">
+        <div class="post-gallery__track">${slides}</div>
+        <button type="button" class="post-gallery__nav post-gallery__nav--prev" aria-label="${escapeAttr(prevLabel)}">‹</button>
+        <button type="button" class="post-gallery__nav post-gallery__nav--next" aria-label="${escapeAttr(nextLabel)}">›</button>
+      </div>
+      <div class="post-gallery__footer">
+        <div class="post-gallery__dots" role="tablist">${dots}</div>
+        <span class="post-gallery__counter" aria-live="polite">1 / ${images.length}</span>
+      </div>
+    </div>`;
+}
+
+function initPostGallery(gallery) {
+  if (!gallery || gallery.dataset.bound) return;
+  gallery.dataset.bound = "1";
+
+  const track = gallery.querySelector(".post-gallery__track");
+  const count = Number(gallery.dataset.count) || 0;
+  if (!track || count <= 1) return;
+
+  const dots = [...gallery.querySelectorAll(".post-gallery__dot")];
+  const counter = gallery.querySelector(".post-gallery__counter");
+  const viewport = gallery.querySelector(".post-gallery__viewport");
+  let index = 0;
+
+  function goTo(nextIndex) {
+    index = ((nextIndex % count) + count) % count;
+    track.style.transform = `translateX(-${index * 100}%)`;
+    dots.forEach((dot, i) => {
+      dot.classList.toggle("is-active", i === index);
+      dot.setAttribute("aria-selected", i === index ? "true" : "false");
+    });
+    if (counter) counter.textContent = `${index + 1} / ${count}`;
+  }
+
+  gallery.querySelector(".post-gallery__nav--prev")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    goTo(index - 1);
+  });
+  gallery.querySelector(".post-gallery__nav--next")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    goTo(index + 1);
+  });
+  dots.forEach((dot) => {
+    dot.addEventListener("click", (e) => {
+      e.stopPropagation();
+      goTo(Number(dot.dataset.go));
+    });
+  });
+
+  viewport?.addEventListener("click", (e) => {
+    if (e.target.closest(".post-gallery__nav, .post-gallery__dot")) return;
+    const rect = viewport.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (x < rect.width * 0.25) goTo(index - 1);
+    else if (x > rect.width * 0.75) goTo(index + 1);
+  });
+
+  let touchStartX = 0;
+  gallery.addEventListener(
+    "touchstart",
+    (e) => {
+      touchStartX = e.changedTouches[0].clientX;
+    },
+    { passive: true }
+  );
+  gallery.addEventListener(
+    "touchend",
+    (e) => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) < 40) return;
+      goTo(index + (dx < 0 ? 1 : -1));
+    },
+    { passive: true }
+  );
+
+  gallery.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      goTo(index - 1);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      goTo(index + 1);
+    }
+  });
 }
 
 function buildPostDates(post, lang) {
@@ -224,6 +376,10 @@ function escapeHtml(s) {
   const d = document.createElement("div");
   d.textContent = s;
   return d.innerHTML;
+}
+
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/'/g, "&#39;");
 }
 
 function formatTime(iso) {
