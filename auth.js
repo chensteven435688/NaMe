@@ -425,7 +425,13 @@ const NaMeAuth = (function () {
       const sb = supabase();
       let q = sb.from("posts").select("*").order("published_at", { ascending: false });
       if (query.type) q = q.eq("type", query.type);
-      if (query.section) q = q.eq("section", query.section);
+      if (query.section) {
+        if (query.section === "latest") {
+          q = q.or("section.eq.latest,section.is.null");
+        } else {
+          q = q.eq("section", query.section);
+        }
+      }
       if (query.featured === "1" || query.featured === 1) q = q.eq("featured", true);
       const { data, error } = await q;
       if (error) throw new Error(error.message);
@@ -787,6 +793,47 @@ const NaMeAuth = (function () {
   }
 
   const POST_TYPES = ["article", "editorial", "film", "short", "exclusive"];
+  const POST_SECTIONS = new Set(["latest", "popular"]);
+
+  function normalizePostSection(type, section) {
+    const raw = section?.toString().trim() || "";
+    if (POST_SECTIONS.has(raw)) return raw;
+    if (type === "exclusive") return null;
+    return "latest";
+  }
+
+  function mapSupabaseWriteError(error) {
+    const msg = error?.message || "Request failed";
+    if (/permission denied|row-level security|not authorized|jwt/i.test(msg)) {
+      return "Could not save — your session may have expired. Log out, log in again, then publish.";
+    }
+    if (/bucket not found/i.test(msg)) {
+      return "Image storage is not set up. Run supabase/storage-posts.sql in the Supabase SQL editor.";
+    }
+    return msg;
+  }
+
+  async function requireSupabaseAdmin() {
+    const sb = supabase();
+    if (!sb) throw new Error("Supabase is not configured");
+
+    let session = (await sb.auth.getSession()).data.session;
+    if (!session) {
+      const refreshed = await sb.auth.refreshSession();
+      if (refreshed.error) throw new Error(mapSupabaseWriteError(refreshed.error));
+      session = refreshed.data.session;
+    }
+    if (!session?.user) {
+      throw new Error("Your session expired. Please log in again.");
+    }
+
+    await loadProfile(session.user.id);
+    if (!isAdmin()) {
+      throw new Error("Admin access required");
+    }
+
+    return { sb, user: session.user };
+  }
 
   function postImageStoragePath(imageUrl) {
     if (!imageUrl) return null;
@@ -796,7 +843,7 @@ const NaMeAuth = (function () {
     return decodeURIComponent(imageUrl.slice(idx + marker.length));
   }
 
-  async function resolvePostImageUrl(formData) {
+  async function resolvePostImageUrl(formData, sb = supabase()) {
     const file = formData.get("image");
     const imageUrl = formData.get("imageUrl")?.toString().trim() || "";
 
@@ -808,13 +855,13 @@ const NaMeAuth = (function () {
         throw new Error("Image must be 10 MB or smaller");
       }
 
-      const sb = supabase();
+      if (!sb) throw new Error("Supabase is not configured");
       const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
       const objectPath = `posts/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
       const { error: uploadError } = await sb.storage
         .from("post-images")
         .upload(objectPath, file, { contentType: file.type, upsert: false });
-      if (uploadError) throw new Error(uploadError.message);
+      if (uploadError) throw new Error(mapSupabaseWriteError(uploadError));
 
       const { data: urlData } = sb.storage.from("post-images").getPublicUrl(objectPath);
       return urlData.publicUrl;
@@ -844,13 +891,13 @@ const NaMeAuth = (function () {
     }
 
     if (useSupabase()) {
-      const sb = supabase();
+      const { sb } = await requireSupabaseAdmin();
       const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
       const objectPath = `posts/body/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
       const { error: uploadError } = await sb.storage
         .from("post-images")
         .upload(objectPath, file, { contentType: file.type, upsert: false });
-      if (uploadError) throw new Error(uploadError.message);
+      if (uploadError) throw new Error(mapSupabaseWriteError(uploadError));
 
       const { data: urlData } = sb.storage.from("post-images").getPublicUrl(objectPath);
       return urlData.publicUrl;
@@ -863,14 +910,12 @@ const NaMeAuth = (function () {
   }
 
   async function createPost(formData) {
-    if (!isAdmin()) throw new Error("Admin access required");
-
     const type = formData.get("type")?.toString() || "";
     const title = formData.get("title")?.toString().trim() || "";
     const meta = formData.get("meta")?.toString().trim() || null;
     const body = formData.get("body")?.toString().trim() || "";
     const videoUrl = formData.get("videoUrl")?.toString().trim() || null;
-    const section = formData.get("section")?.toString().trim() || null;
+    const section = normalizePostSection(type, formData.get("section"));
     const featuredVal = formData.get("featured");
     const featured = featuredVal === "1" || featuredVal === "true" || featuredVal === true;
     const contentDate = parseContentDate(formData.get("contentDate"));
@@ -879,9 +924,8 @@ const NaMeAuth = (function () {
     if (!POST_TYPES.includes(type)) throw new Error("Invalid type");
 
     if (useSupabase()) {
-      const sb = supabase();
-      const user = getUser();
-      const imageUrl = await resolvePostImageUrl(formData);
+      const { sb, user } = await requireSupabaseAdmin();
+      const imageUrl = await resolvePostImageUrl(formData, sb);
       if (!imageUrl) throw new Error("Add a cover image or image URL");
 
       const slug = await uniquePostSlug(sb, title);
@@ -899,17 +943,19 @@ const NaMeAuth = (function () {
           video_url: videoUrl,
           section,
           featured,
-          author_id: user?.id || null,
+          author_id: user.id,
           content_date: contentDate,
           published_at: now,
         })
         .select("*")
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(mapSupabaseWriteError(error));
 
       return { post: mapPost(data) };
     }
 
+    if (!isAdmin()) throw new Error("Admin access required");
+    formData.set("section", section ?? "");
     return request("/api/posts", { method: "POST", body: formData });
   }
 
@@ -1138,7 +1184,7 @@ const NaMeAuth = (function () {
     const meta = formData.get("meta")?.toString().trim() || null;
     const body = formData.get("body")?.toString().trim() || "";
     const videoUrl = formData.get("videoUrl")?.toString().trim() || null;
-    const section = formData.get("section")?.toString().trim() || null;
+    const sectionRaw = formData.has("section") ? formData.get("section") : undefined;
     const newSlug = formData.get("slug")?.toString().trim() || "";
     const featuredVal = formData.get("featured");
     const featured = featuredVal === "1" || featuredVal === "true" || featuredVal === true;
@@ -1148,7 +1194,7 @@ const NaMeAuth = (function () {
       : undefined;
 
     if (useSupabase()) {
-      const sb = supabase();
+      const { sb } = await requireSupabaseAdmin();
       const { data: row, error: fetchError } = await sb
         .from("posts")
         .select("*")
@@ -1159,10 +1205,14 @@ const NaMeAuth = (function () {
       let image_url = row.image_url;
       const file = formData.get("image");
       if (file && file instanceof File && file.size > 0) {
-        image_url = await resolvePostImageUrl(formData);
+        image_url = await resolvePostImageUrl(formData, sb);
       } else if (formData.has("imageUrl")) {
         image_url = imageUrlField || null;
       }
+
+      const postType = type || row.type;
+      const section =
+        sectionRaw !== undefined ? normalizePostSection(postType, sectionRaw) : row.section;
 
       let slug = row.slug;
       if (newSlug) {
@@ -1182,12 +1232,12 @@ const NaMeAuth = (function () {
       }
 
       const patch = {
-        type: type || row.type,
+        type: postType,
         title: title || row.title,
         meta: formData.has("meta") ? meta : row.meta,
         body: body || row.body,
         video_url: formData.has("videoUrl") ? videoUrl : row.video_url,
-        section: formData.has("section") ? section : row.section,
+        section,
         featured,
         image_url,
         slug,
@@ -1202,7 +1252,7 @@ const NaMeAuth = (function () {
         .eq("id", id)
         .select("*")
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(mapSupabaseWriteError(error));
 
       return { post: mapPost(data) };
     }

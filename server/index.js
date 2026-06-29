@@ -198,7 +198,11 @@ app.get("/api/posts", (req, res) => {
     params.push(type);
   }
   if (section) {
-    sql += " AND section = ?";
+    if (section === "latest") {
+      sql += " AND (section = ? OR section IS NULL)";
+    } else {
+      sql += " AND section = ?";
+    }
     params.push(section);
   }
   if (featured === "1") {
@@ -224,6 +228,12 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
   if (!allowed.includes(type)) {
     return res.status(400).json({ error: "Invalid type" });
   }
+  const normalizedSection =
+    section === "latest" || section === "popular"
+      ? section
+      : type === "exclusive"
+        ? null
+        : "latest";
   const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.imageUrl || null;
   const id = randomUUID();
   const slug = uniqueSlug(title);
@@ -243,7 +253,7 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
     imageUrl,
     body || `<p>${title}</p>`,
     videoUrl || null,
-    section || null,
+    normalizedSection,
     featured === "1" || featured === "true" ? 1 : 0,
     req.user.sub,
     content_date,

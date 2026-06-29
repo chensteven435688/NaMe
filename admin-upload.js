@@ -82,6 +82,9 @@ function bootUpload() {
     }
     if (fd.get("featured")) fd.set("featured", "1");
 
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
     try {
       const res = await NaMeAuth.createPost(fd);
       const post = res.post;
@@ -102,6 +105,8 @@ function bootUpload() {
       updatePreview();
     } catch (err) {
       status.textContent = err.message;
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
   });
 }
