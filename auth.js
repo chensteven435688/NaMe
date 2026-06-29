@@ -6,7 +6,10 @@ const NaMeAuth = (function () {
   let currentUser = null;
   const listeners = new Set();
   const AUTH_SNAPSHOT_KEY = "name-auth-snapshot";
+  const MAX_POST_IMAGE_BYTES = 50 * 1024 * 1024;
   const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+  const MAX_SUBMISSION_VIDEO_BYTES = 4 * 1024 * 1024 * 1024;
+  const MAX_SUBMISSION_FILE_BYTES = 50 * 1024 * 1024;
   if (typeof window !== "undefined") window.NA_ME_DEV_BYPASS = false;
 
   function readAuthSnapshot() {
@@ -575,8 +578,12 @@ const NaMeAuth = (function () {
     if (!isAllowedSubmissionFile(file)) {
       throw new Error("Allowed file types: images, PDF, or video");
     }
-    if (file.size > 25 * 1024 * 1024) {
-      throw new Error("File must be 25 MB or smaller");
+    if (/^video\//.test(file.type)) {
+      if (file.size > MAX_SUBMISSION_VIDEO_BYTES) {
+        throw new Error("Video must be 4 GB or smaller");
+      }
+    } else if (file.size > MAX_SUBMISSION_FILE_BYTES) {
+      throw new Error("Image or PDF must be 50 MB or smaller");
     }
 
     if (useSupabase()) {
@@ -980,8 +987,8 @@ const NaMeAuth = (function () {
       if (!/^image\//.test(file.type)) {
         throw new Error("Cover image must be an image file");
       }
-      if (file.size > MAX_IMAGE_BYTES) {
-        throw new Error("Image must be 20 MB or smaller");
+      if (file.size > MAX_POST_IMAGE_BYTES) {
+        throw new Error("Image must be 50 MB or smaller");
       }
 
       if (!sb) throw new Error("Supabase is not configured");
@@ -1015,8 +1022,8 @@ const NaMeAuth = (function () {
     if (!/^image\//.test(file.type)) {
       throw new Error("Body image must be an image file");
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      throw new Error("Image must be 20 MB or smaller");
+    if (file.size > MAX_POST_IMAGE_BYTES) {
+      throw new Error("Image must be 50 MB or smaller");
     }
 
     if (useSupabase()) {

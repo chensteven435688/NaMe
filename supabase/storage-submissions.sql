@@ -2,7 +2,7 @@
 -- Creates a public storage bucket for member submission files (images, PDF, video).
 
 insert into storage.buckets (id, name, public, file_size_limit)
-values ('submissions', 'submissions', true, 26214400)
+values ('submissions', 'submissions', true, 4294967296)
 on conflict (id) do update
 set public = excluded.public,
     file_size_limit = excluded.file_size_limit;

@@ -55,7 +55,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (/^image\//.test(file.mimetype)) cb(null, true);
     else cb(new Error("Images only"));
@@ -64,7 +64,7 @@ const upload = multer({
 
 const submissionUpload = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: 4 * 1024 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ok =
       /^image\//.test(file.mimetype) ||
