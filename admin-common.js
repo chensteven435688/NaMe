@@ -321,6 +321,20 @@ const NaMeAdmin = (function () {
       btn.addEventListener("click", () => {
         const open = sidebar.classList.toggle("is-open");
         btn.setAttribute("aria-expanded", String(open));
+        const backdrop = document.querySelector(".admin-sidebar-backdrop");
+        if (backdrop) backdrop.hidden = !open;
+      });
+    }
+
+    if (!document.querySelector(".admin-sidebar-backdrop")) {
+      const backdrop = document.createElement("div");
+      backdrop.className = "admin-sidebar-backdrop";
+      backdrop.hidden = true;
+      document.body.appendChild(backdrop);
+      backdrop.addEventListener("click", () => {
+        sidebar.classList.remove("is-open");
+        btn?.setAttribute("aria-expanded", "false");
+        backdrop.hidden = true;
       });
     }
   }

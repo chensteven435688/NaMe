@@ -416,6 +416,37 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
   }
 }
 
+@media (max-width: 899px) {
+  .header__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    margin-left: auto;
+    margin-right: 0.25rem;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  #header-subscribe-link,
+  .header__actions a[href*="submission.html"] {
+    display: none !important;
+  }
+
+  .header__actions #auth-link {
+    max-width: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header__top {
+    gap: 0.5rem;
+  }
+}
+
 @media (min-width: 900px) {
   .header__actions {
     display: flex;
@@ -1341,6 +1372,35 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
   opacity: 1;
 }
 
+.mobile-bar a[hidden] {
+  display: none !important;
+}
+
+.mobile-bar #mobile-auth-link.is-user {
+  opacity: 1;
+}
+
+html.auth-optimistic-early #mobile-auth-link {
+  font-size: 0;
+}
+
+html.auth-optimistic-early #mobile-auth-link::after {
+  content: var(--auth-user-label);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html.auth-optimistic-early.auth-ui-checked #mobile-auth-link::after {
+  content: none;
+}
+
+@media (max-width: 767px) {
+  body:has(.mobile-bar) {
+    padding-bottom: 4.5rem;
+  }
+}
+
 @media (min-width: 768px) {
   .mobile-bar {
     display: none;
@@ -2118,6 +2178,18 @@ html.admin-optimistic-early .page-admin #admin-app {
   .admin-sidebar.is-open {
     transform: translateX(0);
     box-shadow: 12px 0 40px rgba(0, 0, 0, 0.18);
+  }
+
+  .admin-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    border: none;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .admin-sidebar-backdrop[hidden] {
+    display: none !important;
   }
 }
 

@@ -195,7 +195,9 @@ const NaMeAuth = (function () {
     document.dispatchEvent(
       new CustomEvent("name:authchange", { detail: { user: currentUser } })
     );
-    if (document.getElementById("auth-link")) updateAuthUI();
+    if (document.getElementById("auth-link") || document.getElementById("mobile-auth-link")) {
+      updateAuthUI();
+    }
   }
 
   function persistAuthSnapshot(user) {
@@ -1450,37 +1452,47 @@ const NaMeAuth = (function () {
     return request(`/api/community/posts/${id}`, { method: "DELETE" });
   }
 
-  function updateAuthUI() {
-    const authLink = document.getElementById("auth-link");
-    if (!authLink) return;
-
-    const user = getUser();
-    const lang = typeof NaMeI18n !== "undefined" ? NaMeI18n.getLang() : "en";
+  function applyAuthLinkState(link, user, lang) {
+    if (!link) return;
     if (user) {
-      authLink.textContent = user.displayName;
-      authLink.classList.add("is-user");
-      authLink.href = "#";
-      authLink.onclick = (e) => {
+      link.textContent = user.displayName;
+      link.classList.add("is-user");
+      link.href = "#";
+      link.onclick = (e) => {
         e.preventDefault();
         if (confirm(typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "logoutConfirm") : "Log out?")) {
           logout();
         }
       };
     } else {
-      authLink.classList.remove("is-user");
-      authLink.textContent =
+      link.classList.remove("is-user");
+      link.textContent =
         typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "loginJoin") : "Login / Join";
-      authLink.href =
+      link.href =
         typeof NaMeBase !== "undefined" ? NaMeBase.path("/account.html") : "account.html";
-      authLink.onclick = null;
+      link.onclick = null;
     }
+  }
+
+  function updateAuthUI() {
+    const authLink = document.getElementById("auth-link");
+    const mobileAuthLink = document.getElementById("mobile-auth-link");
+    if (!authLink && !mobileAuthLink) return;
+
+    const user = getUser();
+    const lang = typeof NaMeI18n !== "undefined" ? NaMeI18n.getLang() : "en";
+    applyAuthLinkState(authLink, user, lang);
+    applyAuthLinkState(mobileAuthLink, user, lang);
+
     const adminLink = document.getElementById("admin-link");
+    const mobileAdminLink = document.getElementById("mobile-admin-link");
     if (adminLink) adminLink.hidden = !isAdmin();
+    if (mobileAdminLink) mobileAdminLink.hidden = !isAdmin();
 
     const subscribeLink = document.getElementById("header-subscribe-link");
     if (subscribeLink) subscribeLink.hidden = !!user;
 
-    document.querySelectorAll('.header__actions a[href*="subscribe.html"]').forEach((el) => {
+    document.querySelectorAll('.header__actions a[href*="subscribe.html"], .mobile-bar a[href*="subscribe.html"]').forEach((el) => {
       el.hidden = !!user;
     });
 
@@ -1498,10 +1510,12 @@ const NaMeAuth = (function () {
     initAuthModal();
 
     const authLink = document.getElementById("auth-link");
-    if (!authLink) return;
+    const mobileAuthLink = document.getElementById("mobile-auth-link");
+    if (!authLink && !mobileAuthLink) return;
 
-    if (!authLink.dataset.authUiBound) {
-      authLink.dataset.authUiBound = "1";
+    const boundKey = authLink || mobileAuthLink;
+    if (!boundKey.dataset.authUiBound) {
+      boundKey.dataset.authUiBound = "1";
       onChange(updateAuthUI);
       document.addEventListener("name:languagechange", updateAuthUI);
     }
@@ -1864,7 +1878,7 @@ const NaMeAuth = (function () {
   };
 })();
 
-if (document.body && document.getElementById("auth-link")) {
+if (document.body && (document.getElementById("auth-link") || document.getElementById("mobile-auth-link"))) {
   NaMeAuth.initAuthModal();
   NaMeAuth.initUI();
 }

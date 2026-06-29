@@ -875,7 +875,7 @@ const NaMeI18n = (function () {
       const key = el.getAttribute("data-i18n");
       if (!key) return;
       if (
-        el.id === "auth-link" &&
+        (el.id === "auth-link" || el.id === "mobile-auth-link") &&
         (el.classList.contains("is-user") ||
           document.documentElement.classList.contains("auth-optimistic-early") ||
           (typeof NaMeAuth !== "undefined" && NaMeAuth.isLoggedIn()))
