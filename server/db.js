@@ -157,4 +157,13 @@ function migratePostsForExclusive() {
 
 migratePostsForExclusive();
 
+function migratePostsContentDate() {
+  const cols = db.prepare("PRAGMA table_info(posts)").all();
+  if (!cols.some((c) => c.name === "content_date")) {
+    db.exec("ALTER TABLE posts ADD COLUMN content_date TEXT");
+  }
+}
+
+migratePostsContentDate();
+
 export default db;

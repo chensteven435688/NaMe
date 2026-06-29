@@ -31,11 +31,17 @@ function publicPost(row) {
     section: row.section,
     featured: !!row.featured,
     publishedAt: row.published_at,
+    contentDate: row.content_date,
     createdAt: row.created_at,
   };
 }
 
 export function registerAdminRoutes(app, { upload, uniqueSlug }) {
+  app.post("/api/admin/upload-post-image", requireAdmin, upload.single("image"), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "Image required" });
+    res.json({ url: `/uploads/${req.file.filename}` });
+  });
+
   app.get("/api/admin/stats", requireAdmin, (_req, res) => {
     const posts = db.prepare("SELECT COUNT(*) AS n FROM posts").get().n;
     const users = db.prepare("SELECT COUNT(*) AS n FROM users").get().n;
@@ -158,6 +164,7 @@ export function registerAdminRoutes(app, { upload, uniqueSlug }) {
       featured,
       imageUrl,
       slug: newSlug,
+      contentDate,
     } = req.body;
 
     let image_url = row.image_url;
@@ -186,6 +193,12 @@ export function registerAdminRoutes(app, { upload, uniqueSlug }) {
           : row.featured,
       image_url,
       slug: row.slug,
+      content_date:
+        contentDate !== undefined
+          ? contentDate?.trim()
+            ? new Date(`${contentDate.trim()}T12:00:00`).toISOString()
+            : null
+          : row.content_date,
     };
 
     if (newSlug?.trim()) {
@@ -203,7 +216,7 @@ export function registerAdminRoutes(app, { upload, uniqueSlug }) {
     db.prepare(
       `UPDATE posts SET
         type = ?, title = ?, meta = ?, image_url = ?, body = ?,
-        video_url = ?, section = ?, featured = ?, slug = ?
+        video_url = ?, section = ?, featured = ?, slug = ?, content_date = ?
        WHERE id = ?`
     ).run(
       updates.type,
@@ -215,6 +228,7 @@ export function registerAdminRoutes(app, { upload, uniqueSlug }) {
       updates.section,
       updates.featured,
       updates.slug,
+      updates.content_date,
       row.id
     );
 

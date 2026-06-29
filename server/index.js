@@ -119,6 +119,7 @@ function publicPost(row) {
     section: row.section,
     featured: !!row.featured,
     publishedAt: row.published_at,
+    contentDate: row.content_date,
   };
 }
 
@@ -215,7 +216,7 @@ app.get("/api/posts/:slug", (req, res) => {
 });
 
 app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
-  const { type, title, meta, body, videoUrl, section, featured } = req.body;
+  const { type, title, meta, body, videoUrl, section, featured, contentDate } = req.body;
   if (!type || !title) {
     return res.status(400).json({ error: "Type and title required" });
   }
@@ -227,9 +228,12 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
   const id = randomUUID();
   const slug = uniqueSlug(title);
   const now = new Date().toISOString();
+  const content_date = contentDate?.trim()
+    ? new Date(`${contentDate.trim()}T12:00:00`).toISOString()
+    : null;
   db.prepare(
-    `INSERT INTO posts (id, slug, type, title, meta, image_url, body, video_url, section, featured, author_id, published_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO posts (id, slug, type, title, meta, image_url, body, video_url, section, featured, author_id, content_date, published_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     slug,
@@ -242,6 +246,7 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
     section || null,
     featured === "1" || featured === "true" ? 1 : 0,
     req.user.sub,
+    content_date,
     now,
     now
   );

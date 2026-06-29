@@ -171,6 +171,14 @@ function initEditModal() {
   if (!modal || modal.dataset.booted) return;
   modal.dataset.booted = "1";
 
+  const editBody = document.getElementById("edit-body");
+  const editStatus = document.getElementById("edit-status");
+  NaMeAdminBodyImages.init({
+    textarea: editBody,
+    statusEl: editStatus,
+    typeSelect: document.querySelector("#edit-form select[name=type]"),
+  });
+
   modal.querySelectorAll("[data-close-edit]").forEach((el) => {
     el.addEventListener("click", () => closeEditModal());
   });
@@ -208,6 +216,7 @@ async function openEditModal(id) {
   f.elements.title.value = post.title;
   f.elements.slug.value = post.slug;
   f.elements.meta.value = post.meta || "";
+  f.elements.contentDate.value = post.contentDate ? post.contentDate.slice(0, 10) : "";
   f.elements.imageUrl.value = post.imageUrl || "";
   f.elements.body.value = post.body || "";
   f.elements.videoUrl.value = post.videoUrl || "";

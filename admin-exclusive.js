@@ -53,6 +53,11 @@ function bootExclusive() {
   imageInput?.addEventListener("change", updatePreview);
   updatePreview();
 
+  NaMeAdminBodyImages.init({
+    textarea: document.getElementById("exclusive-body"),
+    statusEl: status,
+  });
+
   form?.addEventListener("reset", () => {
     setTimeout(updatePreview, 0);
     success.classList.add("is-hidden");

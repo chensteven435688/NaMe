@@ -24,6 +24,7 @@ create table if not exists public.posts (
   section text check (section in ('latest', 'popular') or section is null),
   featured boolean not null default false,
   author_id uuid references public.profiles (id),
+  content_date timestamptz,
   published_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );

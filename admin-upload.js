@@ -56,6 +56,12 @@ function bootUpload() {
   imageInput?.addEventListener("change", updatePreview);
   updatePreview();
 
+  NaMeAdminBodyImages.init({
+    textarea: document.getElementById("upload-body"),
+    statusEl: status,
+    typeSelect,
+  });
+
   form?.addEventListener("reset", () => {
     setTimeout(updatePreview, 0);
     success.classList.add("is-hidden");

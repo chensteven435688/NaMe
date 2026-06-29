@@ -14,6 +14,14 @@ const NaMeAdmin = (function () {
     comments: "admin-comments.js",
   };
 
+  const PAGE_SCRIPT_DEPS = {
+    dashboard: ["admin-body-images.js"],
+    content: ["admin-body-images.js"],
+    users: ["admin-body-images.js"],
+    upload: ["admin-body-images.js"],
+    exclusive: ["admin-body-images.js"],
+  };
+
   const loadedScripts = new Set();
   let renderedPage = resolvePage(location.pathname, location.hash);
 
@@ -252,6 +260,9 @@ const NaMeAdmin = (function () {
       updateGate();
 
       const scriptFile = PAGE_SCRIPTS[page];
+      for (const dep of PAGE_SCRIPT_DEPS[page] || []) {
+        await ensureScript(dep);
+      }
       if (scriptFile) await ensureScript(scriptFile);
 
       if (typeof NaMeI18n !== "undefined") NaMeI18n.apply(NaMeI18n.getLang());

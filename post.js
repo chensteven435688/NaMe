@@ -49,6 +49,8 @@ function renderPost(post) {
     ? `<video class="post__video" controls poster="${post.imageUrl || ""}" src="${post.videoUrl}"></video>`
     : `<img class="post__hero-img" src="${post.imageUrl || ""}" alt="${escapeHtml(post.title)}" />`;
 
+  const datesHtml = buildPostDates(post, lang);
+
   root.innerHTML = `
     <article class="post${isExclusive ? " post--exclusive" : ""}">
       <div class="post__media">${media}</div>
@@ -56,11 +58,41 @@ function renderPost(post) {
         ${post.meta ? `<p class="post__meta">${escapeHtml(post.meta)}</p>` : ""}
         <h1 class="post__title">${escapeHtml(post.title)}</h1>
         <p class="post__type${isExclusive ? " post__type--exclusive" : ""}">${escapeHtml(typeLabel)}</p>
+        ${datesHtml}
         <div class="post__content">${post.body || ""}</div>
       </div>
     </article>
   `;
   document.title = `${post.title} — NaMe Magazine`;
+}
+
+function buildPostDates(post, lang) {
+  const locale = lang === "ko" ? "ko-KR" : lang === "it" ? "it-IT" : "en-US";
+  const parts = [];
+
+  if (post.contentDate) {
+    const isFilm = post.type === "film" || post.type === "short";
+    const label = NaMeI18n.t(lang, isFilm ? "postFilmedDate" : "postCreatedDate");
+    parts.push(
+      `<span class="post__date">${escapeHtml(label)} ${formatPostDate(post.contentDate, locale)}</span>`
+    );
+  }
+
+  if (post.publishedAt) {
+    const label = NaMeI18n.t(lang, "postPublishedDate");
+    parts.push(
+      `<span class="post__date">${escapeHtml(label)} ${formatPostDate(post.publishedAt, locale)}</span>`
+    );
+  }
+
+  if (!parts.length) return "";
+  return `<p class="post__dates">${parts.join('<span class="post__date-sep" aria-hidden="true">·</span>')}</p>`;
+}
+
+function formatPostDate(iso, locale) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" });
 }
 
 async function loadComments(slug) {

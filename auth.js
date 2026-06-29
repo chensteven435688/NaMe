@@ -60,6 +60,7 @@ const NaMeAuth = (function () {
       section: row.section,
       featured: !!row.featured,
       publishedAt: row.published_at,
+      contentDate: row.content_date,
     };
   }
 
@@ -822,6 +823,45 @@ const NaMeAuth = (function () {
     return imageUrl || null;
   }
 
+  function parseContentDate(value) {
+    const raw = value?.toString().trim() || "";
+    if (!raw) return null;
+    const parsed = new Date(`${raw}T12:00:00`);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString();
+  }
+
+  async function uploadPostBodyImage(file) {
+    if (!isAdmin()) throw new Error("Admin access required");
+    if (!file || !(file instanceof File) || file.size === 0) {
+      throw new Error("Choose an image file");
+    }
+    if (!/^image\//.test(file.type)) {
+      throw new Error("Body image must be an image file");
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error("Image must be 10 MB or smaller");
+    }
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+      const objectPath = `posts/body/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
+      const { error: uploadError } = await sb.storage
+        .from("post-images")
+        .upload(objectPath, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data: urlData } = sb.storage.from("post-images").getPublicUrl(objectPath);
+      return urlData.publicUrl;
+    }
+
+    const fd = new FormData();
+    fd.append("image", file);
+    const res = await request("/api/admin/upload-post-image", { method: "POST", body: fd });
+    return res.url;
+  }
+
   async function createPost(formData) {
     if (!isAdmin()) throw new Error("Admin access required");
 
@@ -833,6 +873,7 @@ const NaMeAuth = (function () {
     const section = formData.get("section")?.toString().trim() || null;
     const featuredVal = formData.get("featured");
     const featured = featuredVal === "1" || featuredVal === "true" || featuredVal === true;
+    const contentDate = parseContentDate(formData.get("contentDate"));
 
     if (!type || !title) throw new Error("Type and title required");
     if (!POST_TYPES.includes(type)) throw new Error("Invalid type");
@@ -859,6 +900,7 @@ const NaMeAuth = (function () {
           section,
           featured,
           author_id: user?.id || null,
+          content_date: contentDate,
           published_at: now,
         })
         .select("*")
@@ -1101,6 +1143,9 @@ const NaMeAuth = (function () {
     const featuredVal = formData.get("featured");
     const featured = featuredVal === "1" || featuredVal === "true" || featuredVal === true;
     const imageUrlField = formData.get("imageUrl")?.toString().trim() || "";
+    const contentDate = formData.has("contentDate")
+      ? parseContentDate(formData.get("contentDate"))
+      : undefined;
 
     if (useSupabase()) {
       const sb = supabase();
@@ -1147,6 +1192,9 @@ const NaMeAuth = (function () {
         image_url,
         slug,
       };
+      if (contentDate !== undefined) {
+        patch.content_date = contentDate;
+      }
 
       const { data, error } = await sb
         .from("posts")
@@ -1851,6 +1899,7 @@ const NaMeAuth = (function () {
     createPost,
     deletePost,
     updatePost,
+    uploadPostBodyImage,
     fetchAdminPost,
     fetchAdminStats,
     fetchAdminUsers,
