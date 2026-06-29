@@ -38,6 +38,7 @@
   --section-pad: clamp(2rem, 5vw, 4rem);
   --home-marquee-duration: 28s;
   --hero-slide-count: 7;
+  --hero-image-zoom: 1.65;
 }
 
 *,
@@ -482,7 +483,6 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
 .hero--marquee {
   height: calc(100vh - var(--header-h));
   min-height: 520px;
-  max-height: 920px;
 }
 
 .hero--split {
@@ -549,14 +549,16 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
   flex: 0 0 calc(100cqw / var(--hero-slide-count, 7));
   height: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
 .hero__slide img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
+  transform: scale(var(--hero-image-zoom, 1.65));
   background: var(--bg-dark);
 }
 
