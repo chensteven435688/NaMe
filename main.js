@@ -20,8 +20,6 @@ const TYPE_I18N = {
   exclusive: "exclusiveLabel",
 };
 
-const HERO_INTERVAL_MS = 7000;
-
 document.addEventListener("DOMContentLoaded", async () => {
   await NaMeAuth.refresh();
   NaMeI18n.init();
@@ -48,54 +46,22 @@ function postHref(slug) {
 
 function initHero(slides) {
   const media = document.getElementById("hero-media");
-  const progressEl = document.getElementById("hero-progress");
-  const prevBtn = document.getElementById("hero-prev");
-  const nextBtn = document.getElementById("hero-next");
   if (!media || !slides.length) return;
 
-  media.innerHTML = slides
+  const slideMarkup = slides
     .map(
       (slide, i) => `
-    <article class="hero__slide${i === 0 ? " hero__slide--active" : ""}" data-slide="${i}">
-      <img src="${escapeHtml(slide.imageUrl || "")}" alt="${escapeHtml(slide.title)}" ${i === 0 ? "" : 'loading="lazy"'} />
-    </article>`
+    <figure class="hero__slide">
+      <img src="${escapeHtml(slide.imageUrl || "")}" alt="${escapeHtml(slide.title)}" ${i < 2 ? "" : 'loading="lazy"'} />
+    </figure>`
     )
     .join("");
 
-  const slideEls = media.querySelectorAll(".hero__slide");
-  let current = 0;
-  let timer;
-
-  function resetProgress() {
-    if (!progressEl) return;
-    progressEl.style.transition = "none";
-    progressEl.style.width = "0%";
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        progressEl.style.transition = `width ${HERO_INTERVAL_MS}ms linear`;
-        progressEl.style.width = "100%";
-      });
-    });
-  }
-
-  function goTo(index) {
-    slideEls[current].classList.remove("hero__slide--active");
-    current = (index + slides.length) % slides.length;
-    slideEls[current].classList.add("hero__slide--active");
-    resetProgress();
-    resetTimer();
-  }
-
-  function resetTimer() {
-    clearInterval(timer);
-    timer = setInterval(() => goTo(current + 1), HERO_INTERVAL_MS);
-  }
-
-  prevBtn?.addEventListener("click", () => goTo(current - 1));
-  nextBtn?.addEventListener("click", () => goTo(current + 1));
-
-  resetProgress();
-  resetTimer();
+  media.innerHTML = `
+    <div class="hero__track">
+      <div class="hero__set">${slideMarkup}</div>
+      <div class="hero__set" aria-hidden="true">${slideMarkup}</div>
+    </div>`;
 }
 
 async function loadHomeIndex() {
