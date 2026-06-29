@@ -379,6 +379,8 @@ const NaMeI18n = (function () {
       profileRemovePhoto: "Remove photo",
       profilePhotoHint: "Choose a photo, then click Save profile.",
       profilePhotoPending: "Photo selected — click Save profile to upload.",
+      profilePhotoLost:
+        "Could not read the selected photo. Please choose it again, then click Save profile.",
       profileDisplayName: "Display name",
       profileSignature: "Signature",
       profileSignaturePlaceholder: "A short line about you — shown beside your name",

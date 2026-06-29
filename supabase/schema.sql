@@ -171,7 +171,9 @@ create policy "Profiles are viewable by everyone"
   on public.profiles for select using (true);
 
 create policy "Users can update own profile"
-  on public.profiles for update using (auth.uid() = id);
+  on public.profiles for update to authenticated
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 create policy "Admins update any profile"
   on public.profiles for update using (public.is_admin());

@@ -906,18 +906,18 @@ const NaMeAuth = (function () {
     const sb = supabase();
     if (!sb) throw new Error("Supabase is not configured");
 
-    let session = (await sb.auth.getSession()).data.session;
-    if (!session) {
-      const refreshed = await sb.auth.refreshSession();
-      if (refreshed.error) throw new Error(mapSupabaseWriteError(refreshed.error));
-      session = refreshed.data.session;
-    }
-    if (!session?.user) {
-      throw new Error("Your session expired. Please log in again.");
+    let { data: userData, error: userError } = await sb.auth.getUser();
+    if (userError || !userData?.user) {
+      const { data: refreshed, error: refreshError } = await sb.auth.refreshSession();
+      if (refreshError) throw new Error(mapSupabaseWriteError(refreshError));
+      if (!refreshed.session?.user) {
+        throw new Error("Your session expired. Please log in again.");
+      }
+      userData = { user: refreshed.session.user };
     }
 
-    await loadProfile(session.user.id);
-    return { sb, user: session.user };
+    await loadProfile(userData.user.id);
+    return { sb, user: userData.user };
   }
 
   async function requireSupabaseAdmin() {
@@ -1007,6 +1007,11 @@ const NaMeAuth = (function () {
       if (error) throw new Error(mapSupabaseWriteError(error, "avatar"));
 
       currentUser = mapProfile(data);
+      if (avatarFile?.size > 0 && !currentUser?.avatarUrl) {
+        throw new Error(
+          "Photo uploaded but your profile did not update. Log out, log in again, then try once more."
+        );
+      }
       notify();
       return { user: currentUser };
     }

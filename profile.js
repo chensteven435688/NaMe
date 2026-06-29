@@ -51,6 +51,7 @@ function bootProfileForm() {
 
   let pendingAvatarFile = null;
   let removeAvatar = false;
+  let photoSelected = false;
 
   fillProfileForm(NaMeAuth.getUser());
 
@@ -58,6 +59,7 @@ function bootProfileForm() {
     const file = avatarInput.files?.[0];
     if (!file) return;
     pendingAvatarFile = file;
+    photoSelected = true;
     removeAvatar = false;
     removeBtn.hidden = false;
     previewAvatarFile(file);
@@ -67,6 +69,7 @@ function bootProfileForm() {
 
   removeBtn?.addEventListener("click", () => {
     pendingAvatarFile = null;
+    photoSelected = false;
     removeAvatar = true;
     avatarInput.value = "";
     removeBtn.hidden = true;
@@ -90,6 +93,11 @@ function bootProfileForm() {
       const displayName = form.displayName.value.trim();
       const signature = form.signature.value.trim();
       const avatarFile = pendingAvatarFile || avatarInput?.files?.[0] || null;
+      if (photoSelected && !removeAvatar && !avatarFile?.size) {
+        throw new Error(
+          NaMeI18n.t(NaMeI18n.getLang(), "profilePhotoLost")
+        );
+      }
       const res = await NaMeAuth.updateMyProfile({
         displayName,
         signature,
@@ -97,6 +105,7 @@ function bootProfileForm() {
         removeAvatar,
       });
       pendingAvatarFile = null;
+      photoSelected = false;
       removeAvatar = false;
       avatarInput.value = "";
       fillProfileForm(res.user);
