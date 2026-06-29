@@ -16,10 +16,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     const post = await NaMeAuth.fetchPost(slug);
     renderPost(post);
-    await loadComments(slug);
   } catch {
     document.getElementById("post-root").innerHTML =
       '<p class="post-error">Post not found.</p>';
+    return;
+  }
+
+  try {
+    await loadComments(slug);
+  } catch {
+    const list = document.getElementById("comments-list");
+    if (list) {
+      list.innerHTML = '<p class="comments__empty">Comments could not be loaded.</p>';
+    }
   }
 });
 
@@ -97,9 +106,7 @@ function formatPostDate(iso, locale) {
 
 async function loadComments(slug) {
   const list = document.getElementById("comments-list");
-  const data = await NaMeAuth.request(
-    `/api/posts/${encodeURIComponent(slug)}/comments`
-  );
+  const data = await NaMeAuth.fetchPostComments(slug);
   list.innerHTML = "";
   if (!data.comments.length) {
     list.innerHTML = '<p class="comments__empty" data-i18n="commentsEmpty">No comments yet. Be the first.</p>';
@@ -153,9 +160,7 @@ function renderComment(comment, slug, isReply = false) {
       NaMeAuth.openAuthModal("login");
       return;
     }
-    const res = await NaMeAuth.request(`/api/comments/${comment.id}/like`, {
-      method: "POST",
-    });
+    const res = await NaMeAuth.togglePostCommentLike(comment.id);
     const btn = el.querySelector("[data-like]");
     btn.classList.toggle("is-liked", res.liked);
     btn.querySelector("span").textContent = res.likeCount;
@@ -172,10 +177,7 @@ function renderComment(comment, slug, isReply = false) {
   el.querySelector(`[data-reply-form="${comment.id}"]`)?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const input = e.target.querySelector("input");
-    await NaMeAuth.request(`/api/posts/${encodeURIComponent(slug)}/comments`, {
-      method: "POST",
-      body: { body: input.value, parentId: comment.id },
-    });
+    await NaMeAuth.createPostComment(slug, { body: input.value, parentId: comment.id });
     await loadComments(slug);
   });
 
@@ -187,7 +189,7 @@ function renderComment(comment, slug, isReply = false) {
     if (NaMeAuth.isAdmin()) {
       await NaMeAuth.deleteAdminComment(comment.id);
     } else {
-      await NaMeAuth.request(`/api/comments/${comment.id}`, { method: "DELETE" });
+      await NaMeAuth.deletePostComment(comment.id);
     }
     await loadComments(slug);
   });
@@ -208,10 +210,7 @@ document.getElementById("comment-form")?.addEventListener("submit", async (e) =>
   }
   const slug = new URLSearchParams(location.search).get("slug");
   const input = e.target.querySelector("textarea");
-  await NaMeAuth.request(`/api/posts/${encodeURIComponent(slug)}/comments`, {
-    method: "POST",
-    body: { body: input.value },
-  });
+  await NaMeAuth.createPostComment(slug, { body: input.value });
   input.value = "";
   await loadComments(slug);
 });

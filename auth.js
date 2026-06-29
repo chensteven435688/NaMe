@@ -607,12 +607,18 @@ const NaMeAuth = (function () {
   }
 
   function slugifyTitle(text) {
-    return (
-      String(text || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "") || "post"
-    );
+    const raw = String(text || "").trim();
+    const latin = raw
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+    if (latin) return latin;
+    if (!raw) return "post";
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      hash = (hash * 31 + raw.charCodeAt(i)) >>> 0;
+    }
+    return `post-${hash.toString(36)}`;
   }
 
   async function uniquePostSlug(sb, title) {
@@ -994,6 +1000,201 @@ const NaMeAuth = (function () {
       role: row.role,
       createdAt: row.created_at,
     };
+  }
+
+  function mapPostComment(row, liked = false) {
+    const profile = row.profiles;
+    const author = Array.isArray(profile) ? profile[0] : profile;
+    const likes = row.comment_likes;
+    const likeCount = Array.isArray(likes)
+      ? likes[0]?.count ?? 0
+      : likes?.count ?? 0;
+
+    return {
+      id: row.id,
+      postId: row.post_id,
+      parentId: row.parent_id,
+      body: row.body,
+      createdAt: row.created_at,
+      author: {
+        id: row.user_id,
+        displayName: author?.display_name || "Member",
+      },
+      likeCount,
+      liked,
+    };
+  }
+
+  function buildPostCommentTree(rows, likedSet) {
+    const comments = rows.map((row) => mapPostComment(row, likedSet.has(row.id)));
+    const top = comments.filter((c) => !c.parentId);
+    const byParent = {};
+    for (const c of comments) {
+      if (c.parentId) {
+        if (!byParent[c.parentId]) byParent[c.parentId] = [];
+        byParent[c.parentId].push(c);
+      }
+    }
+    for (const t of top) {
+      t.replies = byParent[t.id] || [];
+    }
+    return top;
+  }
+
+  async function fetchPostCommentLikedSet(commentIds, userId) {
+    if (!userId || !commentIds.length) return new Set();
+    const sb = supabase();
+    const { data, error } = await sb
+      .from("comment_likes")
+      .select("comment_id")
+      .eq("user_id", userId)
+      .in("comment_id", commentIds);
+    if (error) throw new Error(error.message);
+    return new Set((data || []).map((row) => row.comment_id));
+  }
+
+  async function fetchPostComments(slug) {
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data: post, error: postError } = await sb
+        .from("posts")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (postError) throw new Error(postError.message);
+      if (!post) throw new Error("Post not found");
+
+      const { data, error } = await sb
+        .from("comments")
+        .select("*, profiles!user_id(id, display_name), comment_likes(count)")
+        .eq("post_id", post.id)
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(error.message);
+
+      const user = getUser();
+      const ids = (data || []).map((row) => row.id);
+      const likedSet = await fetchPostCommentLikedSet(ids, user?.id);
+      return { comments: buildPostCommentTree(data || [], likedSet) };
+    }
+
+    return request(`/api/posts/${encodeURIComponent(slug)}/comments`);
+  }
+
+  async function createPostComment(slug, { body, parentId } = {}) {
+    if (!body?.trim()) throw new Error("Comment required");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      if (!user) throw new Error("Log in required");
+
+      const { data: post, error: postError } = await sb
+        .from("posts")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (postError) throw new Error(postError.message);
+      if (!post) throw new Error("Post not found");
+
+      if (parentId) {
+        const { data: parent, error: parentError } = await sb
+          .from("comments")
+          .select("id, parent_id")
+          .eq("id", parentId)
+          .eq("post_id", post.id)
+          .maybeSingle();
+        if (parentError) throw new Error(parentError.message);
+        if (!parent) throw new Error("Invalid parent comment");
+        if (parent.parent_id) throw new Error("Replies only one level deep");
+      }
+
+      const { data, error } = await sb
+        .from("comments")
+        .insert({
+          post_id: post.id,
+          user_id: user.id,
+          parent_id: parentId || null,
+          body: body.trim(),
+        })
+        .select("*, profiles!user_id(id, display_name), comment_likes(count)")
+        .single();
+      if (error) throw new Error(error.message);
+
+      return { comment: mapPostComment(data, false) };
+    }
+
+    return request(`/api/posts/${encodeURIComponent(slug)}/comments`, {
+      method: "POST",
+      body: { body, parentId },
+    });
+  }
+
+  async function togglePostCommentLike(commentId) {
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      if (!user) throw new Error("Log in required");
+
+      const { data: existing, error: existingError } = await sb
+        .from("comment_likes")
+        .select("comment_id")
+        .eq("user_id", user.id)
+        .eq("comment_id", commentId)
+        .maybeSingle();
+      if (existingError) throw new Error(existingError.message);
+
+      if (existing) {
+        const { error } = await sb
+          .from("comment_likes")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("comment_id", commentId);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await sb.from("comment_likes").insert({
+          user_id: user.id,
+          comment_id: commentId,
+        });
+        if (error) throw new Error(error.message);
+      }
+
+      const { count, error: countError } = await sb
+        .from("comment_likes")
+        .select("*", { count: "exact", head: true })
+        .eq("comment_id", commentId);
+      if (countError) throw new Error(countError.message);
+
+      return { likeCount: count ?? 0, liked: !existing };
+    }
+
+    return request(`/api/comments/${commentId}/like`, { method: "POST" });
+  }
+
+  async function deletePostComment(commentId) {
+    if (useSupabase()) {
+      const sb = supabase();
+      const user = getUser();
+      if (!user) throw new Error("Log in required");
+
+      const { data: row, error: fetchError } = await sb
+        .from("comments")
+        .select("user_id")
+        .eq("id", commentId)
+        .single();
+      if (fetchError) throw new Error(fetchError.message);
+      if (row.user_id !== user.id && !isAdmin()) {
+        throw new Error("Not allowed");
+      }
+
+      const { error } = await sb
+        .from("comments")
+        .delete()
+        .or(`id.eq.${commentId},parent_id.eq.${commentId}`);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
+    return request(`/api/comments/${commentId}`, { method: "DELETE" });
   }
 
   function mapAdminComment(row) {
@@ -1940,6 +2141,10 @@ const NaMeAuth = (function () {
     getUser,
     fetchPosts,
     fetchPost,
+    fetchPostComments,
+    createPostComment,
+    togglePostCommentLike,
+    deletePostComment,
     fetchMySubmissions,
     createSubmission,
     fetchAdminSubmissions,
