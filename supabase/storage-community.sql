@@ -1,7 +1,7 @@
 -- NaMe Magazine — community moodboard images (run once in Supabase SQL Editor)
 
 insert into storage.buckets (id, name, public, file_size_limit)
-values ('community-images', 'community-images', true, 10485760)
+values ('community-images', 'community-images', true, 20971520)
 on conflict (id) do update
 set public = excluded.public,
     file_size_limit = excluded.file_size_limit;
