@@ -12,11 +12,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (meta && descKey) meta.setAttribute("content", NaMeI18n.t(lang, descKey));
 
   await NaMeAuth.refresh();
+  NaMeAuth.initUI();
 
   if (NaMeAuth.isLoggedIn()) {
     window.location.replace(NaMeAuth.getReturnUrl());
     return;
   }
+
+  NaMeAuth.onChange((user) => {
+    if (user) window.location.replace(NaMeAuth.getReturnUrl());
+  });
 
   const tab = new URLSearchParams(location.search).get("tab");
   if (tab === "register") NaMeAuth.switchAuthTab("register");

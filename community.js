@@ -4,7 +4,9 @@
 let currentPinId = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
+  NaMeI18n.init();
   await NaMeAuth.refresh();
+  NaMeAuth.initUI();
   loadStats();
   loadFeed();
 
@@ -21,6 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initShareModal();
 
   NaMeAuth.onChange(() => {
+    NaMeAuth.initUI();
     loadFeed();
   });
 

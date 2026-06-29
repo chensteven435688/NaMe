@@ -2,8 +2,8 @@
  * NaMe — static pages (About, Business, Contact, etc.)
  */
 document.addEventListener("DOMContentLoaded", async () => {
-  NaMeI18n.init();
   await NaMeAuth.refresh();
+  NaMeI18n.init();
   NaMeAuth.initUI();
   initContactForm();
   setPageMeta();

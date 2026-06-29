@@ -132,7 +132,8 @@ const NaMeAuth = (function () {
     form.reset();
     clearAuthMessage();
     if (isAuthPage()) {
-      window.location.href = getReturnUrl();
+      if (!isLoggedIn()) return;
+      window.location.replace(getReturnUrl());
       return;
     }
     closeAuthModal();
@@ -194,6 +195,7 @@ const NaMeAuth = (function () {
     document.dispatchEvent(
       new CustomEvent("name:authchange", { detail: { user: currentUser } })
     );
+    if (document.getElementById("auth-link")) updateAuthUI();
   }
 
   function persistAuthSnapshot(user) {
@@ -357,7 +359,13 @@ const NaMeAuth = (function () {
         }
         throw new Error(error.message);
       }
-      await loadProfile(data.user.id);
+      if (!data.session?.user) {
+        throw new Error("Could not establish session. Please try again.");
+      }
+      await loadProfile(data.session.user.id);
+      if (!currentUser) {
+        throw new Error("Could not load your profile. Please try again.");
+      }
       notify();
       return currentUser;
     }
@@ -1495,6 +1503,7 @@ const NaMeAuth = (function () {
     if (!authLink.dataset.authUiBound) {
       authLink.dataset.authUiBound = "1";
       onChange(updateAuthUI);
+      document.addEventListener("name:languagechange", updateAuthUI);
     }
     updateAuthUI();
   }
@@ -1861,9 +1870,8 @@ if (document.body && document.getElementById("auth-link")) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  NaMeAuth.initAuthModal();
-  NaMeAuth.initUI();
   await NaMeAuth.refresh();
+  NaMeAuth.initAuthModal();
   NaMeAuth.initUI();
 
   const sb = typeof NaMeSupabase !== "undefined" ? NaMeSupabase.getClient() : null;

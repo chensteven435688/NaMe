@@ -2,8 +2,8 @@
  * NaMe — post detail & comments
  */
 document.addEventListener("DOMContentLoaded", async () => {
-  NaMeI18n.init();
   await NaMeAuth.refresh();
+  NaMeI18n.init();
   NaMeAuth.initUI();
 
   const params = new URLSearchParams(location.search);

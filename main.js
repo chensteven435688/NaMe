@@ -37,8 +37,8 @@ const TYPE_I18N = {
 const HERO_INTERVAL_MS = 7000;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  NaMeI18n.init();
   await NaMeAuth.refresh();
+  NaMeI18n.init();
   NaMeAuth.initUI();
   await initHomepage();
   loadFeeds();

@@ -877,7 +877,8 @@ const NaMeI18n = (function () {
       if (
         el.id === "auth-link" &&
         (el.classList.contains("is-user") ||
-          document.documentElement.classList.contains("auth-optimistic-early"))
+          document.documentElement.classList.contains("auth-optimistic-early") ||
+          (typeof NaMeAuth !== "undefined" && NaMeAuth.isLoggedIn()))
       ) {
         return;
       }
