@@ -58,10 +58,32 @@ function initHero(slides) {
     .join("");
 
   media.innerHTML = `
-    <div class="hero__track">
-      <div class="hero__set">${slideMarkup}</div>
-      <div class="hero__set" aria-hidden="true">${slideMarkup}</div>
+    <div class="hero__fit">
+      <div class="hero__track">
+        <div class="hero__set">${slideMarkup}</div>
+        <div class="hero__set" aria-hidden="true">${slideMarkup}</div>
+      </div>
     </div>`;
+
+  fitHeroStrip();
+  window.addEventListener("resize", fitHeroStrip, { passive: true });
+  media.querySelectorAll("img").forEach((img) => {
+    if (img.complete) return;
+    img.addEventListener("load", fitHeroStrip, { once: true });
+  });
+}
+
+function fitHeroStrip() {
+  const hero = document.getElementById("hero");
+  const fit = document.querySelector(".hero__fit");
+  if (!hero || !fit) return;
+
+  const count = HERO_SLIDES.length || 7;
+  const naturalH = hero.clientWidth * (1024 / (count * 819));
+  if (!naturalH) return;
+
+  const scale = Math.min(Math.max(1, hero.clientHeight / naturalH), 1.35);
+  fit.style.setProperty("--hero-strip-scale", String(scale));
 }
 
 async function loadHomeIndex() {

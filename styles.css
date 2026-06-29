@@ -483,6 +483,7 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
   height: calc(100vh - var(--header-h));
   min-height: 520px;
   max-height: 920px;
+  overflow: hidden;
 }
 
 .hero--split {
@@ -522,11 +523,24 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
 
 .hero__media {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   height: 100%;
   background: var(--bg-dark);
   overflow: hidden;
+}
+
+.hero__fit {
+  width: 100%;
+  aspect-ratio: calc(var(--hero-slide-count, 7) * 819 / 1024);
+  height: auto;
+  overflow: hidden;
+  transform: scale(var(--hero-strip-scale, 1));
+  transform-origin: center center;
   container-type: inline-size;
-  container-name: hero;
+  container-name: hero-fit;
 }
 
 .hero__track {
@@ -540,7 +554,7 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
 
 .hero__set {
   display: flex;
-  flex: 0 0 auto;
+  flex: 0 0 100cqw;
   width: 100cqw;
   height: 100%;
 }
