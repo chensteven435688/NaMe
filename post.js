@@ -122,7 +122,6 @@ function renderComment(comment, slug, isReply = false) {
   const el = document.createElement("div");
   el.className = "comment" + (isReply ? " comment--reply" : "");
   el.dataset.commentId = comment.id;
-  const initial = (comment.author.displayName || "?")[0].toUpperCase();
   const time = formatTime(comment.createdAt);
   const isAdmin = NaMeAuth.isAdmin();
   const isOwner =
@@ -131,12 +130,18 @@ function renderComment(comment, slug, isReply = false) {
   const deleteLabel = isAdmin
     ? NaMeI18n.t(NaMeI18n.getLang(), "adminRemoveComment")
     : "Delete";
+  const signatureHtml = comment.author.signature
+    ? `<span class="comment__signature">${escapeHtml(comment.author.signature)}</span>`
+    : "";
 
   el.innerHTML = `
-    <div class="comment__avatar" aria-hidden="true">${initial}</div>
+    <div class="comment__avatar">${NaMeAuth.formatUserAvatar(comment.author, "user-avatar")}</div>
     <div class="comment__main">
       <div class="comment__head">
-        <span class="comment__author">${escapeHtml(comment.author.displayName)}</span>
+        <span class="comment__author-wrap">
+          <span class="comment__author">${escapeHtml(comment.author.displayName)}</span>
+          ${signatureHtml}
+        </span>
         <span class="comment__time">${time}</span>
       </div>
       <p class="comment__body">${escapeHtml(comment.body)}</p>

@@ -67,7 +67,7 @@ async function loadFeed() {
 
 function renderPinCard(post) {
   const title = post.title || post.caption?.slice(0, 40) || "Moodboard";
-  const initial = (post.author?.displayName || "?")[0].toUpperCase();
+  const avatar = NaMeAuth.formatUserAvatar(post.author, "user-avatar user-avatar--sm");
   return `
     <article class="pin-card" data-pin-id="${post.id}">
       <div class="pin-card__img">
@@ -76,7 +76,7 @@ function renderPinCard(post) {
       <div class="pin-card__overlay">
         <p class="pin-card__title">${esc(title)}</p>
         <div class="pin-card__meta">
-          <span class="pin-card__avatar">${initial}</span>
+          <span class="pin-card__avatar">${avatar}</span>
           <span>${esc(post.author?.displayName || "")}</span>
           <span class="pin-card__counts">♥ ${post.likeCount} · 💬 ${post.commentCount}</span>
         </div>
@@ -97,7 +97,10 @@ async function openPin(id) {
   try {
     const { post } = await NaMeAuth.fetchCommunityPost(id);
     const { comments } = await NaMeAuth.fetchCommunityPostComments(id);
-    const initial = (post.author?.displayName || "?")[0].toUpperCase();
+    const avatar = NaMeAuth.formatUserAvatar(post.author, "user-avatar user-avatar--md");
+    const signatureHtml = post.author?.signature
+      ? `<span class="pin-detail__signature">${esc(post.author.signature)}</span>`
+      : "";
     const canDelete =
       NaMeAuth.isLoggedIn() &&
       (NaMeAuth.getUser().id === post.author?.id || NaMeAuth.isAdmin());
@@ -109,9 +112,10 @@ async function openPin(id) {
         </div>
         <div class="pin-detail__side">
           <div class="pin-detail__author">
-            <span class="pin-detail__avatar">${initial}</span>
+            <span class="pin-detail__avatar">${avatar}</span>
             <div>
               <strong>${esc(post.author?.displayName)}</strong>
+              ${signatureHtml}
               <span class="pin-detail__time">${formatTime(post.createdAt)}</span>
             </div>
           </div>
@@ -176,12 +180,16 @@ async function openPin(id) {
 }
 
 function renderPinComment(c) {
-  const initial = (c.author?.displayName || "?")[0].toUpperCase();
+  const avatar = NaMeAuth.formatUserAvatar(c.author, "user-avatar user-avatar--sm");
+  const signatureHtml = c.author?.signature
+    ? `<span class="pin-comment__signature">${esc(c.author.signature)}</span>`
+    : "";
   return `
     <div class="pin-comment">
-      <span class="pin-comment__avatar">${initial}</span>
+      <span class="pin-comment__avatar">${avatar}</span>
       <div>
         <strong>${esc(c.author?.displayName)}</strong>
+        ${signatureHtml}
         <span class="pin-comment__time">${formatTime(c.createdAt)}</span>
         <p>${esc(c.body)}</p>
       </div>

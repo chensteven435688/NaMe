@@ -6,6 +6,8 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text unique,
   display_name text not null,
+  avatar_url text,
+  signature text,
   role text not null default 'member' check (role in ('admin', 'member')),
   newsletter_opt_in boolean not null default false,
   created_at timestamptz not null default now()

@@ -24,6 +24,8 @@ function publicCommunityPost(row, userId) {
     author: {
       id: row.user_id,
       displayName: row.display_name || "NaMe Member",
+      avatarUrl: row.avatar_url || null,
+      signature: row.signature || null,
     },
     likeCount,
     commentCount,
@@ -42,7 +44,7 @@ export function registerCommunityRoutes(app, { upload }) {
     const userId = req.user?.sub || null;
     const rows = db
       .prepare(
-        `SELECT p.*, u.display_name
+        `SELECT p.*, u.display_name, u.avatar_url, u.signature
          FROM community_posts p
          LEFT JOIN users u ON u.id = p.user_id
          ORDER BY p.created_at DESC
@@ -56,7 +58,7 @@ export function registerCommunityRoutes(app, { upload }) {
     const userId = req.user?.sub || null;
     const row = db
       .prepare(
-        `SELECT p.*, u.display_name
+        `SELECT p.*, u.display_name, u.avatar_url, u.signature
          FROM community_posts p
          LEFT JOIN users u ON u.id = p.user_id
          WHERE p.id = ?`
@@ -89,7 +91,7 @@ export function registerCommunityRoutes(app, { upload }) {
     );
     const row = db
       .prepare(
-        `SELECT p.*, u.display_name FROM community_posts p
+        `SELECT p.*, u.display_name, u.avatar_url, u.signature FROM community_posts p
          LEFT JOIN users u ON u.id = p.user_id WHERE p.id = ?`
       )
       .get(id);
@@ -124,7 +126,7 @@ export function registerCommunityRoutes(app, { upload }) {
   app.get("/api/community/posts/:id/comments", optionalAuth, (_req, res) => {
     const rows = db
       .prepare(
-        `SELECT c.*, u.display_name
+        `SELECT c.*, u.display_name, u.avatar_url, u.signature
          FROM community_comments c
          JOIN users u ON u.id = c.user_id
          WHERE c.post_id = ?
@@ -136,7 +138,12 @@ export function registerCommunityRoutes(app, { upload }) {
         id: r.id,
         body: r.body,
         createdAt: r.created_at,
-        author: { id: r.user_id, displayName: r.display_name },
+        author: {
+          id: r.user_id,
+          displayName: r.display_name,
+          avatarUrl: r.avatar_url || null,
+          signature: r.signature || null,
+        },
       })),
     });
   });
@@ -154,7 +161,7 @@ export function registerCommunityRoutes(app, { upload }) {
     ).run(id, post.id, req.user.sub, body.trim(), now);
     const row = db
       .prepare(
-        `SELECT c.*, u.display_name FROM community_comments c
+        `SELECT c.*, u.display_name, u.avatar_url, u.signature FROM community_comments c
          JOIN users u ON u.id = c.user_id WHERE c.id = ?`
       )
       .get(id);
@@ -163,7 +170,12 @@ export function registerCommunityRoutes(app, { upload }) {
         id: row.id,
         body: row.body,
         createdAt: row.created_at,
-        author: { id: row.user_id, displayName: row.display_name },
+        author: {
+          id: row.user_id,
+          displayName: row.display_name,
+          avatarUrl: row.avatar_url || null,
+          signature: row.signature || null,
+        },
       },
     });
   });
