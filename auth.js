@@ -6,6 +6,7 @@ const NaMeAuth = (function () {
   let currentUser = null;
   const listeners = new Set();
   const AUTH_SNAPSHOT_KEY = "name-auth-snapshot";
+  const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
   if (typeof window !== "undefined") window.NA_ME_DEV_BYPASS = false;
 
   function readAuthSnapshot() {
@@ -979,8 +980,8 @@ const NaMeAuth = (function () {
       if (!/^image\//.test(file.type)) {
         throw new Error("Cover image must be an image file");
       }
-      if (file.size > 10 * 1024 * 1024) {
-        throw new Error("Image must be 10 MB or smaller");
+      if (file.size > MAX_IMAGE_BYTES) {
+        throw new Error("Image must be 20 MB or smaller");
       }
 
       if (!sb) throw new Error("Supabase is not configured");
@@ -1014,8 +1015,8 @@ const NaMeAuth = (function () {
     if (!/^image\//.test(file.type)) {
       throw new Error("Body image must be an image file");
     }
-    if (file.size > 10 * 1024 * 1024) {
-      throw new Error("Image must be 10 MB or smaller");
+    if (file.size > MAX_IMAGE_BYTES) {
+      throw new Error("Image must be 20 MB or smaller");
     }
 
     if (useSupabase()) {
@@ -1708,8 +1709,8 @@ const NaMeAuth = (function () {
       let image_url = imageUrlField || null;
       if (file && file instanceof File && file.size > 0) {
         if (!/^image\//.test(file.type)) throw new Error("Image required");
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error("Image must be 10 MB or smaller");
+        if (file.size > MAX_IMAGE_BYTES) {
+          throw new Error("Image must be 20 MB or smaller");
         }
         const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
         const objectPath = `${user.id}/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
