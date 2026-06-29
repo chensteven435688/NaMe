@@ -377,6 +377,8 @@ const NaMeI18n = (function () {
       profileLead: "Set your picture and signature — they appear on comments and community posts.",
       profileChangePhoto: "Change photo",
       profileRemovePhoto: "Remove photo",
+      profilePhotoHint: "Choose a photo, then click Save profile.",
+      profilePhotoPending: "Photo selected — click Save profile to upload.",
       profileDisplayName: "Display name",
       profileSignature: "Signature",
       profileSignaturePlaceholder: "A short line about you — shown beside your name",
