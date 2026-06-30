@@ -68,6 +68,23 @@ export function registerCommunityRoutes(app, { upload }) {
     res.json({ post: publicCommunityPost(row, userId) });
   });
 
+  app.get("/api/users/:id/community-posts", optionalAuth, (req, res) => {
+    const viewerId = req.user?.sub || null;
+    const userExists = db.prepare("SELECT id FROM users WHERE id = ?").get(req.params.id);
+    if (!userExists) return res.status(404).json({ error: "Member not found" });
+    const rows = db
+      .prepare(
+        `SELECT p.*, u.display_name, u.avatar_url, u.signature
+         FROM community_posts p
+         LEFT JOIN users u ON u.id = p.user_id
+         WHERE p.user_id = ?
+         ORDER BY p.created_at DESC
+         LIMIT 100`
+      )
+      .all(req.params.id);
+    res.json({ posts: rows.map((r) => publicCommunityPost(r, viewerId)) });
+  });
+
   app.post("/api/community/posts", requireAuth, upload.single("image"), (req, res) => {
     const { title, caption, imageUrl } = req.body;
     const image_url = req.file

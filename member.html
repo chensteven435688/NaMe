@@ -24,11 +24,44 @@
     </div>
   </main>
 
+  <div class="modal" id="pin-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close-pin></div>
+    <div class="modal__panel modal__panel--pin" role="dialog">
+      <button class="modal__close" type="button" data-close-pin>&times;</button>
+      <div class="pin-detail" id="pin-detail"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="auth-modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close-auth></div>
+    <div class="modal__panel modal__panel--wide" role="dialog">
+      <button class="modal__close" type="button" data-close-auth>&times;</button>
+      <h2 class="modal__title" data-i18n="authTitle">NaMe Account</h2>
+      <p id="auth-error" class="auth-error" hidden></p>
+      <div class="auth-tabs">
+        <button type="button" class="auth-tabs__btn is-active" data-auth-tab="login" data-i18n="authLogin">Login</button>
+        <button type="button" class="auth-tabs__btn" data-auth-tab="register" data-i18n="authRegister">Join</button>
+      </div>
+      <form id="auth-login-form" class="auth-form" data-auth-panel="login" autocomplete="on">
+        <input type="email" name="loginEmail" data-login-email autocomplete="username" required />
+        <input type="password" name="loginPassword" data-login-password autocomplete="current-password" required />
+        <button type="submit" class="btn btn--primary" data-i18n="authLoginBtn">Login</button>
+      </form>
+      <form id="auth-register-form" class="auth-form is-hidden" data-auth-panel="register" autocomplete="on">
+        <input type="text" name="registerName" data-register-name autocomplete="name" required />
+        <input type="email" name="registerEmail" data-register-email autocomplete="email" required />
+        <input type="password" name="registerPassword" data-register-password autocomplete="new-password" required minlength="8" />
+        <button type="submit" class="btn btn--primary" data-i18n="authRegisterBtn">Create account</button>
+      </form>
+    </div>
+  </div>
+
   <script src="base.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="supabase.js"></script>
   <script src="i18n.js"></script>
   <script src="auth.js?v=5"></script>
-  <script src="member.js?v=1"></script>
+  <script src="community-pin.js?v=1"></script>
+  <script src="member.js?v=2"></script>
 </body>
 </html>
