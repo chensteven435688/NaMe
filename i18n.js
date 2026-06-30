@@ -118,13 +118,13 @@ const NaMeI18n = (function () {
       exclusivePageDescription:
         "Personal picks and unpublished work from Nana (Jiajing Na), Founder & Editor of NaMe Magazine",
       exclusiveLabel: "Nana (Jiajing Na)",
-      exclusivePageHeading: "From Nana's desk",
+      exclusivePageHeading: "Nana's",
       exclusivePageIntro:
         "Personal picks, notes, and unpublished work from Nana (Jiajing Na).",
       exclusivePageRole: "Founder & Editor of NaMe Magazine.",
       exclusiveEmpty: "No posts yet. Check back soon.",
       exclusiveBadge: "Nana (Jiajing Na)",
-      exclusiveSectionTitle: "From Nana's desk",
+      exclusiveSectionTitle: "Nana's",
       exclusiveSectionIntro: "Personal picks and unpublished work from Nana (Jiajing Na).",
       filmSection: "Film",
       shorts: "Shorts",
