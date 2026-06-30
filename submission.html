@@ -113,11 +113,25 @@
             <textarea name="description" rows="5" maxlength="2000" data-i18n-placeholder="submissionFieldDescriptionPlaceholder" placeholder="Tell us about the project, your role, and any context…"></textarea>
           </label>
 
-          <label class="submission-file">
+          <label class="submission-file" id="submission-single-file">
             <span data-i18n="submissionFieldFile">File</span>
-            <input type="file" name="file" accept="image/*,application/pdf,video/*" required />
+            <input type="file" name="file" accept="image/*,application/pdf,video/*" />
             <span class="submission-file__hint" data-i18n="submissionFileHint">Image, PDF, or video</span>
           </label>
+
+          <div class="submission-gallery is-hidden" id="submission-gallery-fields">
+            <label class="submission-file">
+              <span data-i18n="submissionFieldCover">Cover image</span>
+              <input type="file" name="cover" accept="image/*" />
+              <span class="submission-file__hint" data-i18n="submissionCoverHint">Main image shown on the post card and gallery</span>
+            </label>
+            <label class="submission-file">
+              <span data-i18n="submissionFieldGallery">Gallery images</span>
+              <input type="file" name="bodyImages" accept="image/*" multiple />
+              <span class="submission-file__hint" data-i18n="submissionGalleryHint">Optional additional images (Instagram / Pinterest style)</span>
+            </label>
+            <div class="submission-gallery__preview" id="submission-gallery-preview" hidden></div>
+          </div>
 
           <button type="submit" class="btn btn--primary" data-i18n="submissionSubmitBtn">Submit for review</button>
           <p id="submission-form-status" class="submission-form__status" role="status"></p>

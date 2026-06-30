@@ -90,6 +90,7 @@ create table if not exists public.submissions (
   file_url text not null,
   file_name text,
   file_mime text,
+  body_files jsonb not null default '[]'::jsonb,
   status text not null default 'pending' check (status in ('pending', 'published', 'rejected')),
   post_id uuid references public.posts (id) on delete set null,
   admin_note text,

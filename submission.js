@@ -7,8 +7,64 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (NaMeAuth.isLoggedIn()) loadMine();
   });
 
-  document.getElementById("submission-form")?.addEventListener("submit", onSubmit);
+  const form = document.getElementById("submission-form");
+  form?.addEventListener("submit", onSubmit);
+  form?.querySelector('[name="medium"]')?.addEventListener("change", updateMediumFields);
+  form?.querySelector('[name="cover"]')?.addEventListener("change", updateGalleryPreview);
+  form?.querySelector('[name="bodyImages"]')?.addEventListener("change", updateGalleryPreview);
+  updateMediumFields();
 });
+
+const IMAGE_MEDIA = new Set(["photography", "design", "visual-art"]);
+
+function updateMediumFields() {
+  const form = document.getElementById("submission-form");
+  if (!form) return;
+  const medium = form.querySelector('[name="medium"]')?.value || "";
+  const isImageMedium = IMAGE_MEDIA.has(medium);
+  const single = document.getElementById("submission-single-file");
+  const gallery = document.getElementById("submission-gallery-fields");
+  const fileInput = form.querySelector('[name="file"]');
+  const coverInput = form.querySelector('[name="cover"]');
+
+  single?.classList.toggle("is-hidden", isImageMedium);
+  gallery?.classList.toggle("is-hidden", !isImageMedium);
+
+  if (fileInput) fileInput.required = !isImageMedium;
+  if (coverInput) coverInput.required = isImageMedium;
+
+  if (!isImageMedium) updateGalleryPreview();
+}
+
+function updateGalleryPreview() {
+  const form = document.getElementById("submission-form");
+  const preview = document.getElementById("submission-gallery-preview");
+  if (!form || !preview) return;
+
+  const cover = form.querySelector('[name="cover"]')?.files?.[0];
+  const bodyImages = [...(form.querySelector('[name="bodyImages"]')?.files || [])];
+  const items = [];
+  if (cover) items.push({ file: cover, label: "Cover" });
+  bodyImages.forEach((file, i) => items.push({ file, label: `${i + 1}` }));
+
+  if (!items.length) {
+    preview.hidden = true;
+    preview.innerHTML = "";
+    return;
+  }
+
+  preview.hidden = false;
+  preview.innerHTML = items
+    .map(({ file, label }) => {
+      const url = URL.createObjectURL(file);
+      return `
+        <figure class="submission-gallery__thumb">
+          <img src="${escAttr(url)}" alt="" />
+          <figcaption>${esc(label)}</figcaption>
+        </figure>`;
+    })
+    .join("");
+}
 
 function updateGate() {
   const bypass = window.NA_ME_DEV_BYPASS === true;
@@ -56,6 +112,32 @@ function renderStats(stats, el, lang) {
     </div>`;
 }
 
+function renderSubmissionMedia(s) {
+  const images = [];
+  if (s.fileMime?.startsWith("image/")) images.push({ url: s.fileUrl, label: "Cover" });
+  for (const file of s.bodyFiles || []) {
+    if (file.mime?.startsWith("image/") || !file.mime) {
+      images.push({ url: file.url, label: "" });
+    }
+  }
+
+  if (images.length > 1) {
+    return `<div class="submission-item__gallery">${images
+      .map(
+        (img) =>
+          `<img src="${escAttr(img.url)}" alt="" class="submission-item__gallery-img" />`
+      )
+      .join("")}</div>`;
+  }
+  if (s.fileMime?.startsWith("image/")) {
+    return `<img src="${escAttr(s.fileUrl)}" alt="" class="submission-item__preview" />`;
+  }
+  if (s.fileMime?.startsWith("video/")) {
+    return `<video src="${escAttr(s.fileUrl)}" controls class="submission-item__preview"></video>`;
+  }
+  return "";
+}
+
 function renderList(submissions, el, lang) {
   if (!submissions.length) {
     el.innerHTML = `<p class="submission-list__empty">${esc(NaMeI18n.t(lang, "submissionEmpty"))}</p>`;
@@ -66,8 +148,9 @@ function renderList(submissions, el, lang) {
     .map((s) => {
       const statusLabel = NaMeI18n.t(lang, `submissionStatus_${s.status}`);
       const date = formatDate(s.createdAt);
+      const galleryCount = (s.bodyFiles || []).length;
       const fileLink = s.fileUrl
-        ? `<a href="${escAttr(s.fileUrl)}" target="_blank" rel="noopener">${esc(s.fileName || "File")}</a>`
+        ? `<a href="${escAttr(s.fileUrl)}" target="_blank" rel="noopener">${esc(s.fileName || "File")}${galleryCount ? ` (+${galleryCount} gallery)` : ""}</a>`
         : "";
       const liveLink =
         s.status === "published" && s.postSlug
@@ -79,6 +162,7 @@ function renderList(submissions, el, lang) {
 
       return `
       <article class="submission-item submission-item--${escAttr(s.status)}">
+        ${renderSubmissionMedia(s)}
         <div class="submission-item__head">
           <h3 class="submission-item__title">${esc(s.title)}</h3>
           <span class="submission-item__badge">${esc(statusLabel)}</span>
@@ -112,6 +196,8 @@ async function onSubmit(e) {
     await NaMeAuth.createSubmission(fd);
     status.textContent = NaMeI18n.t(lang, "submissionSuccess");
     form.reset();
+    updateMediumFields();
+    updateGalleryPreview();
     loadMine();
   } catch (err) {
     status.textContent = err.message;
