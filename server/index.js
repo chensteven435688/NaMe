@@ -108,6 +108,16 @@ function publicUser(row) {
   };
 }
 
+function publicMember(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url || null,
+    signature: row.signature || null,
+  };
+}
+
 function publicPost(row) {
   return {
     id: row.id,
@@ -180,6 +190,14 @@ app.get("/api/auth/me", optionalAuth, (req, res) => {
   let row = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.sub);
   row = syncUserRole(row);
   res.json({ user: publicUser(row) });
+});
+
+app.get("/api/users/:id", (req, res) => {
+  const row = db
+    .prepare("SELECT id, display_name, avatar_url, signature FROM users WHERE id = ?")
+    .get(req.params.id);
+  if (!row) return res.status(404).json({ error: "Member not found" });
+  res.json({ user: publicMember(row) });
 });
 
 app.patch("/api/auth/profile", requireAuth, upload.single("avatar"), (req, res) => {

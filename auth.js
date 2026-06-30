@@ -78,18 +78,74 @@ const NaMeAuth = (function () {
     };
   }
 
+  function escHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function mapPublicProfile(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      displayName: row.display_name,
+      avatarUrl: row.avatar_url || null,
+      signature: row.signature || null,
+    };
+  }
+
+  function memberProfilePath(userId) {
+    if (!userId) return "#";
+    if (isLoggedIn() && getUser()?.id === userId) {
+      return typeof NaMeBase !== "undefined" ? NaMeBase.path("/profile.html") : "/profile.html";
+    }
+    const path = `/member.html?id=${encodeURIComponent(userId)}`;
+    return typeof NaMeBase !== "undefined" ? NaMeBase.path(path) : path;
+  }
+
   function formatUserAvatar(author, className = "user-avatar") {
     const name = author?.displayName || "Member";
-    const esc = (value) =>
-      String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/"/g, "&quot;");
     if (author?.avatarUrl) {
-      return `<img class="${esc(className)}" src="${esc(author.avatarUrl)}" alt="${esc(name)}" loading="lazy" />`;
+      return `<img class="${escHtml(className)}" src="${escHtml(author.avatarUrl)}" alt="${escHtml(name)}" loading="lazy" />`;
     }
     const initial = (name[0] || "?").toUpperCase();
-    return `<span class="${esc(className)} user-avatar--initial" aria-hidden="true">${esc(initial)}</span>`;
+    return `<span class="${escHtml(className)} user-avatar--initial" aria-hidden="true">${escHtml(initial)}</span>`;
+  }
+
+  function formatUserAvatarLink(author, className = "user-avatar") {
+    const id = author?.id;
+    if (!id) return formatUserAvatar(author, className);
+    const name = author?.displayName || "Member";
+    const avatar = formatUserAvatar(author, className);
+    return `<a class="user-avatar-link" href="${escHtml(memberProfilePath(id))}" aria-label="${escHtml(name)}">${avatar}</a>`;
+  }
+
+  function formatAuthorNameLink(author, className = "author-name-link") {
+    const id = author?.id;
+    const name = author?.displayName || "Member";
+    if (!id) return escHtml(name);
+    return `<a class="${escHtml(className)}" href="${escHtml(memberProfilePath(id))}">${escHtml(name)}</a>`;
+  }
+
+  async function fetchPublicProfile(userId) {
+    if (!userId) throw new Error("Member not found");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      if (!sb) throw new Error("Member not found");
+      const { data, error } = await sb
+        .from("profiles")
+        .select(PROFILE_PUBLIC_SELECT)
+        .eq("id", userId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("Member not found");
+      return { user: mapPublicProfile(data) };
+    }
+
+    const data = await request(`/api/users/${encodeURIComponent(userId)}`);
+    return { user: data.user };
   }
 
   function mapPost(row) {
@@ -2435,6 +2491,10 @@ const NaMeAuth = (function () {
     uploadMyProfileAvatar,
     isProfileSaveLocked,
     formatUserAvatar,
+    formatUserAvatarLink,
+    formatAuthorNameLink,
+    memberProfilePath,
+    fetchPublicProfile,
     fetchPosts,
     fetchPost,
     fetchPostComments,

@@ -287,11 +287,11 @@ function renderComment(comment, slug, isReply = false) {
     : "";
 
   el.innerHTML = `
-    <div class="comment__avatar">${NaMeAuth.formatUserAvatar(comment.author, "user-avatar")}</div>
+    <div class="comment__avatar">${NaMeAuth.formatUserAvatarLink(comment.author, "user-avatar")}</div>
     <div class="comment__main">
       <div class="comment__head">
         <span class="comment__author-wrap">
-          <span class="comment__author">${escapeHtml(comment.author.displayName)}</span>
+          ${NaMeAuth.formatAuthorNameLink(comment.author, "comment__author")}
           ${signatureHtml}
         </span>
         <span class="comment__time">${time}</span>

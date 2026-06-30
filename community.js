@@ -60,6 +60,9 @@ async function loadFeed() {
     grid.querySelectorAll("[data-pin-id]").forEach((card) => {
       card.addEventListener("click", () => openPin(card.dataset.pinId));
     });
+    grid.querySelectorAll(".pin-card__avatar a, .pin-card__author").forEach((link) => {
+      link.addEventListener("click", (e) => e.stopPropagation());
+    });
   } catch (err) {
     grid.innerHTML = `<p class="community-feed__empty">${esc(err.message)}</p>`;
   }
@@ -67,7 +70,7 @@ async function loadFeed() {
 
 function renderPinCard(post) {
   const title = post.title || post.caption?.slice(0, 40) || "Moodboard";
-  const avatar = NaMeAuth.formatUserAvatar(post.author, "user-avatar user-avatar--sm");
+  const avatar = NaMeAuth.formatUserAvatarLink(post.author, "user-avatar user-avatar--sm");
   return `
     <article class="pin-card" data-pin-id="${post.id}">
       <div class="pin-card__img">
@@ -77,7 +80,7 @@ function renderPinCard(post) {
         <p class="pin-card__title">${esc(title)}</p>
         <div class="pin-card__meta">
           <span class="pin-card__avatar">${avatar}</span>
-          <span>${esc(post.author?.displayName || "")}</span>
+          <span>${NaMeAuth.formatAuthorNameLink(post.author, "pin-card__author")}</span>
           <span class="pin-card__counts">♥ ${post.likeCount} · 💬 ${post.commentCount}</span>
         </div>
       </div>
@@ -97,7 +100,7 @@ async function openPin(id) {
   try {
     const { post } = await NaMeAuth.fetchCommunityPost(id);
     const { comments } = await NaMeAuth.fetchCommunityPostComments(id);
-    const avatar = NaMeAuth.formatUserAvatar(post.author, "user-avatar user-avatar--md");
+    const avatar = NaMeAuth.formatUserAvatarLink(post.author, "user-avatar user-avatar--md");
     const signatureHtml = post.author?.signature
       ? `<span class="pin-detail__signature">${esc(post.author.signature)}</span>`
       : "";
@@ -114,7 +117,7 @@ async function openPin(id) {
           <div class="pin-detail__author">
             <span class="pin-detail__avatar">${avatar}</span>
             <div>
-              <strong>${esc(post.author?.displayName)}</strong>
+              <strong>${NaMeAuth.formatAuthorNameLink(post.author, "pin-detail__author")}</strong>
               ${signatureHtml}
               <span class="pin-detail__time">${formatTime(post.createdAt)}</span>
             </div>
@@ -180,7 +183,7 @@ async function openPin(id) {
 }
 
 function renderPinComment(c) {
-  const avatar = NaMeAuth.formatUserAvatar(c.author, "user-avatar user-avatar--sm");
+  const avatar = NaMeAuth.formatUserAvatarLink(c.author, "user-avatar user-avatar--sm");
   const signatureHtml = c.author?.signature
     ? `<span class="pin-comment__signature">${esc(c.author.signature)}</span>`
     : "";
@@ -188,7 +191,7 @@ function renderPinComment(c) {
     <div class="pin-comment">
       <span class="pin-comment__avatar">${avatar}</span>
       <div>
-        <strong>${esc(c.author?.displayName)}</strong>
+        <strong>${NaMeAuth.formatAuthorNameLink(c.author, "pin-comment__author")}</strong>
         ${signatureHtml}
         <span class="pin-comment__time">${formatTime(c.createdAt)}</span>
         <p>${esc(c.body)}</p>
