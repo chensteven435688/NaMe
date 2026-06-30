@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="NaMe member profile" />
+  <title>Member — NaMe Magazine</title>
+  <script src="auth-boot.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page-member" data-page-title="memberPageTitle" data-page-description="memberPageDescription">
+  <header class="header header--minimal" id="header">
+    <div class="header__top">
+      <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
+      <nav class="header__actions" aria-label="Quick actions">
+        <a href="./" class="auth-page__back" data-i18n="backHome">← Back to NaMe</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="profile-page member-page">
+    <div class="profile-page__shell member-page__shell" id="member-root">
+      <p class="member-page__loading" data-i18n="memberLoading">Loading profile…</p>
+    </div>
+  </main>
+
+  <script src="base.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase.js"></script>
+  <script src="i18n.js"></script>
+  <script src="auth.js?v=5"></script>
+  <script src="member.js?v=1"></script>
+</body>
+</html>

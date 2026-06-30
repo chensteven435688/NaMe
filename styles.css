@@ -1985,6 +1985,87 @@ html.auth-optimistic-early.auth-ui-checked #mobile-auth-link::after {
   color: #2f6b3a;
 }
 
+.member-page__shell {
+  width: min(640px, 100%);
+}
+
+.member-page__loading,
+.member-page__empty {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.member-page__hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.member-page__avatar {
+  flex-shrink: 0;
+}
+
+.member-page__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-top: 0.25rem;
+}
+
+.member-page__name {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.member-page__signature {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+  max-width: 36rem;
+}
+
+.member-page__signature--empty {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.member-page__edit {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+}
+
+.user-avatar-link {
+  display: inline-flex;
+  border-radius: 50%;
+  transition: opacity 0.2s var(--ease);
+}
+
+.user-avatar-link:hover {
+  opacity: 0.82;
+}
+
+.author-name-link,
+.comment__author.author-name-link,
+.pin-card__author,
+.pin-detail__author,
+.pin-comment__author {
+  color: inherit;
+  text-decoration: none;
+}
+
+.author-name-link:hover,
+.comment__author.author-name-link:hover,
+.pin-card__author:hover,
+.pin-detail__author:hover,
+.pin-comment__author:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 .user-avatar {
   display: inline-flex;
   align-items: center;
