@@ -178,4 +178,13 @@ function migrateUsersProfile() {
 
 migrateUsersProfile();
 
+function migrateSubmissionsBodyFiles() {
+  const cols = db.prepare("PRAGMA table_info(submissions)").all();
+  if (!cols.some((c) => c.name === "body_files")) {
+    db.exec("ALTER TABLE submissions ADD COLUMN body_files TEXT NOT NULL DEFAULT '[]'");
+  }
+}
+
+migrateSubmissionsBodyFiles();
+
 export default db;

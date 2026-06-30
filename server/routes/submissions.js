@@ -4,6 +4,11 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import db from "../db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import {
+  IMAGE_SUBMISSION_MEDIA,
+  buildPublishedPostBody,
+  parseBodyFiles,
+} from "../lib/post-images.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,6 +30,7 @@ function publicSubmission(row, user = null) {
     fileUrl: row.file_url,
     fileName: row.file_name,
     fileMime: row.file_mime,
+    bodyFiles: parseBodyFiles(row.body_files),
     status: row.status,
     postId: row.post_id,
     postSlug: row.post_slug || null,
@@ -41,6 +47,27 @@ function publicSubmission(row, user = null) {
         }
       : {}),
   };
+}
+
+function serializeBodyFiles(files) {
+  return JSON.stringify(files || []);
+}
+
+function localUploadUrl(filename) {
+  return `/uploads/${filename}`;
+}
+
+function deleteLocalUpload(url) {
+  if (!url?.startsWith("/uploads/")) return;
+  const filePath = path.join(__dirname, "..", url);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+}
+
+function deleteSubmissionFiles(row) {
+  deleteLocalUpload(row.file_url);
+  for (const file of parseBodyFiles(row.body_files)) {
+    deleteLocalUpload(file.url);
+  }
 }
 
 export function registerSubmissionRoutes(app, { submissionUpload, uniqueSlug }) {
@@ -77,39 +104,78 @@ export function registerSubmissionRoutes(app, { submissionUpload, uniqueSlug }) 
     });
   });
 
-  app.post("/api/submissions", requireAuth, submissionUpload.single("file"), (req, res) => {
-    const { title, medium, description } = req.body;
-    if (!title?.trim()) {
-      return res.status(400).json({ error: "Title required" });
-    }
-    if (!medium || !ALLOWED_MEDIA.includes(medium)) {
-      return res.status(400).json({ error: "Select a valid medium" });
-    }
-    if (!req.file) {
-      return res.status(400).json({ error: "Upload a file (image, PDF, or video)" });
-    }
+  app.post(
+    "/api/submissions",
+    requireAuth,
+    submissionUpload.fields([
+      { name: "file", maxCount: 1 },
+      { name: "cover", maxCount: 1 },
+      { name: "bodyImages", maxCount: 20 },
+    ]),
+    (req, res) => {
+      const { title, medium, description } = req.body;
+      if (!title?.trim()) {
+        return res.status(400).json({ error: "Title required" });
+      }
+      if (!medium || !ALLOWED_MEDIA.includes(medium)) {
+        return res.status(400).json({ error: "Select a valid medium" });
+      }
 
-    const id = randomUUID();
-    const now = new Date().toISOString();
-    db.prepare(
-      `INSERT INTO submissions
-        (id, user_id, title, medium, description, file_url, file_name, file_mime, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`
-    ).run(
-      id,
-      req.user.sub,
-      title.trim(),
-      medium,
-      description?.trim() || null,
-      `/uploads/${req.file.filename}`,
-      req.file.originalname,
-      req.file.mimetype,
-      now
-    );
+      const isImageMedium = IMAGE_SUBMISSION_MEDIA.has(medium);
+      const coverFile = req.files?.cover?.[0] || null;
+      const legacyFile = req.files?.file?.[0] || null;
+      const bodyImageFiles = req.files?.bodyImages || [];
 
-    const row = db.prepare("SELECT * FROM submissions WHERE id = ?").get(id);
-    res.status(201).json({ submission: publicSubmission(row) });
-  });
+      let primaryFile = null;
+      if (isImageMedium) {
+        primaryFile = coverFile || legacyFile;
+        if (!primaryFile) {
+          return res.status(400).json({ error: "Upload a cover image" });
+        }
+        if (!/^image\//.test(primaryFile.mimetype)) {
+          return res.status(400).json({ error: "Cover must be an image" });
+        }
+        for (const file of bodyImageFiles) {
+          if (!/^image\//.test(file.mimetype)) {
+            return res.status(400).json({ error: "Gallery images must be images" });
+          }
+        }
+      } else {
+        primaryFile = legacyFile || coverFile;
+        if (!primaryFile) {
+          return res.status(400).json({ error: "Upload a file (image, PDF, or video)" });
+        }
+      }
+
+      const bodyFiles = bodyImageFiles.map((file) => ({
+        url: localUploadUrl(file.filename),
+        name: file.originalname,
+        mime: file.mimetype,
+      }));
+
+      const id = randomUUID();
+      const now = new Date().toISOString();
+      db.prepare(
+        `INSERT INTO submissions
+          (id, user_id, title, medium, description, file_url, file_name, file_mime, body_files, status, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`
+      ).run(
+        id,
+        req.user.sub,
+        title.trim(),
+        medium,
+        description?.trim() || null,
+        localUploadUrl(primaryFile.filename),
+        primaryFile.originalname,
+        primaryFile.mimetype,
+        serializeBodyFiles(bodyFiles),
+        now
+      );
+
+      const row = db.prepare("SELECT * FROM submissions WHERE id = ?").get(id);
+      res.status(201).json({ submission: publicSubmission(row) });
+    }
+  );
 
   app.get("/api/admin/submissions", requireAdmin, (req, res) => {
     const { status } = req.query;
@@ -200,13 +266,7 @@ export function registerSubmissionRoutes(app, { submissionUpload, uniqueSlug }) 
 
     const isVideo = row.file_mime?.startsWith("video/");
     const isImage = row.file_mime?.startsWith("image/");
-    let postBody = row.description?.trim()
-      ? `<p>${escapeHtml(row.description.trim())}</p>`
-      : `<p>${escapeHtml(row.title)}</p>`;
-
-    if (row.file_mime === "application/pdf") {
-      postBody += `<p><a href="${row.file_url}" target="_blank" rel="noopener">View submitted PDF</a></p>`;
-    }
+    const postBody = buildPublishedPostBody(row);
 
     const postId = randomUUID();
     const slug = uniqueSlug(row.title);
@@ -258,19 +318,8 @@ export function registerSubmissionRoutes(app, { submissionUpload, uniqueSlug }) 
   app.delete("/api/admin/submissions/:id", requireAdmin, (req, res) => {
     const row = db.prepare("SELECT * FROM submissions WHERE id = ?").get(req.params.id);
     if (!row) return res.status(404).json({ error: "Submission not found" });
-    if (row.file_url?.startsWith("/uploads/")) {
-      const filePath = path.join(__dirname, "..", row.file_url);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
+    deleteSubmissionFiles(row);
     db.prepare("DELETE FROM submissions WHERE id = ?").run(row.id);
     res.json({ ok: true });
   });
-}
-
-function escapeHtml(text) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }

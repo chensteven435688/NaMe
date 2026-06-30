@@ -81,11 +81,24 @@ function renderGrid() {
 
 function renderCard(s, lang) {
   const statusLabel = NaMeI18n.t(lang, `submissionStatus_${s.status}`);
-  const preview = s.fileMime?.startsWith("image/")
-    ? `<img src="${NaMeAdmin.esc(s.fileUrl)}" alt="" class="admin-submission-card__img" />`
-    : s.fileMime?.startsWith("video/")
-      ? `<video src="${NaMeAdmin.esc(s.fileUrl)}" controls class="admin-submission-card__video"></video>`
-      : `<a href="${NaMeAdmin.esc(s.fileUrl)}" target="_blank" rel="noopener" class="admin-submission-card__file">${NaMeAdmin.esc(s.fileName || "PDF")}</a>`;
+  const galleryImages = [];
+  if (s.fileMime?.startsWith("image/")) galleryImages.push(s.fileUrl);
+  for (const file of s.bodyFiles || []) {
+    if (file.mime?.startsWith("image/") || !file.mime) galleryImages.push(file.url);
+  }
+
+  let preview;
+  if (galleryImages.length > 1) {
+    preview = `<div class="admin-submission-card__gallery">${galleryImages
+      .map((url) => `<img src="${NaMeAdmin.esc(url)}" alt="" class="admin-submission-card__gallery-img" />`)
+      .join("")}</div>`;
+  } else if (s.fileMime?.startsWith("image/")) {
+    preview = `<img src="${NaMeAdmin.esc(s.fileUrl)}" alt="" class="admin-submission-card__img" />`;
+  } else if (s.fileMime?.startsWith("video/")) {
+    preview = `<video src="${NaMeAdmin.esc(s.fileUrl)}" controls class="admin-submission-card__video"></video>`;
+  } else {
+    preview = `<a href="${NaMeAdmin.esc(s.fileUrl)}" target="_blank" rel="noopener" class="admin-submission-card__file">${NaMeAdmin.esc(s.fileName || "PDF")}</a>`;
+  }
 
   const live = s.postSlug
     ? `<a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(s.postSlug)}" target="_blank" rel="noopener">${NaMeAdmin.esc(NaMeI18n.t(lang, "submissionViewLive"))}</a>`

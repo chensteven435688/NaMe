@@ -530,6 +530,7 @@ const NaMeAuth = (function () {
       fileUrl: row.file_url,
       fileName: row.file_name,
       fileMime: row.file_mime,
+      bodyFiles: parseSubmissionBodyFiles(row.body_files),
       status: row.status,
       postId: row.post_id,
       postSlug: postSlug || null,
@@ -537,6 +538,35 @@ const NaMeAuth = (function () {
       createdAt: row.created_at,
       reviewedAt: row.reviewed_at,
     };
+  }
+
+  const IMAGE_SUBMISSION_MEDIA = new Set(["photography", "design", "visual-art"]);
+
+  function parseSubmissionBodyFiles(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.filter((f) => f?.url);
+    if (typeof raw === "string") {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter((f) => f?.url) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  function bodyFigureHtml(url, alt = "") {
+    const safeUrl = String(url ?? "").replace(/"/g, "&quot;");
+    const safeAlt = String(alt ?? "").replace(/"/g, "&quot;");
+    return `<figure class="post__figure"><img src="${safeUrl}" alt="${safeAlt}" loading="lazy" /></figure>`;
+  }
+
+  function buildBodyFiguresFromFiles(files) {
+    return parseSubmissionBodyFiles(files)
+      .filter((f) => f.mime?.startsWith("image/") || !f.mime)
+      .map((f) => bodyFigureHtml(f.url, f.name || ""))
+      .join("\n");
   }
 
   function submissionStats(rows) {
@@ -582,20 +612,41 @@ const NaMeAuth = (function () {
     const medium = formData.get("medium")?.toString() || "";
     const description = formData.get("description")?.toString().trim() || "";
     const file = formData.get("file");
+    const cover = formData.get("cover");
+    const bodyImages = formData.getAll("bodyImages").filter((f) => f instanceof File && f.size > 0);
 
     if (!title) throw new Error("Title required");
     if (!SUBMISSION_MEDIA.includes(medium)) throw new Error("Select a valid medium");
-    if (!file || !(file instanceof File) || !file.size) {
-      throw new Error("Upload a file (image, PDF, or video)");
+
+    const isImageMedium = IMAGE_SUBMISSION_MEDIA.has(medium);
+    const primaryFile = isImageMedium ? cover || file : file || cover;
+
+    if (!primaryFile || !(primaryFile instanceof File) || !primaryFile.size) {
+      throw new Error(
+        isImageMedium ? "Upload a cover image" : "Upload a file (image, PDF, or video)"
+      );
     }
-    if (!isAllowedSubmissionFile(file)) {
+    if (!isAllowedSubmissionFile(primaryFile)) {
       throw new Error("Allowed file types: images, PDF, or video");
     }
-    if (/^video\//.test(file.type)) {
-      if (file.size > MAX_SUBMISSION_VIDEO_BYTES) {
+    if (isImageMedium) {
+      if (!/^image\//.test(primaryFile.type)) {
+        throw new Error("Cover must be an image");
+      }
+      for (const img of bodyImages) {
+        if (!/^image\//.test(img.type)) {
+          throw new Error("Gallery images must be images");
+        }
+        if (img.size > MAX_SUBMISSION_FILE_BYTES) {
+          throw new Error("Each gallery image must be 50 MB or smaller");
+        }
+      }
+    }
+    if (/^video\//.test(primaryFile.type)) {
+      if (primaryFile.size > MAX_SUBMISSION_VIDEO_BYTES) {
         throw new Error("Video must be 4 GB or smaller");
       }
-    } else if (file.size > MAX_SUBMISSION_FILE_BYTES) {
+    } else if (primaryFile.size > MAX_SUBMISSION_FILE_BYTES) {
       throw new Error("Image or PDF must be 50 MB or smaller");
     }
 
@@ -604,16 +655,28 @@ const NaMeAuth = (function () {
       const user = getUser();
       if (!user) throw new Error("Log in required");
 
-      const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
-      const objectPath = `${user.id}/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
+      async function uploadSubmissionFile(uploadFile) {
+        const ext = uploadFile.name.includes(".")
+          ? uploadFile.name.split(".").pop()
+          : "bin";
+        const objectPath = `${user.id}/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
+        const { error: uploadError } = await sb.storage
+          .from("submissions")
+          .upload(objectPath, uploadFile, { contentType: uploadFile.type, upsert: false });
+        if (uploadError) throw new Error(uploadError.message);
+        const { data: urlData } = sb.storage.from("submissions").getPublicUrl(objectPath);
+        return {
+          url: urlData.publicUrl,
+          name: uploadFile.name,
+          mime: uploadFile.type,
+        };
+      }
 
-      const { error: uploadError } = await sb.storage
-        .from("submissions")
-        .upload(objectPath, file, { contentType: file.type, upsert: false });
-      if (uploadError) throw new Error(uploadError.message);
-
-      const { data: urlData } = sb.storage.from("submissions").getPublicUrl(objectPath);
-      const fileUrl = urlData.publicUrl;
+      const coverUpload = await uploadSubmissionFile(primaryFile);
+      const bodyFiles = [];
+      for (const img of bodyImages) {
+        bodyFiles.push(await uploadSubmissionFile(img));
+      }
 
       const { data, error } = await sb
         .from("submissions")
@@ -622,9 +685,10 @@ const NaMeAuth = (function () {
           title,
           medium,
           description: description || null,
-          file_url: fileUrl,
-          file_name: file.name,
-          file_mime: file.type,
+          file_url: coverUpload.url,
+          file_name: coverUpload.name,
+          file_mime: coverUpload.mime,
+          body_files: bodyFiles,
           status: "pending",
         })
         .select("*")
@@ -634,7 +698,17 @@ const NaMeAuth = (function () {
       return { submission: mapSubmission(data) };
     }
 
-    return request("/api/submissions", { method: "POST", body: formData });
+    const outbound = new FormData();
+    outbound.set("title", title);
+    outbound.set("medium", medium);
+    if (description) outbound.set("description", description);
+    if (isImageMedium) {
+      outbound.set("cover", primaryFile);
+      for (const img of bodyImages) outbound.append("bodyImages", img);
+    } else {
+      outbound.set("file", primaryFile);
+    }
+    return request("/api/submissions", { method: "POST", body: outbound });
   }
 
   function mapAdminSubmission(row) {
@@ -697,6 +771,8 @@ const NaMeAuth = (function () {
     let body = row.description?.trim()
       ? `<p>${escapeHtml(row.description.trim())}</p>`
       : `<p>${escapeHtml(row.title)}</p>`;
+    const figures = buildBodyFiguresFromFiles(row.body_files);
+    if (figures) body += `\n${figures}`;
     if (row.file_mime === "application/pdf") {
       body += `<p><a href="${row.file_url}" target="_blank" rel="noopener">View submitted PDF</a></p>`;
     }
@@ -832,7 +908,7 @@ const NaMeAuth = (function () {
       const sb = supabase();
       const { data: row, error: fetchError } = await sb
         .from("submissions")
-        .select("file_url")
+        .select("file_url, body_files")
         .eq("id", id)
         .single();
       if (fetchError) throw new Error(fetchError.message);
@@ -840,9 +916,15 @@ const NaMeAuth = (function () {
       const { error } = await sb.from("submissions").delete().eq("id", id);
       if (error) throw new Error(error.message);
 
-      const storagePath = submissionStoragePath(row?.file_url);
-      if (storagePath) {
-        await sb.storage.from("submissions").remove([storagePath]);
+      const paths = [];
+      const coverPath = submissionStoragePath(row?.file_url);
+      if (coverPath) paths.push(coverPath);
+      for (const file of parseSubmissionBodyFiles(row?.body_files)) {
+        const bodyPath = submissionStoragePath(file.url);
+        if (bodyPath) paths.push(bodyPath);
+      }
+      if (paths.length) {
+        await sb.storage.from("submissions").remove(paths);
       }
 
       return { ok: true };

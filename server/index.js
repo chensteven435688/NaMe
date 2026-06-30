@@ -443,20 +443,29 @@ app.use((err, _req, res, _next) => {
 });
 
 const port = Number(process.env.PORT) || 8080;
-app.listen(port, () => {
-  console.log(`NaMe server at http://localhost:${port}`);
-  if (isAuthBypassEnabled()) {
-    console.warn("⚠ DEV_BYPASS_AUTH is ON — login and admin checks are disabled");
-  }
-  const admins = (process.env.ADMIN_EMAILS || "").split(",").filter(Boolean);
-  if (admins.length) {
-    console.log(`Admin emails: ${admins.join(", ")}`);
-  } else {
-    console.log("Set ADMIN_EMAILS in server/.env to allow uploads.");
-  }
-  if (isSupabaseConfigured()) {
-    console.log("Supabase: connected (server client ready)");
-  } else {
-    console.log("Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in server/.env for Supabase.");
-  }
-});
+const isMain =
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+
+export { app };
+
+if (isMain) {
+  app.listen(port, () => {
+    console.log(`NaMe server at http://localhost:${port}`);
+    if (isAuthBypassEnabled()) {
+      console.warn("⚠ DEV_BYPASS_AUTH is ON — login and admin checks are disabled");
+    }
+    const admins = (process.env.ADMIN_EMAILS || "").split(",").filter(Boolean);
+    if (admins.length) {
+      console.log(`Admin emails: ${admins.join(", ")}`);
+    } else {
+      console.log("Set ADMIN_EMAILS in server/.env to allow uploads.");
+    }
+    if (isSupabaseConfigured()) {
+      console.log("Supabase: connected (server client ready)");
+    } else {
+      console.log("Supabase: not configured (local SQLite only)");
+      console.log("Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in server/.env for Supabase.");
+    }
+  });
+}
