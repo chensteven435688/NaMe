@@ -3774,6 +3774,17 @@ button.danger {
   font-size: 15px;
 }
 
+.browse-hero__text p {
+  margin: 0;
+}
+
+.browse-hero__role {
+  margin-top: 0.35rem;
+  color: var(--text-dim);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
 .stories-categories {
   border-bottom: 1px solid var(--border);
   background: var(--bg);
