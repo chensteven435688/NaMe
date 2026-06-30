@@ -1917,6 +1917,34 @@ const NaMeAuth = (function () {
     return request("/api/community/posts");
   }
 
+  async function fetchMemberCommunityPosts(memberId) {
+    if (!memberId) throw new Error("Member not found");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const viewerId = getUser()?.id || null;
+      const { data, error } = await sb
+        .from("community_posts")
+        .select(COMMUNITY_POST_SELECT)
+        .eq("user_id", memberId)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw new Error(error.message);
+
+      const likedSet = await fetchCommunityLikedSet(
+        (data || []).map((p) => p.id),
+        viewerId
+      );
+      return {
+        posts: (data || []).map((row) =>
+          mapCommunityPost(row, viewerId, likedSet.has(row.id))
+        ),
+      };
+    }
+
+    return request(`/api/users/${encodeURIComponent(memberId)}/community-posts`);
+  }
+
   async function fetchCommunityPost(id) {
     if (useSupabase()) {
       const sb = supabase();
@@ -2520,6 +2548,7 @@ const NaMeAuth = (function () {
     deleteAdminComment,
     fetchCommunityStats,
     fetchCommunityPosts,
+    fetchMemberCommunityPosts,
     fetchCommunityPost,
     createCommunityPost,
     toggleCommunityPostLike,
