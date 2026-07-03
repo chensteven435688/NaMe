@@ -105,6 +105,7 @@ function renderPinCard(post) {
 
 function openPin(id, cachedPost) {
   currentPinId = id;
+  NaMeCommunityPin.setFeedPosts(feedPosts);
   NaMeCommunityPin.openPin(id, cachedPost);
 }
 

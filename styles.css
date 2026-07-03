@@ -4129,6 +4129,23 @@ button.danger {
   flex-direction: column;
 }
 
+.pin-modal__frame {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  width: min(calc(1100px + 7rem), 98vw);
+  max-width: 98vw;
+}
+
+.pin-modal__frame .modal__panel--pin {
+  flex: 1;
+  min-width: 0;
+  max-width: min(1100px, calc(98vw - 7rem));
+}
+
 .pin-detail {
   flex: 1;
   min-height: 0;
@@ -4196,7 +4213,31 @@ button.danger {
   opacity: 1;
 }
 
-.pin-detail__nav {
+.pin-modal__nav {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #262626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.pin-modal__nav:hover {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+.pin-modal__nav[hidden] {
+  display: none;
+}
+
+.pin-detail__slide-nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -4212,23 +4253,68 @@ button.danger {
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease;
 }
 
-.pin-detail__nav:hover {
+.pin-detail__slide-nav:hover {
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
 }
 
-.pin-detail__nav--prev {
+.pin-detail__slide-nav--prev {
   left: 1rem;
 }
 
-.pin-detail__nav--next {
+.pin-detail__slide-nav--next {
   right: 1rem;
 }
 
-.pin-detail__nav[hidden] {
-  display: none;
+.pin-detail__carousel-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pin-detail__carousel-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.25s ease;
+}
+
+.pin-detail__slide {
+  flex: 0 0 100%;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-detail__dots {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  z-index: 3;
+}
+
+.pin-detail__dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.pin-detail__dot.is-active {
+  background: #fff;
+  transform: scale(1.2);
 }
 
 .pin-detail__media img {
@@ -4406,6 +4492,26 @@ button.danger {
     height: auto;
     max-height: 94vh;
     overflow-y: auto;
+  }
+
+  .pin-modal__frame {
+    width: 100%;
+    gap: 0;
+  }
+
+  .pin-modal__nav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+  }
+
+  .pin-modal__nav--prev {
+    left: 0.5rem;
+  }
+
+  .pin-modal__nav--next {
+    right: 0.5rem;
   }
 
   .pin-detail__panel {

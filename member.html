@@ -27,8 +27,16 @@
   <div class="modal" id="pin-modal" aria-hidden="true">
     <div class="modal__backdrop" data-close-pin></div>
     <button class="pin-modal__close" type="button" data-close-pin data-i18n-aria="close" aria-label="Close">&times;</button>
-    <div class="modal__panel modal__panel--pin" role="dialog">
-      <div class="pin-detail" id="pin-detail"></div>
+    <div class="pin-modal__frame">
+      <button type="button" class="pin-modal__nav pin-modal__nav--prev" data-pin-prev hidden aria-label="Previous">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
+      <div class="modal__panel modal__panel--pin" role="dialog">
+        <div class="pin-detail" id="pin-detail"></div>
+      </div>
+      <button type="button" class="pin-modal__nav pin-modal__nav--next" data-pin-next hidden aria-label="Next">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="m10 6-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </button>
     </div>
   </div>
 
@@ -61,7 +69,7 @@
   <script src="supabase.js"></script>
   <script src="i18n.js"></script>
   <script src="auth.js?v=7"></script>
-  <script src="community-pin.js?v=5"></script>
+  <script src="community-pin.js?v=6"></script>
   <script src="member.js?v=3"></script>
 </body>
 </html>
