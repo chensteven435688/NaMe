@@ -52,9 +52,11 @@ const NaMeCommunityPin = (function () {
   function renderPinDetail(post, comments, lang, { commentsLoading = false } = {}) {
     const avatar = NaMeAuth.formatUserAvatarLink(post.author, "user-avatar user-avatar--md");
     const authorName = esc(post.author?.displayName || "Member");
-    const canDelete =
-      NaMeAuth.isLoggedIn() &&
-      (NaMeAuth.getUser().id === post.author?.id || NaMeAuth.isAdmin());
+    const isOwner =
+      NaMeAuth.isLoggedIn() && NaMeAuth.getUser().id === post.author?.id;
+    const isAdmin = NaMeAuth.isAdmin();
+    const canDeleteOwn = isOwner;
+    const canModerate = isAdmin && !isOwner;
 
     const captionParts = [];
     if (post.title) captionParts.push(post.title);
@@ -67,6 +69,14 @@ const NaMeCommunityPin = (function () {
         ? comments.map(renderPinComment).join("")
         : `<p class="pin-detail__comments-empty">${esc(NaMeI18n.t(lang, "commentsEmpty"))}</p>`;
 
+    const moderationHtml =
+      canDeleteOwn || canModerate
+        ? `<div class="pin-detail__moderation">
+            ${canDeleteOwn ? `<button type="button" class="pin-detail__delete pin-detail__delete--own" data-pin-delete="${post.id}">${esc(NaMeI18n.t(lang, "communityDeletePin"))}</button>` : ""}
+            ${canModerate ? `<button type="button" class="pin-detail__delete pin-detail__delete--mod" data-pin-delete="${post.id}">${esc(NaMeI18n.t(lang, "adminRemovePin"))}</button>` : ""}
+          </div>`
+        : "";
+
     return `
       <div class="pin-detail__layout pin-detail__layout--ig">
         <div class="pin-detail__media">
@@ -76,7 +86,6 @@ const NaMeCommunityPin = (function () {
           <header class="pin-detail__header">
             <span class="pin-detail__header-avatar">${avatar}</span>
             <strong class="pin-detail__header-name">${authorName}</strong>
-            ${canDelete ? `<button type="button" class="pin-detail__delete" data-pin-delete="${post.id}">${esc(NaMeI18n.t(lang, "communityDeletePin"))}</button>` : ""}
           </header>
 
           <div class="pin-detail__scroll">
@@ -104,6 +113,7 @@ const NaMeCommunityPin = (function () {
             </div>
             <p class="pin-detail__likes" data-pin-likes>${esc(likesLabel(post.likeCount, lang))}</p>
             <p class="pin-detail__posted">${formatTime(post.createdAt)}</p>
+            ${moderationHtml}
             <form class="pin-detail__comment-form" id="pin-comment-form" data-pin-id="${post.id}">
               <input type="text" maxlength="500" data-i18n-placeholder="commentPlaceholder" placeholder="Add a comment…" required />
               <button type="submit" class="pin-detail__post-btn" ${NaMeAuth.isLoggedIn() ? "" : "disabled"}>${esc(NaMeI18n.t(lang, "commentPost"))}</button>
@@ -133,11 +143,17 @@ const NaMeCommunityPin = (function () {
       detail.querySelector("#pin-comment-form input")?.focus();
     });
 
-    detail.querySelector("[data-pin-delete]")?.addEventListener("click", async () => {
-      if (!confirm(NaMeI18n.t(lang, "communityDeletePinConfirm"))) return;
-      await NaMeAuth.deleteCommunityPost(post.id);
-      closePinModal();
-      refreshCallback();
+    detail.querySelectorAll("[data-pin-delete]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const confirmKey =
+          NaMeAuth.isAdmin() && NaMeAuth.getUser()?.id !== post.author?.id
+            ? "adminRemovePinConfirm"
+            : "communityDeletePinConfirm";
+        if (!confirm(NaMeI18n.t(lang, confirmKey))) return;
+        await NaMeAuth.deleteCommunityPost(post.id);
+        closePinModal();
+        refreshCallback();
+      });
     });
 
     detail.querySelector("#pin-comment-form")?.addEventListener("submit", async (e) => {
