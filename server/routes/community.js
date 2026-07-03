@@ -114,6 +114,24 @@ export function registerCommunityRoutes(app, { upload }) {
     res.json({ posts: rows.map((r) => publicCommunityPost(r, viewerId)) });
   });
 
+  app.get("/api/users/:id/liked-community-posts", optionalAuth, (req, res) => {
+    const viewerId = req.user?.sub || null;
+    const userExists = db.prepare("SELECT id FROM users WHERE id = ?").get(req.params.id);
+    if (!userExists) return res.status(404).json({ error: "Member not found" });
+    const rows = db
+      .prepare(
+        `SELECT p.*, u.display_name, u.avatar_url, u.signature
+         FROM community_likes l
+         JOIN community_posts p ON p.id = l.post_id
+         LEFT JOIN users u ON u.id = p.user_id
+         WHERE l.user_id = ? AND p.is_hidden = 0
+         ORDER BY l.created_at DESC
+         LIMIT 200`
+      )
+      .all(req.params.id);
+    res.json({ posts: rows.map((r) => publicCommunityPost(r, viewerId)) });
+  });
+
   app.post("/api/community/posts", requireAuth, upload.single("image"), (req, res) => {
     const { title, caption, imageUrl, imageHash } = req.body;
     const image_url = req.file
