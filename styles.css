@@ -4207,11 +4207,50 @@ button.danger {
 }
 
 .pin-detail__delete {
-  margin-left: auto;
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #8b2e2e;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pin-detail__moderation {
+  display: flex;
+  gap: 1rem;
+  padding: 0.65rem 0 0.75rem;
+  margin-bottom: 0.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.pin-detail__delete--mod {
+  color: #8b2e2e;
+}
+
+.pin-detail__delete--own {
+  color: var(--text-dim);
+}
+
+.modal__panel--pin .modal__close {
+  z-index: 2;
+  color: var(--text-inverse);
+  background: rgba(0, 0, 0, 0.45);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 0.75rem;
+  right: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .modal__panel--pin .modal__close {
+    right: calc(min(320px, 36vw) + 0.75rem);
+  }
 }
 
 .pin-detail__scroll {
@@ -4405,12 +4444,6 @@ button.danger {
 
 .pin-detail__like.is-liked {
   color: var(--text);
-}
-
-.pin-detail__delete {
-  font-size: 12px;
-  color: var(--color-error);
-  margin-left: auto;
 }
 
 .pin-detail__comments h4 {

@@ -78,6 +78,8 @@ const NaMeI18n = (function () {
       communityComments: "Comments",
       communityDeletePin: "Delete",
       communityDeletePinConfirm: "Delete this pin from the community?",
+      adminRemovePin: "Remove post",
+      adminRemovePinConfirm: "Remove this member's post from the community permanently?",
       latestArticles: "Latest Articles",
       latestEditorials: "Latest Editorials",
       popularEditorials: "Popular Editorials",
