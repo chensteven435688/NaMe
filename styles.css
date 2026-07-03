@@ -4138,11 +4138,6 @@ button.danger {
   gap: 1.5rem;
   width: min(calc(1100px + 7rem), 98vw);
   max-width: 98vw;
-  pointer-events: none;
-}
-
-.pin-modal__frame > * {
-  pointer-events: auto;
 }
 
 .pin-modal__frame .modal__panel--pin {
@@ -4221,9 +4216,9 @@ button.danger {
 .pin-modal__nav {
   flex-shrink: 0;
   position: relative;
-  z-index: 4;
-  width: 2rem;
-  height: 2rem;
+  z-index: 5;
+  width: 2.75rem;
+  height: 2.75rem;
   border: none;
   border-radius: 50%;
   background: #fff;
@@ -4234,6 +4229,7 @@ button.danger {
   cursor: pointer;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .pin-modal__nav svg {
@@ -4514,7 +4510,7 @@ button.danger {
     position: fixed;
     top: 50%;
     transform: translateY(-50%);
-    z-index: 3;
+    z-index: 5;
   }
 
   .pin-modal__nav--prev {

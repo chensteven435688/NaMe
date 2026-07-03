@@ -7,6 +7,7 @@ const NaMeCommunityPin = (function () {
   let lastCachedPost = null;
   let openRequestId = 0;
   let feedPosts = [];
+  let currentFeedIndex = -1;
 
   function esc(s) {
     const d = document.createElement("div");
@@ -38,7 +39,22 @@ const NaMeCommunityPin = (function () {
 
   function setFeedPosts(posts) {
     feedPosts = Array.isArray(posts) ? posts : [];
-    if (currentPinId) updateOutsideNav();
+    if (currentPinId) {
+      currentFeedIndex = getPinIndex();
+      updateOutsideNav();
+    }
+  }
+
+  function resolveFeedIndex(id = currentPinId, preferredIndex = null) {
+    if (Number.isInteger(preferredIndex) && preferredIndex >= 0 && preferredIndex < feedPosts.length) {
+      const at = feedPosts[preferredIndex];
+      if (at && samePinId(at.id, id)) return preferredIndex;
+    }
+    if (currentFeedIndex >= 0 && currentFeedIndex < feedPosts.length) {
+      const at = feedPosts[currentFeedIndex];
+      if (at && samePinId(at.id, id)) return currentFeedIndex;
+    }
+    return getPinIndex(id);
   }
 
   function samePinId(a, b) {
@@ -58,12 +74,13 @@ const NaMeCommunityPin = (function () {
   }
 
   function navigatePin(direction) {
-    const idx = getPinIndex();
+    const idx = resolveFeedIndex();
     if (idx === -1 || feedPosts.length < 2) return;
     const nextIdx = direction === "prev" ? idx - 1 : idx + 1;
     if (nextIdx < 0 || nextIdx >= feedPosts.length) return;
     const adjacent = feedPosts[nextIdx];
-    if (adjacent) openPin(adjacent.id, adjacent);
+    if (!adjacent) return;
+    openPin(adjacent.id, adjacent, nextIdx);
   }
 
   function updateOutsideNav() {
@@ -72,10 +89,17 @@ const NaMeCommunityPin = (function () {
     const prevBtn = modal.querySelector("[data-pin-prev]");
     const nextBtn = modal.querySelector("[data-pin-next]");
     if (!prevBtn || !nextBtn) return;
-    const idx = getPinIndex();
+    const idx = resolveFeedIndex();
     const hasList = idx !== -1 && feedPosts.length > 1;
     prevBtn.hidden = !hasList || idx <= 0;
     nextBtn.hidden = !hasList || idx >= feedPosts.length - 1;
+  }
+
+  function applyPinDetailI18n(detail, lang) {
+    detail.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+      const key = el.getAttribute("data-i18n-placeholder");
+      if (key) el.placeholder = NaMeI18n.t(lang, key);
+    });
   }
 
   function getPostImages(post) {
@@ -320,13 +344,13 @@ const NaMeCommunityPin = (function () {
   }
 
   function handleOutsideNavClick(e) {
-    const prevBtn = e.target.closest("[data-pin-prev]");
-    const nextBtn = e.target.closest("[data-pin-next]");
-    if (!prevBtn && !nextBtn) return;
-    if (prevBtn?.hidden || nextBtn?.hidden) return;
+    const btn = e.target.closest("[data-pin-prev], [data-pin-next]");
+    if (!btn || btn.hidden) return;
+    const modal = document.getElementById("pin-modal");
+    if (!modal?.classList.contains("is-open") || !modal.contains(btn)) return;
     e.preventDefault();
     e.stopPropagation();
-    navigatePin(prevBtn ? "prev" : "next");
+    navigatePin(btn.hasAttribute("data-pin-prev") ? "prev" : "next");
   }
 
   function init(options = {}) {
@@ -336,7 +360,7 @@ const NaMeCommunityPin = (function () {
       el.addEventListener("click", closePinModal);
     });
 
-    modal?.addEventListener("click", handleOutsideNavClick);
+    document.addEventListener("pointerdown", handleOutsideNavClick, true);
 
     document.addEventListener("keydown", (e) => {
       if (!currentPinId) return;
@@ -382,6 +406,7 @@ const NaMeCommunityPin = (function () {
     modal?.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
     currentPinId = null;
+    currentFeedIndex = -1;
     updateOutsideNav();
   }
 
@@ -405,12 +430,13 @@ const NaMeCommunityPin = (function () {
     }
   }
 
-  async function openPin(id, cachedPost = null) {
+  async function openPin(id, cachedPost = null, feedIndex = null) {
     const modal = document.getElementById("pin-modal");
     const detail = document.getElementById("pin-detail");
     if (!modal || !detail) return;
 
     currentPinId = id;
+    currentFeedIndex = resolveFeedIndex(id, feedIndex);
     if (cachedPost) lastCachedPost = cachedPost;
     const requestId = ++openRequestId;
     const lang = NaMeI18n.getLang();
@@ -439,7 +465,7 @@ const NaMeCommunityPin = (function () {
     lastCachedPost = post;
     detail.innerHTML = renderPinDetail(post, [], lang, { commentsLoading: true });
     bindPinDetailEvents(detail, post, lang);
-    NaMeI18n.apply(lang);
+    applyPinDetailI18n(detail, lang);
     updateOutsideNav();
     modal.querySelector("[data-pin-prev]")?.setAttribute("aria-label", NaMeI18n.t(lang, "previous"));
     modal.querySelector("[data-pin-next]")?.setAttribute("aria-label", NaMeI18n.t(lang, "next"));

@@ -116,9 +116,10 @@ function renderMemberProfile(root, user, posts) {
 
   root.querySelectorAll("[data-pin-id]").forEach((tile) => {
     tile.addEventListener("click", () => {
-      const post = memberPosts.find((p) => String(p.id) === String(tile.dataset.pinId));
+      const idx = memberPosts.findIndex((p) => String(p.id) === String(tile.dataset.pinId));
+      const post = idx >= 0 ? memberPosts[idx] : null;
       NaMeCommunityPin.setFeedPosts(memberPosts);
-      NaMeCommunityPin.openPin(tile.dataset.pinId, post);
+      NaMeCommunityPin.openPin(tile.dataset.pinId, post, idx);
     });
   });
 
