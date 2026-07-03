@@ -38,11 +38,15 @@ const NaMeCommunityPin = (function () {
 
   function setFeedPosts(posts) {
     feedPosts = Array.isArray(posts) ? posts : [];
+    if (currentPinId) updateOutsideNav();
+  }
+
+  function samePinId(a, b) {
+    return String(a ?? "") === String(b ?? "");
   }
 
   function getPinIndex(id = currentPinId) {
-    const target = String(id ?? "");
-    return feedPosts.findIndex((p) => String(p.id) === target);
+    return feedPosts.findIndex((p) => samePinId(p.id, id));
   }
 
   function getAdjacentPin(direction) {
@@ -54,7 +58,11 @@ const NaMeCommunityPin = (function () {
   }
 
   function navigatePin(direction) {
-    const adjacent = getAdjacentPin(direction);
+    const idx = getPinIndex();
+    if (idx === -1 || feedPosts.length < 2) return;
+    const nextIdx = direction === "prev" ? idx - 1 : idx + 1;
+    if (nextIdx < 0 || nextIdx >= feedPosts.length) return;
+    const adjacent = feedPosts[nextIdx];
     if (adjacent) openPin(adjacent.id, adjacent);
   }
 
@@ -311,6 +319,16 @@ const NaMeCommunityPin = (function () {
     });
   }
 
+  function handleOutsideNavClick(e) {
+    const prevBtn = e.target.closest("[data-pin-prev]");
+    const nextBtn = e.target.closest("[data-pin-next]");
+    if (!prevBtn && !nextBtn) return;
+    if (prevBtn?.hidden || nextBtn?.hidden) return;
+    e.preventDefault();
+    e.stopPropagation();
+    navigatePin(prevBtn ? "prev" : "next");
+  }
+
   function init(options = {}) {
     refreshCallback = options.onRefresh || (() => {});
     const modal = document.getElementById("pin-modal");
@@ -318,14 +336,7 @@ const NaMeCommunityPin = (function () {
       el.addEventListener("click", closePinModal);
     });
 
-    modal?.querySelector("[data-pin-prev]")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      navigatePin("prev");
-    });
-    modal?.querySelector("[data-pin-next]")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      navigatePin("next");
-    });
+    modal?.addEventListener("click", handleOutsideNavClick);
 
     document.addEventListener("keydown", (e) => {
       if (!currentPinId) return;
@@ -409,7 +420,8 @@ const NaMeCommunityPin = (function () {
     document.body.style.overflow = "hidden";
     updateOutsideNav();
 
-    let post = cachedPost || (lastCachedPost?.id === id ? lastCachedPost : null);
+    let post =
+      cachedPost || (lastCachedPost && samePinId(lastCachedPost.id, id) ? lastCachedPost : null);
 
     if (!post) {
       detail.innerHTML = `<p class="pin-detail__loading">${esc(NaMeI18n.t(lang, "pinDetailLoading"))}</p>`;
@@ -428,6 +440,7 @@ const NaMeCommunityPin = (function () {
     detail.innerHTML = renderPinDetail(post, [], lang, { commentsLoading: true });
     bindPinDetailEvents(detail, post, lang);
     NaMeI18n.apply(lang);
+    updateOutsideNav();
     modal.querySelector("[data-pin-prev]")?.setAttribute("aria-label", NaMeI18n.t(lang, "previous"));
     modal.querySelector("[data-pin-next]")?.setAttribute("aria-label", NaMeI18n.t(lang, "next"));
 

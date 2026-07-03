@@ -37,7 +37,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.addEventListener("name:languagechange", () => {
     if (currentPinId) {
-      const post = feedPosts.find((p) => p.id === currentPinId);
+      const post = feedPosts.find((p) => String(p.id) === String(currentPinId));
+      NaMeCommunityPin.setFeedPosts(feedPosts);
       NaMeCommunityPin.openPin(currentPinId, post);
     }
   });
@@ -72,7 +73,7 @@ async function loadFeed() {
     grid.innerHTML = posts.map((p) => renderPinCard(p)).join("");
     grid.querySelectorAll("[data-pin-id]").forEach((card) => {
       card.addEventListener("click", () => {
-        const post = feedPosts.find((p) => p.id === card.dataset.pinId);
+        const post = feedPosts.find((p) => String(p.id) === String(card.dataset.pinId));
         openPin(card.dataset.pinId, post);
       });
     });
