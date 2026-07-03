@@ -29,7 +29,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   NaMeAuth.onChange(() => {
     NaMeAuth.initUI();
-    loadFeed();
+    if (!NaMeCommunityPin.isOpen?.()) {
+      loadFeed();
+    }
   });
 
   document.addEventListener("name:languagechange", () => {
@@ -123,11 +125,14 @@ function initShareForm() {
   document.getElementById("share-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const status = document.getElementById("share-status");
+    const submitBtn = e.target.querySelector('button[type="submit"]');
     const fd = new FormData(e.target);
     if (!fd.get("image")?.size) {
       status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "communityImageRequired");
       return;
     }
+    if (submitBtn) submitBtn.disabled = true;
+    status.textContent = "";
     try {
       await NaMeAuth.createCommunityPost(fd);
       status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "communityShareSuccess");
@@ -137,6 +142,8 @@ function initShareForm() {
       loadStats();
     } catch (err) {
       status.textContent = err.message;
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
   });
 }

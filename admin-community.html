@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NaMe — Community mood board</title>
+  <script src="admin-boot.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page-admin">
+  <div id="admin-gate" class="admin-gate">
+    <div class="admin-gate__shell">
+      <div class="admin-gate__brand">
+        <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
+        <p class="admin-gate__eyebrow" data-i18n="adminGateLabel">Editorial desk</p>
+      </div>
+      <div class="admin-gate__panel">
+        <h1 data-i18n="adminGateTitle">Admin access</h1>
+        <p class="admin-gate__text" data-i18n="adminDeniedCommunity">You need an admin account to manage the community mood board.</p>
+        <p class="admin-gate__hint" data-i18n="adminGateHint">Sign in with your editor account to continue.</p>
+        <p id="admin-gate-status" class="admin-gate__status" hidden></p>
+        <div class="admin-gate__actions">
+          <button type="button" class="btn btn--primary" data-open-auth="login" data-i18n="authLoginBtn">Login</button>
+          <a href="./" class="admin-gate__back" data-i18n="backHome">← Back to NaMe</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-app" class="admin-app is-hidden">
+    <aside class="admin-sidebar">
+      <a href="./" class="logo admin-sidebar__logo"><span class="brand-mark">NaMe</span></a>
+      <p class="admin-sidebar__label" data-i18n="adminPanel">Admin</p>
+      <nav class="admin-nav" id="admin-sidebar-nav"></nav>
+      <div class="admin-sidebar__foot">
+        <a href="community.html" target="_blank" rel="noopener" data-i18n="adminViewCommunity">View community →</a>
+        <button type="button" id="admin-logout" data-i18n="adminLogout">Log out</button>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <h1 class="admin-topbar__title" data-i18n="adminCommunityTitle">Community mood board</h1>
+        <span class="admin-topbar__user" id="admin-user-label"></span>
+      </header>
+
+      <section class="admin-panel is-active">
+        <div class="admin-moderation-intro">
+          <p data-i18n="adminCommunityIntro">
+            Reorder pins, hide duplicates, or remove posts from the public mood board. Hidden pins stay off the feed but can be restored.
+          </p>
+        </div>
+
+        <div class="admin-toolbar">
+          <button type="button" class="btn btn--ghost" id="community-refresh" data-i18n="adminRefresh">Refresh</button>
+        </div>
+
+        <p id="community-status" class="admin__status"></p>
+
+        <div class="admin-community-grid" id="admin-community-grid">
+          <p data-i18n="adminLoading">Loading…</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="base.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase.js"></script>
+  <script src="i18n.js"></script>
+  <script src="auth.js"></script>
+  <script src="admin-common.js"></script>
+  <script src="admin-community.js"></script>
+</body>
+</html>

@@ -12,6 +12,7 @@ const NaMeAdmin = (function () {
     exclusive: "admin-exclusive.js",
     submissions: "admin-submissions.js",
     comments: "admin-comments.js",
+    community: "admin-community.js",
   };
 
   const PAGE_SCRIPT_DEPS = {
@@ -43,6 +44,7 @@ const NaMeAdmin = (function () {
     { href: "/admin-exclusive.html", key: "adminNavExclusive", page: "exclusive" },
     { href: "/admin-submissions.html", key: "adminNavSubmissions", page: "submissions" },
     { href: "/admin-comments.html", key: "adminNavModerate", page: "comments" },
+    { href: "/admin-community.html", key: "adminNavCommunity", page: "community" },
     { href: "/admin.html#content", key: "adminNavContent", page: "content" },
     { href: "/admin.html#users", key: "adminNavUsers", page: "users" },
   ];
@@ -73,6 +75,7 @@ const NaMeAdmin = (function () {
     if (file === "admin-exclusive.html") return "exclusive";
     if (file === "admin-submissions.html") return "submissions";
     if (file === "admin-comments.html") return "comments";
+    if (file === "admin-community.html") return "community";
     return null;
   }
 
@@ -284,6 +287,7 @@ const NaMeAdmin = (function () {
       exclusive: "NaMe — Editor's Exclusive",
       submissions: "NaMe — Review submissions",
       comments: "NaMe — Moderate comments",
+      community: "NaMe — Community mood board",
     };
     return titles[page] || document.title;
   }
