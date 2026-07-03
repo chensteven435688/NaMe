@@ -64,6 +64,7 @@ async function loadFeed() {
   try {
     const { posts } = await NaMeAuth.fetchCommunityPosts();
     feedPosts = posts;
+    NaMeCommunityPin.setFeedPosts(posts);
     if (!posts.length) {
       grid.innerHTML = `<p class="community-feed__empty" data-i18n="communityEmpty">${esc(NaMeI18n.t(lang, "communityEmpty"))}</p>`;
       return;

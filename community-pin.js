@@ -6,6 +6,7 @@ const NaMeCommunityPin = (function () {
   let currentPinId = null;
   let lastCachedPost = null;
   let openRequestId = 0;
+  let feedPosts = [];
 
   function esc(s) {
     const d = document.createElement("div");
@@ -33,6 +34,32 @@ const NaMeCommunityPin = (function () {
   function likesLabel(count, lang) {
     if (count === 1) return NaMeI18n.t(lang, "pinDetailOneLike");
     return NaMeI18n.t(lang, "pinDetailLikes").replace("{n}", String(count));
+  }
+
+  function setFeedPosts(posts) {
+    feedPosts = Array.isArray(posts) ? posts : [];
+  }
+
+  function getPinIndex(id = currentPinId) {
+    return feedPosts.findIndex((p) => p.id === id);
+  }
+
+  function getAdjacentPin(direction) {
+    const idx = getPinIndex();
+    if (idx === -1) return null;
+    const nextIdx = direction === "prev" ? idx - 1 : idx + 1;
+    if (nextIdx < 0 || nextIdx >= feedPosts.length) return null;
+    return feedPosts[nextIdx];
+  }
+
+  function updateNavButtons(detail) {
+    const prevBtn = detail.querySelector("[data-pin-prev]");
+    const nextBtn = detail.querySelector("[data-pin-next]");
+    if (!prevBtn || !nextBtn) return;
+    const hasPrev = getPinIndex() > 0;
+    const hasNext = getPinIndex() >= 0 && getPinIndex() < feedPosts.length - 1;
+    prevBtn.hidden = !hasPrev;
+    nextBtn.hidden = !hasNext;
   }
 
   function renderPinComment(c) {
@@ -77,10 +104,18 @@ const NaMeCommunityPin = (function () {
           </div>`
         : "";
 
+    const prevLabel = esc(NaMeI18n.t(lang, "previous"));
+    const nextLabel = esc(NaMeI18n.t(lang, "next"));
+
     return `
       <div class="pin-detail__layout pin-detail__layout--ig">
         <div class="pin-detail__media">
-          <button type="button" class="pin-detail__close" data-close-pin aria-label="Close">&times;</button>
+          <button type="button" class="pin-detail__nav pin-detail__nav--prev" data-pin-prev aria-label="${prevLabel}" hidden>
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+          </button>
+          <button type="button" class="pin-detail__nav pin-detail__nav--next" data-pin-next aria-label="${nextLabel}" hidden>
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="m10 6-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </button>
           <img src="${esc(post.imageUrl)}" alt="${esc(post.title || captionText || "Community pin")}" />
         </div>
         <div class="pin-detail__panel">
@@ -125,8 +160,18 @@ const NaMeCommunityPin = (function () {
   }
 
   function bindPinDetailEvents(detail, post, lang) {
-    detail.querySelectorAll("[data-close-pin]").forEach((el) => {
-      el.addEventListener("click", closePinModal);
+    updateNavButtons(detail);
+
+    detail.querySelector("[data-pin-prev]")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const prev = getAdjacentPin("prev");
+      if (prev) openPin(prev.id, prev);
+    });
+
+    detail.querySelector("[data-pin-next]")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const next = getAdjacentPin("next");
+      if (next) openPin(next.id, next);
     });
 
     detail.querySelector("[data-pin-like]")?.addEventListener("click", async () => {
@@ -185,6 +230,27 @@ const NaMeCommunityPin = (function () {
     const modal = document.getElementById("pin-modal");
     modal?.querySelectorAll("[data-close-pin]").forEach((el) => {
       el.addEventListener("click", closePinModal);
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (!currentPinId) return;
+      const modalEl = document.getElementById("pin-modal");
+      if (!modalEl?.classList.contains("is-open")) return;
+      if (e.key === "ArrowLeft") {
+        const prev = getAdjacentPin("prev");
+        if (prev) {
+          e.preventDefault();
+          openPin(prev.id, prev);
+        }
+      } else if (e.key === "ArrowRight") {
+        const next = getAdjacentPin("next");
+        if (next) {
+          e.preventDefault();
+          openPin(next.id, next);
+        }
+      } else if (e.key === "Escape") {
+        closePinModal();
+      }
     });
   }
 
@@ -266,5 +332,13 @@ const NaMeCommunityPin = (function () {
       .catch(() => {});
   }
 
-  return { init, openPin, closePinModal, esc, formatTime, isOpen: () => !!currentPinId };
+  return {
+    init,
+    openPin,
+    closePinModal,
+    setFeedPosts,
+    esc,
+    formatTime,
+    isOpen: () => !!currentPinId,
+  };
 })();
