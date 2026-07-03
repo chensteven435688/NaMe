@@ -404,6 +404,21 @@ const NaMeI18n = (function () {
       registerCompleteLoginBtn: "Continue to login",
       registerCompleteSpam:
         "Didn't get it? Check your spam folder.",
+      verifySuccessPageTitle: "Email verified — NaMe Magazine",
+      verifySuccessPageDescription:
+        "Your NaMe Magazine account is verified. Return to NaMe and log in.",
+      verifySuccessEyebrow: "You're all set",
+      verifySuccessTitle: "Successfully registered",
+      verifySuccessLead:
+        "Your email is verified. Close this page, return to the NaMe tab where you signed up, and log in to continue.",
+      verifySuccessHint:
+        "If you don't have that tab open anymore, use the button below to log in.",
+      verifySuccessLoginBtn: "Go to login",
+      verifySuccessLoadingTitle: "Confirming your email…",
+      verifySuccessLoadingText: "Please wait a moment.",
+      verifySuccessErrorTitle: "Verification issue",
+      verifySuccessErrorText:
+        "We couldn't confirm your email from this link. Try logging in, or request a new confirmation email.",
       logoutConfirm: "Log out?",
       profilePageTitle: "Profile — NaMe Magazine",
       profilePageDescription: "Customize your NaMe member profile picture and signature",
