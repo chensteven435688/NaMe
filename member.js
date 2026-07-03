@@ -117,6 +117,7 @@ function renderMemberProfile(root, user, posts) {
   root.querySelectorAll("[data-pin-id]").forEach((tile) => {
     tile.addEventListener("click", () => {
       const post = memberPosts.find((p) => p.id === tile.dataset.pinId);
+      NaMeCommunityPin.setFeedPosts(memberPosts);
       NaMeCommunityPin.openPin(tile.dataset.pinId, post);
     });
   });

@@ -4171,30 +4171,63 @@ button.danger {
   position: relative;
 }
 
-.pin-detail__close {
+.pin-modal__close {
   position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
+  top: 1rem;
+  right: 1rem;
   z-index: 3;
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border: none;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.55);
+  background: none;
   color: #fff;
-  font-size: 1.35rem;
+  font-size: 2rem;
+  font-weight: 300;
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 0.9;
+  transition: opacity 0.15s ease;
 }
 
-.pin-detail__close:hover {
-  background: rgba(0, 0, 0, 0.75);
+.pin-modal__close:hover {
+  opacity: 1;
 }
 
-.modal__panel--pin > .modal__close {
+.pin-detail__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #262626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pin-detail__nav:hover {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
+}
+
+.pin-detail__nav--prev {
+  left: 1rem;
+}
+
+.pin-detail__nav--next {
+  right: 1rem;
+}
+
+.pin-detail__nav[hidden] {
   display: none;
 }
 
