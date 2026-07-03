@@ -4131,13 +4131,18 @@ button.danger {
 
 .pin-modal__frame {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 1.5rem;
   width: min(calc(1100px + 7rem), 98vw);
   max-width: 98vw;
+  pointer-events: none;
+}
+
+.pin-modal__frame > * {
+  pointer-events: auto;
 }
 
 .pin-modal__frame .modal__panel--pin {
@@ -4215,6 +4220,8 @@ button.danger {
 
 .pin-modal__nav {
   flex-shrink: 0;
+  position: relative;
+  z-index: 4;
   width: 2rem;
   height: 2rem;
   border: none;
@@ -4227,6 +4234,10 @@ button.danger {
   cursor: pointer;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.pin-modal__nav svg {
+  pointer-events: none;
 }
 
 .pin-modal__nav:hover {
