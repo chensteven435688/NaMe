@@ -80,6 +80,7 @@ const NaMeCommunityPin = (function () {
     return `
       <div class="pin-detail__layout pin-detail__layout--ig">
         <div class="pin-detail__media">
+          <button type="button" class="pin-detail__close" data-close-pin aria-label="Close">&times;</button>
           <img src="${esc(post.imageUrl)}" alt="${esc(post.title || captionText || "Community pin")}" />
         </div>
         <div class="pin-detail__panel">
@@ -124,6 +125,10 @@ const NaMeCommunityPin = (function () {
   }
 
   function bindPinDetailEvents(detail, post, lang) {
+    detail.querySelectorAll("[data-close-pin]").forEach((el) => {
+      el.addEventListener("click", closePinModal);
+    });
+
     detail.querySelector("[data-pin-like]")?.addEventListener("click", async () => {
       if (!NaMeAuth.isLoggedIn()) {
         NaMeAuth.openAuthModal("login");
@@ -192,6 +197,26 @@ const NaMeCommunityPin = (function () {
     currentPinId = null;
   }
 
+  async function loadPinComments(detail, postId, lang, requestId) {
+    const list = detail.querySelector("#pin-comments-list");
+    if (!list) return;
+
+    try {
+      const { comments } = await withTimeout(
+        NaMeAuth.fetchCommunityPostComments(postId),
+        12000,
+        "Could not load comments."
+      );
+      if (requestId !== openRequestId) return;
+      list.innerHTML = comments.length
+        ? comments.map(renderPinComment).join("")
+        : `<p class="pin-detail__comments-empty">${esc(NaMeI18n.t(lang, "commentsEmpty"))}</p>`;
+    } catch {
+      if (requestId !== openRequestId) return;
+      list.innerHTML = `<p class="pin-detail__comments-empty">${esc(NaMeI18n.t(lang, "commentsEmpty"))}</p>`;
+    }
+  }
+
   async function openPin(id, cachedPost = null) {
     const modal = document.getElementById("pin-modal");
     const detail = document.getElementById("pin-detail");
@@ -202,52 +227,43 @@ const NaMeCommunityPin = (function () {
     const requestId = ++openRequestId;
     const lang = NaMeI18n.getLang();
 
-    const previewPost = cachedPost || (lastCachedPost?.id === id ? lastCachedPost : null);
-    if (previewPost) {
-      detail.innerHTML = renderPinDetail(previewPost, [], lang, { commentsLoading: true });
-      bindPinDetailEvents(detail, previewPost, lang);
-    } else {
-      detail.innerHTML = `<p class="pin-detail__loading">${esc(NaMeI18n.t(lang, "pinDetailLoading"))}</p>`;
-    }
-
     modal.classList.add("is-open");
     modal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
 
-    try {
-      const postPromise = previewPost
-        ? Promise.resolve({ post: previewPost })
-        : withTimeout(NaMeAuth.fetchCommunityPost(id));
-      const commentsPromise = withTimeout(NaMeAuth.fetchCommunityPostComments(id));
+    let post = cachedPost || (lastCachedPost?.id === id ? lastCachedPost : null);
 
-      const [postRes, commentsRes] = await Promise.allSettled([postPromise, commentsPromise]);
-      if (requestId !== openRequestId) return;
-
-      if (postRes.status === "rejected" && !previewPost) throw postRes.reason;
-
-      const post = postRes.status === "fulfilled" ? postRes.value.post : previewPost;
-      if (!post) throw new Error("Post not found");
-
-      lastCachedPost = post;
-      const comments =
-        commentsRes.status === "fulfilled" ? commentsRes.value.comments || [] : [];
-
-      detail.innerHTML = renderPinDetail(post, comments, lang);
-      bindPinDetailEvents(detail, post, lang);
-      NaMeI18n.apply(lang);
-    } catch (err) {
-      if (requestId !== openRequestId) return;
-      if (previewPost) {
-        detail.innerHTML = renderPinDetail(previewPost, [], lang);
-        bindPinDetailEvents(detail, previewPost, lang);
-        const list = detail.querySelector("#pin-comments-list");
-        if (list) {
-          list.innerHTML = `<p class="pin-detail__error">${esc(err.message || "Could not load comments.")}</p>`;
-        }
-      } else {
+    if (!post) {
+      detail.innerHTML = `<p class="pin-detail__loading">${esc(NaMeI18n.t(lang, "pinDetailLoading"))}</p>`;
+      try {
+        const res = await withTimeout(NaMeAuth.fetchCommunityPost(id));
+        if (requestId !== openRequestId) return;
+        post = res.post;
+      } catch (err) {
+        if (requestId !== openRequestId) return;
         detail.innerHTML = `<p class="pin-detail__error">${esc(err.message || "Could not load this pin.")}</p>`;
+        return;
       }
     }
+
+    lastCachedPost = post;
+    detail.innerHTML = renderPinDetail(post, [], lang, { commentsLoading: true });
+    bindPinDetailEvents(detail, post, lang);
+    NaMeI18n.apply(lang);
+
+    loadPinComments(detail, id, lang, requestId);
+
+    withTimeout(NaMeAuth.fetchCommunityPost(id), 8000)
+      .then((res) => {
+        if (requestId !== openRequestId || !res.post) return;
+        post.liked = res.post.liked;
+        post.likeCount = res.post.likeCount;
+        const btn = detail.querySelector("[data-pin-like]");
+        btn?.classList.toggle("is-liked", post.liked);
+        const likesEl = detail.querySelector("[data-pin-likes]");
+        if (likesEl) likesEl.textContent = likesLabel(post.likeCount, lang);
+      })
+      .catch(() => {});
   }
 
   return { init, openPin, closePinModal, esc, formatTime, isOpen: () => !!currentPinId };

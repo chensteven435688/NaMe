@@ -2258,8 +2258,33 @@ const NaMeAuth = (function () {
         .select("*, profiles!user_id(id, display_name, avatar_url, signature)")
         .eq("post_id", id)
         .order("created_at", { ascending: true });
-      if (error) throw new Error(error.message);
-      return { comments: (data || []).map(mapCommunityComment) };
+
+      if (!error) {
+        return { comments: (data || []).map(mapCommunityComment) };
+      }
+
+      if (!isMissingColumnError(error)) throw new Error(error.message);
+
+      const fallback = await sb
+        .from("community_comments")
+        .select("*")
+        .eq("post_id", id)
+        .order("created_at", { ascending: true });
+      if (fallback.error) throw new Error(fallback.error.message);
+
+      return {
+        comments: (fallback.data || []).map((row) => ({
+          id: row.id,
+          body: row.body,
+          createdAt: row.created_at,
+          author: {
+            id: row.user_id,
+            displayName: "Member",
+            avatarUrl: null,
+            signature: null,
+          },
+        })),
+      };
     }
 
     return request(`/api/community/posts/${id}/comments`);
