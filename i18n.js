@@ -437,6 +437,8 @@ const NaMeI18n = (function () {
       memberPostPlural: "posts",
       memberPostsTab: "Posts",
       memberPostsEmpty: "No community posts yet.",
+      memberLikesTab: "Likes",
+      memberLikesEmpty: "No liked pins yet.",
       backHome: "← Back to NaMe",
       commentsTitle: "Comments",
       commentsHint: "Join NaMe to comment and like on posts.",

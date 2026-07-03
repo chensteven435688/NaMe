@@ -2043,6 +2043,53 @@ const NaMeAuth = (function () {
     return request(`/api/users/${encodeURIComponent(memberId)}/community-posts`);
   }
 
+  async function fetchMemberLikedCommunityPosts(memberId) {
+    if (!memberId) throw new Error("Member not found");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const viewerId = getUser()?.id || null;
+
+      const { data: likeRows, error: likeError } = await sb
+        .from("community_likes")
+        .select("post_id, created_at")
+        .eq("user_id", memberId)
+        .order("created_at", { ascending: false });
+      if (likeError) throw new Error(likeError.message);
+
+      const postIds = (likeRows || []).map((row) => row.post_id).filter(Boolean);
+      if (!postIds.length) return { posts: [] };
+
+      const { data, error } = await sb
+        .from("community_posts")
+        .select(COMMUNITY_POST_SELECT)
+        .in("id", postIds);
+      if (error) throw new Error(error.message);
+
+      const orderIndex = new Map(postIds.map((id, index) => [id, index]));
+      const visible = (data || [])
+        .filter((row) => !row.is_hidden)
+        .sort(
+          (a, b) =>
+            (orderIndex.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+            (orderIndex.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+        );
+
+      const likedSet = await fetchCommunityLikedSet(
+        visible.map((row) => row.id),
+        viewerId
+      );
+
+      return {
+        posts: dedupeCommunityPosts(
+          visible.map((row) => mapCommunityPost(row, viewerId, likedSet.has(row.id)))
+        ),
+      };
+    }
+
+    return request(`/api/users/${encodeURIComponent(memberId)}/liked-community-posts`);
+  }
+
   async function fetchCommunityPost(id) {
     if (useSupabase()) {
       const sb = supabase();
@@ -2789,6 +2836,7 @@ const NaMeAuth = (function () {
     fetchCommunityStats,
     fetchCommunityPosts,
     fetchMemberCommunityPosts,
+    fetchMemberLikedCommunityPosts,
     fetchCommunityPost,
     createCommunityPost,
     toggleCommunityPostLike,

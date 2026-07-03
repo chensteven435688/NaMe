@@ -2002,7 +2002,7 @@ html.auth-optimistic-early.auth-ui-checked #mobile-auth-link::after {
 
 .member-page__hero {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: clamp(1.25rem, 3vw, 2.5rem);
   flex-wrap: wrap;
 }
@@ -2022,8 +2022,7 @@ html.auth-optimistic-early.auth-ui-checked #mobile-auth-link::after {
   flex-direction: column;
   gap: 0.5rem;
   flex: 1;
-  min-width: min(100%, 280px);
-  padding-top: 0.35rem;
+  min-width: min(100%, 240px);
 }
 
 .member-page__stats {
@@ -2091,8 +2090,16 @@ html.auth-optimistic-early.auth-ui-checked #mobile-auth-link::after {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-dim);
+  background: none;
+  border: none;
   border-top: 1px solid transparent;
   margin-top: -1px;
+  cursor: pointer;
+  transition: color 0.2s var(--ease);
+}
+
+.member-page__tab:hover {
+  color: var(--text);
 }
 
 .member-page__tab.is-active {
@@ -2105,11 +2112,14 @@ html.auth-optimistic-early.auth-ui-checked #mobile-auth-link::after {
   line-height: 1;
 }
 
+.member-tab-panel {
+  padding-top: 4px;
+}
+
 .member-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
-  padding-top: 4px;
 }
 
 .member-grid__item {
@@ -2163,17 +2173,20 @@ html.auth-optimistic-early.auth-ui-checked #mobile-auth-link::after {
 }
 
 @media (max-width: 640px) {
-  .member-page__identity {
-    padding-top: 0;
+  .member-page__hero {
+    align-items: center;
   }
 
   .member-page__stats {
     gap: 1.25rem;
   }
 
+  .member-tab-panel {
+    padding-top: 2px;
+  }
+
   .member-grid {
     gap: 2px;
-    padding-top: 2px;
   }
 }
 
