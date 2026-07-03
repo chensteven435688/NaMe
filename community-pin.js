@@ -41,7 +41,8 @@ const NaMeCommunityPin = (function () {
   }
 
   function getPinIndex(id = currentPinId) {
-    return feedPosts.findIndex((p) => p.id === id);
+    const target = String(id ?? "");
+    return feedPosts.findIndex((p) => String(p.id) === target);
   }
 
   function getAdjacentPin(direction) {
@@ -52,14 +53,121 @@ const NaMeCommunityPin = (function () {
     return feedPosts[nextIdx];
   }
 
-  function updateNavButtons(detail) {
-    const prevBtn = detail.querySelector("[data-pin-prev]");
-    const nextBtn = detail.querySelector("[data-pin-next]");
+  function navigatePin(direction) {
+    const adjacent = getAdjacentPin(direction);
+    if (adjacent) openPin(adjacent.id, adjacent);
+  }
+
+  function updateOutsideNav() {
+    const modal = document.getElementById("pin-modal");
+    if (!modal) return;
+    const prevBtn = modal.querySelector("[data-pin-prev]");
+    const nextBtn = modal.querySelector("[data-pin-next]");
     if (!prevBtn || !nextBtn) return;
-    const hasPrev = getPinIndex() > 0;
-    const hasNext = getPinIndex() >= 0 && getPinIndex() < feedPosts.length - 1;
-    prevBtn.hidden = !hasPrev;
-    nextBtn.hidden = !hasNext;
+    const idx = getPinIndex();
+    const hasList = idx !== -1 && feedPosts.length > 1;
+    prevBtn.hidden = !hasList || idx <= 0;
+    nextBtn.hidden = !hasList || idx >= feedPosts.length - 1;
+  }
+
+  function getPostImages(post) {
+    const urls = [];
+    if (Array.isArray(post?.images)) {
+      post.images.forEach((url) => {
+        if (url) urls.push(url);
+      });
+    } else if (Array.isArray(post?.imageUrls)) {
+      post.imageUrls.forEach((url) => {
+        if (url) urls.push(url);
+      });
+    }
+    if (!urls.length && post?.imageUrl) urls.push(post.imageUrl);
+    return urls;
+  }
+
+  function renderPinMedia(post, captionText, lang) {
+    const images = getPostImages(post);
+    const alt = esc(post.title || captionText || "Community pin");
+    const hasCarousel = images.length > 1;
+
+    if (!hasCarousel) {
+      return `
+        <div class="pin-detail__media">
+          <img src="${esc(images[0])}" alt="${alt}" />
+        </div>`;
+    }
+
+    const prevLabel = esc(NaMeI18n.t(lang, "previous"));
+    const nextLabel = esc(NaMeI18n.t(lang, "next"));
+    const slides = images
+      .map(
+        (url, i) => `
+        <figure class="pin-detail__slide" data-index="${i}">
+          <img src="${esc(url)}" alt="${alt} (${i + 1}/${images.length})" />
+        </figure>`
+      )
+      .join("");
+    const dots = images
+      .map(
+        (_, i) =>
+          `<button type="button" class="pin-detail__dot${i === 0 ? " is-active" : ""}" data-slide-go="${i}" aria-label="${i + 1} / ${images.length}"></button>`
+      )
+      .join("");
+
+    return `
+      <div class="pin-detail__media pin-detail__media--carousel" data-slide-count="${images.length}">
+        <div class="pin-detail__carousel-viewport">
+          <div class="pin-detail__carousel-track">${slides}</div>
+          <button type="button" class="pin-detail__slide-nav pin-detail__slide-nav--prev" data-slide-prev aria-label="${prevLabel}">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+          </button>
+          <button type="button" class="pin-detail__slide-nav pin-detail__slide-nav--next" data-slide-next aria-label="${nextLabel}">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="m10 6-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </button>
+          <div class="pin-detail__dots" role="tablist">${dots}</div>
+        </div>
+      </div>`;
+  }
+
+  function initPinCarousel(detail) {
+    const media = detail.querySelector(".pin-detail__media--carousel");
+    if (!media) return;
+
+    const count = Number(media.dataset.slideCount) || 0;
+    if (count <= 1) return;
+
+    const track = media.querySelector(".pin-detail__carousel-track");
+    const dots = [...media.querySelectorAll(".pin-detail__dot")];
+    let index = 0;
+
+    function goTo(nextIndex) {
+      index = Math.max(0, Math.min(count - 1, nextIndex));
+      track.style.transform = `translateX(-${index * 100}%)`;
+      dots.forEach((dot, i) => dot.classList.toggle("is-active", i === index));
+      media.dataset.slideIndex = String(index);
+    }
+
+    media._slideIndex = 0;
+    media._goToSlide = goTo;
+
+    media.querySelector("[data-slide-prev]")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      goTo(index - 1);
+    });
+    media.querySelector("[data-slide-next]")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      goTo(index + 1);
+    });
+    dots.forEach((dot) => {
+      dot.addEventListener("click", (e) => {
+        e.stopPropagation();
+        goTo(Number(dot.dataset.slideGo));
+      });
+    });
+  }
+
+  function getActiveCarousel(detail) {
+    return detail?.querySelector(".pin-detail__media--carousel") || null;
   }
 
   function renderPinComment(c) {
@@ -104,20 +212,9 @@ const NaMeCommunityPin = (function () {
           </div>`
         : "";
 
-    const prevLabel = esc(NaMeI18n.t(lang, "previous"));
-    const nextLabel = esc(NaMeI18n.t(lang, "next"));
-
     return `
       <div class="pin-detail__layout pin-detail__layout--ig">
-        <div class="pin-detail__media">
-          <button type="button" class="pin-detail__nav pin-detail__nav--prev" data-pin-prev aria-label="${prevLabel}" hidden>
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-          </button>
-          <button type="button" class="pin-detail__nav pin-detail__nav--next" data-pin-next aria-label="${nextLabel}" hidden>
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="m10 6-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-          </button>
-          <img src="${esc(post.imageUrl)}" alt="${esc(post.title || captionText || "Community pin")}" />
-        </div>
+        ${renderPinMedia(post, captionText, lang)}
         <div class="pin-detail__panel">
           <header class="pin-detail__header">
             <span class="pin-detail__header-avatar">${avatar}</span>
@@ -160,19 +257,8 @@ const NaMeCommunityPin = (function () {
   }
 
   function bindPinDetailEvents(detail, post, lang) {
-    updateNavButtons(detail);
-
-    detail.querySelector("[data-pin-prev]")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const prev = getAdjacentPin("prev");
-      if (prev) openPin(prev.id, prev);
-    });
-
-    detail.querySelector("[data-pin-next]")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const next = getAdjacentPin("next");
-      if (next) openPin(next.id, next);
-    });
+    initPinCarousel(detail);
+    updateOutsideNav();
 
     detail.querySelector("[data-pin-like]")?.addEventListener("click", async () => {
       if (!NaMeAuth.isLoggedIn()) {
@@ -232,17 +318,41 @@ const NaMeCommunityPin = (function () {
       el.addEventListener("click", closePinModal);
     });
 
+    modal?.querySelector("[data-pin-prev]")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      navigatePin("prev");
+    });
+    modal?.querySelector("[data-pin-next]")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      navigatePin("next");
+    });
+
     document.addEventListener("keydown", (e) => {
       if (!currentPinId) return;
       const modalEl = document.getElementById("pin-modal");
       if (!modalEl?.classList.contains("is-open")) return;
+      const detail = document.getElementById("pin-detail");
+      const carousel = getActiveCarousel(detail);
+      const slideIndex = carousel ? Number(carousel.dataset.slideIndex || carousel._slideIndex || 0) : 0;
+      const slideCount = carousel ? Number(carousel.dataset.slideCount || 0) : 0;
+
       if (e.key === "ArrowLeft") {
+        if (carousel && slideIndex > 0) {
+          e.preventDefault();
+          carousel._goToSlide?.(slideIndex - 1);
+          return;
+        }
         const prev = getAdjacentPin("prev");
         if (prev) {
           e.preventDefault();
           openPin(prev.id, prev);
         }
       } else if (e.key === "ArrowRight") {
+        if (carousel && slideIndex < slideCount - 1) {
+          e.preventDefault();
+          carousel._goToSlide?.(slideIndex + 1);
+          return;
+        }
         const next = getAdjacentPin("next");
         if (next) {
           e.preventDefault();
@@ -261,6 +371,7 @@ const NaMeCommunityPin = (function () {
     modal?.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
     currentPinId = null;
+    updateOutsideNav();
   }
 
   async function loadPinComments(detail, postId, lang, requestId) {
@@ -296,6 +407,7 @@ const NaMeCommunityPin = (function () {
     modal.classList.add("is-open");
     modal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
+    updateOutsideNav();
 
     let post = cachedPost || (lastCachedPost?.id === id ? lastCachedPost : null);
 
@@ -316,6 +428,8 @@ const NaMeCommunityPin = (function () {
     detail.innerHTML = renderPinDetail(post, [], lang, { commentsLoading: true });
     bindPinDetailEvents(detail, post, lang);
     NaMeI18n.apply(lang);
+    modal.querySelector("[data-pin-prev]")?.setAttribute("aria-label", NaMeI18n.t(lang, "previous"));
+    modal.querySelector("[data-pin-next]")?.setAttribute("aria-label", NaMeI18n.t(lang, "next"));
 
     loadPinComments(detail, id, lang, requestId);
 
