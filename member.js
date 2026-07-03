@@ -92,13 +92,13 @@ function renderMemberProfile(root, user, posts) {
       <div class="member-page__hero">
         <div class="member-page__avatar">${avatar}</div>
         <div class="member-page__identity">
+          <h1 class="member-page__name">${escapeHtml(user.displayName)}</h1>
           <div class="member-page__stats">
             <span class="member-page__stat">
               <strong>${postCount}</strong>
               <span>${escapeHtml(postsLabel)}</span>
             </span>
           </div>
-          <h1 class="member-page__name">${escapeHtml(user.displayName)}</h1>
           ${signatureBlock}
           ${editLink}
         </div>
