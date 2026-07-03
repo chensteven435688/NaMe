@@ -394,6 +394,16 @@ const NaMeI18n = (function () {
       authResendSent: "Confirmation email sent. Check your inbox and spam folder.",
       authResendNeedEmail: "Enter your email above, then tap resend.",
       authEmailNotConfirmed: "Please confirm your email first. Use resend below if you did not get it.",
+      registerCompletePageTitle: "Check your email — NaMe Magazine",
+      registerCompletePageDescription:
+        "Verify your NaMe Magazine account from the email we sent you, then log in.",
+      registerCompleteEyebrow: "Account created",
+      registerCompleteTitle: "Check your email",
+      registerCompleteLead:
+        "We sent a verification link to your inbox. Open it to activate your account, then come back here to log in.",
+      registerCompleteLoginBtn: "Continue to login",
+      registerCompleteSpam:
+        "Didn't get it? Check your spam folder.",
       logoutConfirm: "Log out?",
       profilePageTitle: "Profile — NaMe Magazine",
       profilePageDescription: "Customize your NaMe member profile picture and signature",

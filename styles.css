@@ -3658,6 +3658,91 @@ button.danger {
   display: inline-block;
 }
 
+.register-complete__email {
+  font-size: 15px;
+  color: var(--text);
+  margin-bottom: 1.25rem;
+  word-break: break-word;
+}
+
+.register-complete__email-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: min(100%, 22rem);
+  margin: 0 auto 1.25rem;
+  text-align: left;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.register-complete__email-field input {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 15px;
+  color: var(--text);
+  border: 1px solid var(--border);
+  background: transparent;
+  padding: 0.75rem 0.9rem;
+  font-family: inherit;
+}
+
+.register-complete__status {
+  width: min(100%, 28rem);
+  margin: 0 auto 1rem;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.register-complete__status--success {
+  color: #2f6b3a;
+}
+
+.register-complete__status--error {
+  color: var(--text);
+}
+
+.register-complete__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(100%, 22rem);
+  margin: 0 auto;
+}
+
+.register-complete__resend:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.register-complete__hint {
+  margin-top: 1.25rem;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-dim);
+  max-width: 28rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.page-static.auth-callback .header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.page-static.auth-callback .auth-callback__main {
+  min-height: calc(100vh - 72px);
+  min-height: calc(100dvh - 72px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ─── Static pages (About, Contact, etc.) ─── */
 .page-static .header {
   position: sticky;

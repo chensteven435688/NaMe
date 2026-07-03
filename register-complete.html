@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Verify your NaMe Magazine account" />
+  <title>Check your email — NaMe Magazine</title>
+  <script src="auth-boot.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page-static auth-callback" data-page-title="registerCompletePageTitle" data-page-description="registerCompletePageDescription">
+  <header class="header header--minimal" id="header">
+    <div class="header__top">
+      <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
+      <nav class="header__actions" aria-label="Quick actions">
+        <a href="./" class="auth-page__back" data-i18n="backHome">← Back to NaMe</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth-callback__main register-complete">
+    <p class="auth-callback__label" data-i18n="registerCompleteEyebrow">Account created</p>
+    <h1 class="auth-callback__title" data-i18n="registerCompleteTitle">Check your email</h1>
+    <p class="auth-callback__text" data-i18n="registerCompleteLead">
+      We sent a verification link to your inbox. Open it to activate your account, then come back here to log in.
+    </p>
+    <p class="register-complete__email" id="register-complete-email" hidden></p>
+    <label class="register-complete__email-field" id="register-complete-email-field" hidden>
+      <span data-i18n="authEmail">Email</span>
+      <input type="email" id="register-complete-email-input" autocomplete="email" />
+    </label>
+    <p id="register-complete-status" class="register-complete__status" hidden role="status"></p>
+    <div class="register-complete__actions">
+      <a href="account.html" class="btn btn--primary auth-callback__btn" id="register-complete-login" data-i18n="registerCompleteLoginBtn">Continue to login</a>
+      <button type="button" class="btn btn--ghost register-complete__resend" id="register-complete-resend" data-i18n="authResendConfirm">Resend verification email</button>
+    </div>
+    <p class="register-complete__hint" data-i18n="registerCompleteSpam">
+      Didn't get it? Check your spam folder.
+    </p>
+  </main>
+
+  <script src="base.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase.js"></script>
+  <script src="i18n.js"></script>
+  <script src="auth.js"></script>
+  <script src="register-complete.js"></script>
+</body>
+</html>

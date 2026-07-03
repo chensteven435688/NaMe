@@ -78,6 +78,14 @@
             <span data-i18n="authPasswordConfirm">Confirm password</span>
             <input type="password" name="registerPasswordConfirm" data-register-password-confirm autocomplete="new-password" required minlength="8" />
           </label>
+          <label class="auth-check">
+            <input type="checkbox" data-register-agree-terms required />
+            <span data-i18n-html="authAgreeTerms">I agree to the <a href="terms.html">Terms of Service</a></span>
+          </label>
+          <label class="auth-check">
+            <input type="checkbox" data-register-subscribe />
+            <span data-i18n="authSubscribeOptIn">I want to subscribe</span>
+          </label>
           <button type="submit" class="btn btn--primary btn--luxury" data-i18n="authRegisterBtn">Create account</button>
         </form>
       </div>
