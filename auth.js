@@ -1864,6 +1864,50 @@ const NaMeAuth = (function () {
     });
   }
 
+  function isMissingColumnError(error) {
+    const msg = error?.message || "";
+    return msg.includes("does not exist") || error?.code === "42703";
+  }
+
+  function sortCommunityRows(a, b) {
+    const aOrder = a.sort_order ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = b.sort_order ?? Number.MAX_SAFE_INTEGER;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  }
+
+  function preparePublicCommunityRows(rows) {
+    return (rows || []).filter((row) => !row.is_hidden).sort(sortCommunityRows);
+  }
+
+  function prepareAdminCommunityRows(rows) {
+    return (rows || []).slice().sort(sortCommunityRows);
+  }
+
+  async function querySupabaseCommunityRows(sb, { memberId } = {}) {
+    let query = sb
+      .from("community_posts")
+      .select(COMMUNITY_POST_SELECT)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (memberId) query = query.eq("user_id", memberId);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return memberId ? preparePublicCommunityRows(data) : preparePublicCommunityRows(data);
+  }
+
+  async function countSupabaseCommunityPosts(sb) {
+    let res = await sb
+      .from("community_posts")
+      .select("*", { count: "exact", head: true })
+      .eq("is_hidden", false);
+    if (res.error && isMissingColumnError(res.error)) {
+      res = await sb.from("community_posts").select("*", { count: "exact", head: true });
+    }
+    if (res.error) throw new Error(res.error.message);
+    return res.count ?? 0;
+  }
+
   async function hashFile(file) {
     if (!file?.arrayBuffer) return null;
     const buf = await file.arrayBuffer();
@@ -1875,22 +1919,24 @@ const NaMeAuth = (function () {
 
   async function assertCommunityPostUnique(sb, userId, { imageHash, imageUrl }) {
     if (imageHash) {
-      const { data } = await sb
+      const { data, error } = await sb
         .from("community_posts")
         .select("id")
         .eq("user_id", userId)
         .eq("image_hash", imageHash)
         .maybeSingle();
+      if (error && !isMissingColumnError(error)) throw new Error(error.message);
       if (data) throw new Error("You already shared this image on the mood board.");
     }
 
     const normalized = normalizeImageUrl(imageUrl);
     if (!normalized) return;
 
-    const { data: existing } = await sb
+    const { data: existing, error } = await sb
       .from("community_posts")
       .select("id, image_url")
       .eq("user_id", userId);
+    if (error) throw new Error(error.message);
     if ((existing || []).some((row) => normalizeImageUrl(row.image_url) === normalized)) {
       throw new Error("You already shared this image on the mood board.");
     }
@@ -1946,13 +1992,12 @@ const NaMeAuth = (function () {
   async function fetchCommunityStats() {
     if (useSupabase()) {
       const sb = supabase();
-      const [postsRes, membersRes] = await Promise.all([
-        sb.from("community_posts").select("*", { count: "exact", head: true }).eq("is_hidden", false),
+      const [posts, membersRes] = await Promise.all([
+        countSupabaseCommunityPosts(sb),
         sb.from("profiles").select("*", { count: "exact", head: true }),
       ]);
-      if (postsRes.error) throw new Error(postsRes.error.message);
       if (membersRes.error) throw new Error(membersRes.error.message);
-      return { posts: postsRes.count ?? 0, members: membersRes.count ?? 0 };
+      return { posts, members: membersRes.count ?? 0 };
     }
 
     return request("/api/community/stats");
@@ -1962,22 +2007,13 @@ const NaMeAuth = (function () {
     if (useSupabase()) {
       const sb = supabase();
       const userId = getUser()?.id || null;
-      const { data, error } = await sb
-        .from("community_posts")
-        .select(COMMUNITY_POST_SELECT)
-        .eq("is_hidden", false)
-        .order("sort_order", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw new Error(error.message);
+      const rows = await querySupabaseCommunityRows(sb);
 
       const likedSet = await fetchCommunityLikedSet(
-        (data || []).map((p) => p.id),
+        rows.map((p) => p.id),
         userId
       );
-      const posts = (data || []).map((row) =>
-        mapCommunityPost(row, userId, likedSet.has(row.id))
-      );
+      const posts = rows.map((row) => mapCommunityPost(row, userId, likedSet.has(row.id)));
       return { posts: dedupeCommunityPosts(posts) };
     }
 
@@ -1991,23 +2027,15 @@ const NaMeAuth = (function () {
     if (useSupabase()) {
       const sb = supabase();
       const viewerId = getUser()?.id || null;
-      const { data, error } = await sb
-        .from("community_posts")
-        .select(COMMUNITY_POST_SELECT)
-        .eq("user_id", memberId)
-        .eq("is_hidden", false)
-        .order("sort_order", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw new Error(error.message);
+      const rows = await querySupabaseCommunityRows(sb, { memberId });
 
       const likedSet = await fetchCommunityLikedSet(
-        (data || []).map((p) => p.id),
+        rows.map((p) => p.id),
         viewerId
       );
       return {
         posts: dedupeCommunityPosts(
-          (data || []).map((row) => mapCommunityPost(row, viewerId, likedSet.has(row.id)))
+          rows.map((row) => mapCommunityPost(row, viewerId, likedSet.has(row.id)))
         ),
       };
     }
@@ -2078,17 +2106,25 @@ const NaMeAuth = (function () {
       if (!image_url) throw new Error("Image required");
       await assertCommunityPostUnique(sb, user.id, { imageHash: image_hash, imageUrl: image_url });
 
-      const { data, error } = await sb
+      const basePayload = {
+        user_id: user.id,
+        title,
+        caption,
+        image_url,
+      };
+      let payload = image_hash ? { ...basePayload, image_hash } : basePayload;
+      let { data, error } = await sb
         .from("community_posts")
-        .insert({
-          user_id: user.id,
-          title,
-          caption,
-          image_url,
-          image_hash,
-        })
+        .insert(payload)
         .select(COMMUNITY_POST_SELECT)
         .single();
+      if (error && image_hash && isMissingColumnError(error)) {
+        ({ data, error } = await sb
+          .from("community_posts")
+          .insert(basePayload)
+          .select(COMMUNITY_POST_SELECT)
+          .single());
+      }
       if (error) {
         if (error.code === "23505") {
           throw new Error("You already shared this image on the mood board.");
@@ -2115,17 +2151,21 @@ const NaMeAuth = (function () {
       const { data, error } = await sb
         .from("community_posts")
         .select(COMMUNITY_POST_SELECT)
-        .order("sort_order", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw new Error(error.message);
       return {
-        posts: (data || []).map((row) => mapCommunityPost(row, null, false)),
+        posts: prepareAdminCommunityRows(data).map((row) =>
+          mapCommunityPost(row, null, false)
+        ),
       };
     }
 
     return request("/api/admin/community/posts");
   }
+
+  const COMMUNITY_MIGRATION_HINT =
+    "Run supabase/migration-community-moderation.sql in the Supabase SQL Editor to enable reorder and hide.";
 
   async function reorderAdminCommunityPosts(orderedIds) {
     if (!isAdmin()) throw new Error("Admin only");
@@ -2135,11 +2175,16 @@ const NaMeAuth = (function () {
 
     if (useSupabase()) {
       const sb = supabase();
-      await Promise.all(
+      const results = await Promise.all(
         orderedIds.map((id, index) =>
           sb.from("community_posts").update({ sort_order: index }).eq("id", id)
         )
       );
+      const failed = results.find((res) => res.error);
+      if (failed?.error) {
+        if (isMissingColumnError(failed.error)) throw new Error(COMMUNITY_MIGRATION_HINT);
+        throw new Error(failed.error.message);
+      }
       return { ok: true };
     }
 
@@ -2162,7 +2207,10 @@ const NaMeAuth = (function () {
         .eq("id", id)
         .select(COMMUNITY_POST_SELECT)
         .single();
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (isMissingColumnError(error)) throw new Error(COMMUNITY_MIGRATION_HINT);
+        throw new Error(error.message);
+      }
       return { post: mapCommunityPost(data, null, false) };
     }
 
