@@ -36,11 +36,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   document.addEventListener("name:languagechange", () => {
-    if (currentPinId) {
-      const post = feedPosts.find((p) => String(p.id) === String(currentPinId));
-      NaMeCommunityPin.setFeedPosts(feedPosts);
-      NaMeCommunityPin.openPin(currentPinId, post);
-    }
+    if (!currentPinId || !NaMeCommunityPin.isOpen?.()) return;
+    const idx = feedPosts.findIndex((p) => String(p.id) === String(currentPinId));
+    const post = idx >= 0 ? feedPosts[idx] : null;
+    NaMeCommunityPin.setFeedPosts(feedPosts);
+    NaMeCommunityPin.openPin(currentPinId, post, idx);
   });
 });
 
@@ -73,8 +73,9 @@ async function loadFeed() {
     grid.innerHTML = posts.map((p) => renderPinCard(p)).join("");
     grid.querySelectorAll("[data-pin-id]").forEach((card) => {
       card.addEventListener("click", () => {
-        const post = feedPosts.find((p) => String(p.id) === String(card.dataset.pinId));
-        openPin(card.dataset.pinId, post);
+        const idx = feedPosts.findIndex((p) => String(p.id) === String(card.dataset.pinId));
+        const post = idx >= 0 ? feedPosts[idx] : null;
+        openPin(card.dataset.pinId, post, idx);
       });
     });
     grid.querySelectorAll(".pin-card__avatar a, .pin-card__author").forEach((link) => {
@@ -104,10 +105,10 @@ function renderPinCard(post) {
     </article>`;
 }
 
-function openPin(id, cachedPost) {
+function openPin(id, cachedPost, feedIndex) {
   currentPinId = id;
   NaMeCommunityPin.setFeedPosts(feedPosts);
-  NaMeCommunityPin.openPin(id, cachedPost);
+  NaMeCommunityPin.openPin(id, cachedPost, feedIndex);
 }
 
 function initShareModal() {
