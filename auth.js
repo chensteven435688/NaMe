@@ -1828,21 +1828,87 @@ const NaMeAuth = (function () {
     const commentsEmbed = row.community_comments;
     const likeCount = Array.isArray(likesEmbed)
       ? likesEmbed[0]?.count ?? 0
-      : likesEmbed?.count ?? 0;
+      : likesEmbed?.count ?? row.like_count ?? 0;
     const commentCount = Array.isArray(commentsEmbed)
       ? commentsEmbed[0]?.count ?? 0
-      : commentsEmbed?.count ?? 0;
+      : commentsEmbed?.count ?? row.comment_count ?? 0;
 
     return {
       id: row.id,
       title: row.title,
       caption: row.caption,
       imageUrl: row.image_url,
+      imageHash: row.image_hash || null,
+      sortOrder: row.sort_order ?? null,
+      isHidden: !!row.is_hidden,
       createdAt: row.created_at,
       author: mapPublicAuthor(row, row.user_id),
       likeCount,
       commentCount,
       liked: !!liked,
+    };
+  }
+
+  function normalizeImageUrl(url) {
+    if (!url) return "";
+    return String(url).split("?")[0].trim();
+  }
+
+  function dedupeCommunityPosts(posts) {
+    const seen = new Set();
+    return (posts || []).filter((post) => {
+      const key = post.imageHash || normalizeImageUrl(post.imageUrl);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  async function hashFile(file) {
+    if (!file?.arrayBuffer) return null;
+    const buf = await file.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", buf);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  async function assertCommunityPostUnique(sb, userId, { imageHash, imageUrl }) {
+    if (imageHash) {
+      const { data } = await sb
+        .from("community_posts")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("image_hash", imageHash)
+        .maybeSingle();
+      if (data) throw new Error("You already shared this image on the mood board.");
+    }
+
+    const normalized = normalizeImageUrl(imageUrl);
+    if (!normalized) return;
+
+    const { data: existing } = await sb
+      .from("community_posts")
+      .select("id, image_url")
+      .eq("user_id", userId);
+    if ((existing || []).some((row) => normalizeImageUrl(row.image_url) === normalized)) {
+      throw new Error("You already shared this image on the mood board.");
+    }
+  }
+
+  async function fetchCommunityPostCounts(sb, postId, userId) {
+    const [likesRes, commentsRes, likedSet] = await Promise.all([
+      sb.from("community_likes").select("*", { count: "exact", head: true }).eq("post_id", postId),
+      sb
+        .from("community_comments")
+        .select("*", { count: "exact", head: true })
+        .eq("post_id", postId),
+      fetchCommunityLikedSet([postId], userId),
+    ]);
+    return {
+      likeCount: likesRes.count ?? 0,
+      commentCount: commentsRes.count ?? 0,
+      liked: likedSet.has(postId),
     };
   }
 
@@ -1881,7 +1947,7 @@ const NaMeAuth = (function () {
     if (useSupabase()) {
       const sb = supabase();
       const [postsRes, membersRes] = await Promise.all([
-        sb.from("community_posts").select("*", { count: "exact", head: true }),
+        sb.from("community_posts").select("*", { count: "exact", head: true }).eq("is_hidden", false),
         sb.from("profiles").select("*", { count: "exact", head: true }),
       ]);
       if (postsRes.error) throw new Error(postsRes.error.message);
@@ -1899,22 +1965,24 @@ const NaMeAuth = (function () {
       const { data, error } = await sb
         .from("community_posts")
         .select(COMMUNITY_POST_SELECT)
+        .eq("is_hidden", false)
+        .order("sort_order", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(200);
       if (error) throw new Error(error.message);
 
       const likedSet = await fetchCommunityLikedSet(
         (data || []).map((p) => p.id),
         userId
       );
-      return {
-        posts: (data || []).map((row) =>
-          mapCommunityPost(row, userId, likedSet.has(row.id))
-        ),
-      };
+      const posts = (data || []).map((row) =>
+        mapCommunityPost(row, userId, likedSet.has(row.id))
+      );
+      return { posts: dedupeCommunityPosts(posts) };
     }
 
-    return request("/api/community/posts");
+    const data = await request("/api/community/posts");
+    return { posts: dedupeCommunityPosts(data.posts) };
   }
 
   async function fetchMemberCommunityPosts(memberId) {
@@ -1927,8 +1995,10 @@ const NaMeAuth = (function () {
         .from("community_posts")
         .select(COMMUNITY_POST_SELECT)
         .eq("user_id", memberId)
+        .eq("is_hidden", false)
+        .order("sort_order", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(200);
       if (error) throw new Error(error.message);
 
       const likedSet = await fetchCommunityLikedSet(
@@ -1936,8 +2006,8 @@ const NaMeAuth = (function () {
         viewerId
       );
       return {
-        posts: (data || []).map((row) =>
-          mapCommunityPost(row, viewerId, likedSet.has(row.id))
+        posts: dedupeCommunityPosts(
+          (data || []).map((row) => mapCommunityPost(row, viewerId, likedSet.has(row.id)))
         ),
       };
     }
@@ -1951,13 +2021,25 @@ const NaMeAuth = (function () {
       const userId = getUser()?.id || null;
       const { data, error } = await sb
         .from("community_posts")
-        .select(COMMUNITY_POST_SELECT)
+        .select("*, profiles!user_id(id, display_name, avatar_url, signature)")
         .eq("id", id)
-        .single();
+        .maybeSingle();
       if (error) throw new Error(error.message);
+      if (!data) throw new Error("Post not found");
+      if (data.is_hidden && !isAdmin()) throw new Error("Post not found");
 
-      const likedSet = await fetchCommunityLikedSet([id], userId);
-      return { post: mapCommunityPost(data, userId, likedSet.has(id)) };
+      const counts = await fetchCommunityPostCounts(sb, id, userId);
+      return {
+        post: mapCommunityPost(
+          {
+            ...data,
+            community_likes: [{ count: counts.likeCount }],
+            community_comments: [{ count: counts.commentCount }],
+          },
+          userId,
+          counts.liked
+        ),
+      };
     }
 
     return request(`/api/community/posts/${id}`);
@@ -1975,11 +2057,14 @@ const NaMeAuth = (function () {
       if (!user) throw new Error("Log in required");
 
       let image_url = imageUrlField || null;
+      let image_hash = null;
       if (file && file instanceof File && file.size > 0) {
         if (!/^image\//.test(file.type)) throw new Error("Image required");
         if (file.size > MAX_IMAGE_BYTES) {
           throw new Error("Image must be 20 MB or smaller");
         }
+        image_hash = await hashFile(file);
+        await assertCommunityPostUnique(sb, user.id, { imageHash: image_hash, imageUrl: null });
         const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
         const objectPath = `${user.id}/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
         const { error: uploadError } = await sb.storage
@@ -1991,6 +2076,7 @@ const NaMeAuth = (function () {
       }
 
       if (!image_url) throw new Error("Image required");
+      await assertCommunityPostUnique(sb, user.id, { imageHash: image_hash, imageUrl: image_url });
 
       const { data, error } = await sb
         .from("community_posts")
@@ -1999,15 +2085,91 @@ const NaMeAuth = (function () {
           title,
           caption,
           image_url,
+          image_hash,
         })
         .select(COMMUNITY_POST_SELECT)
         .single();
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.code === "23505") {
+          throw new Error("You already shared this image on the mood board.");
+        }
+        throw new Error(error.message);
+      }
 
       return { post: mapCommunityPost(data, user.id, false) };
     }
 
+    if (file && file instanceof File && file.size > 0) {
+      const imageHash = await hashFile(file);
+      formData.set("imageHash", imageHash);
+    }
+
     return request("/api/community/posts", { method: "POST", body: formData });
+  }
+
+  async function fetchAdminCommunityPosts() {
+    if (!isAdmin()) throw new Error("Admin only");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb
+        .from("community_posts")
+        .select(COMMUNITY_POST_SELECT)
+        .order("sort_order", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw new Error(error.message);
+      return {
+        posts: (data || []).map((row) => mapCommunityPost(row, null, false)),
+      };
+    }
+
+    return request("/api/admin/community/posts");
+  }
+
+  async function reorderAdminCommunityPosts(orderedIds) {
+    if (!isAdmin()) throw new Error("Admin only");
+    if (!Array.isArray(orderedIds) || !orderedIds.length) {
+      throw new Error("Nothing to reorder");
+    }
+
+    if (useSupabase()) {
+      const sb = supabase();
+      await Promise.all(
+        orderedIds.map((id, index) =>
+          sb.from("community_posts").update({ sort_order: index }).eq("id", id)
+        )
+      );
+      return { ok: true };
+    }
+
+    return request("/api/admin/community/posts/order", {
+      method: "PATCH",
+      body: { orderedIds },
+    });
+  }
+
+  async function updateAdminCommunityPost(id, { isHidden } = {}) {
+    if (!isAdmin()) throw new Error("Admin only");
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const patch = {};
+      if (isHidden !== undefined) patch.is_hidden = !!isHidden;
+      const { data, error } = await sb
+        .from("community_posts")
+        .update(patch)
+        .eq("id", id)
+        .select(COMMUNITY_POST_SELECT)
+        .single();
+      if (error) throw new Error(error.message);
+      return { post: mapCommunityPost(data, null, false) };
+    }
+
+    return request(`/api/admin/community/posts/${id}`, {
+      method: "PATCH",
+      body: { isHidden },
+    });
   }
 
   async function toggleCommunityPostLike(id) {
@@ -2555,6 +2717,9 @@ const NaMeAuth = (function () {
     fetchCommunityPostComments,
     createCommunityPostComment,
     deleteCommunityPost,
+    fetchAdminCommunityPosts,
+    reorderAdminCommunityPosts,
+    updateAdminCommunityPost,
     request,
     initUI,
     initAuthModal,

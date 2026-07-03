@@ -1,6 +1,16 @@
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
+import fs from "fs";
 import db from "../db.js";
 import { optionalAuth, requireAuth, requireAdmin } from "../middleware/auth.js";
+
+function hashFileBuffer(buf) {
+  return createHash("sha256").update(buf).digest("hex");
+}
+
+function normalizeImageUrl(url) {
+  if (!url) return "";
+  return String(url).split("?")[0].trim();
+}
 
 function publicCommunityPost(row, userId) {
   const likeCount = db
@@ -20,6 +30,9 @@ function publicCommunityPost(row, userId) {
     title: row.title,
     caption: row.caption,
     imageUrl: row.image_url,
+    imageHash: row.image_hash || null,
+    sortOrder: row.sort_order ?? null,
+    isHidden: !!row.is_hidden,
     createdAt: row.created_at,
     author: {
       id: row.user_id,
@@ -33,24 +46,46 @@ function publicCommunityPost(row, userId) {
   };
 }
 
+function findDuplicatePost(userId, { imageHash, imageUrl }) {
+  if (imageHash) {
+    const byHash = db
+      .prepare("SELECT id FROM community_posts WHERE user_id = ? AND image_hash = ?")
+      .get(userId, imageHash);
+    if (byHash) return byHash;
+  }
+  const normalized = normalizeImageUrl(imageUrl);
+  if (!normalized) return null;
+  const rows = db
+    .prepare("SELECT id, image_url FROM community_posts WHERE user_id = ?")
+    .all(userId);
+  return rows.find((r) => normalizeImageUrl(r.image_url) === normalized) || null;
+}
+
+function communityPostsQuery(extraWhere = "", params = []) {
+  return db
+    .prepare(
+      `SELECT p.*, u.display_name, u.avatar_url, u.signature
+       FROM community_posts p
+       LEFT JOIN users u ON u.id = p.user_id
+       ${extraWhere}
+       ORDER BY p.sort_order ASC NULLS LAST, p.created_at DESC
+       LIMIT 200`
+    )
+    .all(...params);
+}
+
 export function registerCommunityRoutes(app, { upload }) {
   app.get("/api/community/stats", (_req, res) => {
-    const posts = db.prepare("SELECT COUNT(*) AS n FROM community_posts").get().n;
+    const posts = db
+      .prepare("SELECT COUNT(*) AS n FROM community_posts WHERE is_hidden = 0")
+      .get().n;
     const members = db.prepare("SELECT COUNT(*) AS n FROM users").get().n;
     res.json({ posts, members });
   });
 
   app.get("/api/community/posts", optionalAuth, (req, res) => {
     const userId = req.user?.sub || null;
-    const rows = db
-      .prepare(
-        `SELECT p.*, u.display_name, u.avatar_url, u.signature
-         FROM community_posts p
-         LEFT JOIN users u ON u.id = p.user_id
-         ORDER BY p.created_at DESC
-         LIMIT 100`
-      )
-      .all();
+    const rows = communityPostsQuery("WHERE p.is_hidden = 0");
     res.json({ posts: rows.map((r) => publicCommunityPost(r, userId)) });
   });
 
@@ -65,6 +100,9 @@ export function registerCommunityRoutes(app, { upload }) {
       )
       .get(req.params.id);
     if (!row) return res.status(404).json({ error: "Not found" });
+    if (row.is_hidden && req.user?.role !== "admin") {
+      return res.status(404).json({ error: "Not found" });
+    }
     res.json({ post: publicCommunityPost(row, userId) });
   });
 
@@ -72,38 +110,41 @@ export function registerCommunityRoutes(app, { upload }) {
     const viewerId = req.user?.sub || null;
     const userExists = db.prepare("SELECT id FROM users WHERE id = ?").get(req.params.id);
     if (!userExists) return res.status(404).json({ error: "Member not found" });
-    const rows = db
-      .prepare(
-        `SELECT p.*, u.display_name, u.avatar_url, u.signature
-         FROM community_posts p
-         LEFT JOIN users u ON u.id = p.user_id
-         WHERE p.user_id = ?
-         ORDER BY p.created_at DESC
-         LIMIT 100`
-      )
-      .all(req.params.id);
+    const rows = communityPostsQuery("WHERE p.user_id = ? AND p.is_hidden = 0", [req.params.id]);
     res.json({ posts: rows.map((r) => publicCommunityPost(r, viewerId)) });
   });
 
   app.post("/api/community/posts", requireAuth, upload.single("image"), (req, res) => {
-    const { title, caption, imageUrl } = req.body;
+    const { title, caption, imageUrl, imageHash } = req.body;
     const image_url = req.file
       ? `/uploads/${req.file.filename}`
       : imageUrl?.trim() || null;
     if (!image_url) {
       return res.status(400).json({ error: "Image required" });
     }
+
+    let image_hash = imageHash?.trim() || null;
+    if (req.file) {
+      image_hash = hashFileBuffer(fs.readFileSync(req.file.path));
+    }
+
+    const duplicate = findDuplicatePost(req.user.sub, { imageHash: image_hash, imageUrl: image_url });
+    if (duplicate) {
+      return res.status(409).json({ error: "You already shared this image on the mood board." });
+    }
+
     const id = randomUUID();
     const now = new Date().toISOString();
     db.prepare(
-      `INSERT INTO community_posts (id, user_id, title, caption, image_url, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO community_posts (id, user_id, title, caption, image_url, image_hash, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       req.user.sub,
       title?.trim() || null,
       caption?.trim() || null,
       image_url,
+      image_hash,
       now
     );
     const row = db
@@ -113,6 +154,42 @@ export function registerCommunityRoutes(app, { upload }) {
       )
       .get(id);
     res.status(201).json({ post: publicCommunityPost(row, req.user.sub) });
+  });
+
+  app.get("/api/admin/community/posts", requireAdmin, (_req, res) => {
+    const rows = communityPostsQuery();
+    res.json({ posts: rows.map((r) => publicCommunityPost(r, null)) });
+  });
+
+  app.patch("/api/admin/community/posts/order", requireAdmin, (req, res) => {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds) || !orderedIds.length) {
+      return res.status(400).json({ error: "orderedIds required" });
+    }
+    const update = db.prepare("UPDATE community_posts SET sort_order = ? WHERE id = ?");
+    orderedIds.forEach((id, index) => update.run(index, id));
+    res.json({ ok: true });
+  });
+
+  app.patch("/api/admin/community/posts/:id", requireAdmin, (req, res) => {
+    const row = db.prepare("SELECT * FROM community_posts WHERE id = ?").get(req.params.id);
+    if (!row) return res.status(404).json({ error: "Not found" });
+
+    const { isHidden } = req.body;
+    if (isHidden !== undefined) {
+      db.prepare("UPDATE community_posts SET is_hidden = ? WHERE id = ?").run(
+        isHidden ? 1 : 0,
+        req.params.id
+      );
+    }
+
+    const updated = db
+      .prepare(
+        `SELECT p.*, u.display_name, u.avatar_url, u.signature FROM community_posts p
+         LEFT JOIN users u ON u.id = p.user_id WHERE p.id = ?`
+      )
+      .get(req.params.id);
+    res.json({ post: publicCommunityPost(updated, null) });
   });
 
   app.post("/api/community/posts/:id/like", requireAuth, (req, res) => {

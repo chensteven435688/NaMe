@@ -187,4 +187,24 @@ function migrateSubmissionsBodyFiles() {
 
 migrateSubmissionsBodyFiles();
 
+function migrateCommunityModeration() {
+  const cols = db.prepare("PRAGMA table_info(community_posts)").all();
+  if (!cols.some((c) => c.name === "image_hash")) {
+    db.exec("ALTER TABLE community_posts ADD COLUMN image_hash TEXT");
+  }
+  if (!cols.some((c) => c.name === "sort_order")) {
+    db.exec("ALTER TABLE community_posts ADD COLUMN sort_order INTEGER");
+  }
+  if (!cols.some((c) => c.name === "is_hidden")) {
+    db.exec("ALTER TABLE community_posts ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0");
+  }
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_community_posts_user_image_hash
+    ON community_posts (user_id, image_hash)
+    WHERE image_hash IS NOT NULL
+  `);
+}
+
+migrateCommunityModeration();
+
 export default db;

@@ -4,6 +4,7 @@
 const NaMeCommunityPin = (function () {
   let refreshCallback = () => {};
   let currentPinId = null;
+  let openRequestId = 0;
 
   function esc(s) {
     const d = document.createElement("div");
@@ -46,6 +47,7 @@ const NaMeCommunityPin = (function () {
   }
 
   function closePinModal() {
+    openRequestId += 1;
     const modal = document.getElementById("pin-modal");
     modal?.classList.remove("is-open");
     modal?.setAttribute("aria-hidden", "true");
@@ -54,18 +56,33 @@ const NaMeCommunityPin = (function () {
   }
 
   async function openPin(id) {
-    currentPinId = id;
     const modal = document.getElementById("pin-modal");
     const detail = document.getElementById("pin-detail");
+    if (!modal || !detail) return;
+
+    currentPinId = id;
+    const requestId = ++openRequestId;
     const lang = NaMeI18n.getLang();
-    detail.innerHTML = `<p>${esc(NaMeI18n.t(lang, "communityLoading"))}</p>`;
+    detail.innerHTML = `<p class="pin-detail__loading">${esc(
+      NaMeI18n.t(lang, "pinDetailLoading")
+    )}</p>`;
     modal.classList.add("is-open");
     modal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
 
     try {
-      const { post } = await NaMeAuth.fetchCommunityPost(id);
-      const { comments } = await NaMeAuth.fetchCommunityPostComments(id);
+      const [postRes, commentsRes] = await Promise.allSettled([
+        NaMeAuth.fetchCommunityPost(id),
+        NaMeAuth.fetchCommunityPostComments(id),
+      ]);
+
+      if (requestId !== openRequestId) return;
+      if (postRes.status === "rejected") throw postRes.reason;
+
+      const post = postRes.value.post;
+      const comments =
+        commentsRes.status === "fulfilled" ? commentsRes.value.comments || [] : [];
+
       const avatar = NaMeAuth.formatUserAvatarLink(post.author, "user-avatar user-avatar--md");
       const signatureHtml = post.author?.signature
         ? `<span class="pin-detail__signature">${esc(post.author.signature)}</span>`
@@ -128,7 +145,7 @@ const NaMeCommunityPin = (function () {
         refreshCallback();
       });
 
-      document.getElementById("pin-comment-form")?.addEventListener("submit", async (e) => {
+      detail.querySelector("#pin-comment-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!NaMeAuth.isLoggedIn()) {
           NaMeAuth.openAuthModal("login");
@@ -143,9 +160,10 @@ const NaMeCommunityPin = (function () {
 
       NaMeI18n.apply(lang);
     } catch (err) {
-      detail.innerHTML = `<p>${esc(err.message)}</p>`;
+      if (requestId !== openRequestId) return;
+      detail.innerHTML = `<p class="pin-detail__error">${esc(err.message || "Could not load this pin.")}</p>`;
     }
   }
 
-  return { init, openPin, closePinModal, esc, formatTime };
+  return { init, openPin, closePinModal, esc, formatTime, isOpen: () => !!currentPinId };
 })();
