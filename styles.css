@@ -4118,12 +4118,22 @@ button.danger {
 }
 
 .modal__panel--pin {
-  max-width: 960px;
+  max-width: min(1100px, 96vw);
   width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: min(900px, 92vh);
+  height: min(900px, 92vh);
+  overflow: hidden;
   text-align: left;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pin-detail {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .pin-detail__loading,
@@ -4131,20 +4141,205 @@ button.danger {
   padding: 3rem 2rem;
   text-align: center;
   color: var(--text-muted);
+  margin: auto;
 }
 
 .pin-detail__error {
   color: #8b2e2e;
 }
 
-.pin-detail__layout {
+.pin-detail__layout--ig {
   display: grid;
   grid-template-columns: 1fr;
+  height: 100%;
+  min-height: 0;
 }
 
 @media (min-width: 768px) {
-  .pin-detail__layout {
-    grid-template-columns: 1.1fr 1fr;
+  .pin-detail__layout--ig {
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 400px);
+  }
+}
+
+.pin-detail__media {
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  max-height: min(900px, 92vh);
+}
+
+.pin-detail__media img {
+  width: 100%;
+  height: 100%;
+  max-height: min(900px, 92vh);
+  object-fit: contain;
+  display: block;
+}
+
+.pin-detail__panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+}
+
+.pin-detail__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.pin-detail__header-name {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.pin-detail__header-avatar .user-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+.pin-detail__delete {
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8b2e2e;
+}
+
+.pin-detail__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  min-height: 0;
+}
+
+.pin-detail__caption-row {
+  display: flex;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.pin-detail__caption-text {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 0.25rem;
+}
+
+.pin-detail__caption-text strong {
+  font-weight: 400;
+  margin-right: 0.35rem;
+}
+
+.pin-detail__comments-loading,
+.pin-detail__comments-empty {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.pin-detail__footer {
+  border-top: 1px solid var(--border);
+  padding: 0.75rem 1rem 1rem;
+  flex-shrink: 0;
+}
+
+.pin-detail__toolbar {
+  display: flex;
+  gap: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.pin-detail__action {
+  font-size: 22px;
+  line-height: 1;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  transition: opacity 0.15s ease;
+}
+
+.pin-detail__action:hover {
+  opacity: 0.65;
+}
+
+.pin-detail__like.is-liked {
+  color: #c0392b;
+}
+
+.pin-detail__likes {
+  font-size: 14px;
+  margin: 0 0 0.35rem;
+}
+
+.pin-detail__posted {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 0 0 0.75rem;
+}
+
+.pin-detail__comment-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.pin-detail__comment-form input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  padding: 0.35rem 0;
+  outline: none;
+}
+
+.pin-detail__post-btn {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0.35rem 0;
+}
+
+.pin-detail__post-btn:not(:disabled):hover {
+  color: var(--text);
+}
+
+@media (max-width: 767px) {
+  .modal__panel--pin {
+    height: auto;
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+
+  .pin-detail__panel {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: 50vh;
+  }
+
+  .pin-detail__media {
+    max-height: 45vh;
+  }
+
+  .pin-detail__media img {
+    max-height: 45vh;
   }
 }
 
@@ -4234,19 +4429,31 @@ button.danger {
 
 .pin-comment {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-  font-size: 13px;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+  font-size: 14px;
 }
 
-.pin-comment__avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.pin-comment__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pin-comment__text {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.pin-comment__text strong {
+  font-weight: 400;
+  margin-right: 0.35rem;
+}
+
+.pin-comment__avatar .user-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
   font-size: 11px;
   flex-shrink: 0;
 }

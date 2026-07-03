@@ -2,6 +2,7 @@
  * NaMe — public member profile
  */
 let currentMemberId = null;
+let memberPosts = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   NaMeI18n.init();
@@ -51,6 +52,8 @@ function renderMemberError(root, message) {
 
 function renderMemberProfile(root, user, posts) {
   if (!root || !user) return;
+
+  memberPosts = posts || [];
 
   const lang = NaMeI18n.getLang();
   const isSelf = NaMeAuth.isLoggedIn() && NaMeAuth.getUser()?.id === user.id;
@@ -112,7 +115,10 @@ function renderMemberProfile(root, user, posts) {
     </section>`;
 
   root.querySelectorAll("[data-pin-id]").forEach((tile) => {
-    tile.addEventListener("click", () => NaMeCommunityPin.openPin(tile.dataset.pinId));
+    tile.addEventListener("click", () => {
+      const post = memberPosts.find((p) => p.id === tile.dataset.pinId);
+      NaMeCommunityPin.openPin(tile.dataset.pinId, post);
+    });
   });
 
   NaMeI18n.apply(lang);

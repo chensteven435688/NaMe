@@ -2049,25 +2049,15 @@ const NaMeAuth = (function () {
       const userId = getUser()?.id || null;
       const { data, error } = await sb
         .from("community_posts")
-        .select("*, profiles!user_id(id, display_name, avatar_url, signature)")
+        .select(COMMUNITY_POST_SELECT)
         .eq("id", id)
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!data) throw new Error("Post not found");
       if (data.is_hidden && !isAdmin()) throw new Error("Post not found");
 
-      const counts = await fetchCommunityPostCounts(sb, id, userId);
-      return {
-        post: mapCommunityPost(
-          {
-            ...data,
-            community_likes: [{ count: counts.likeCount }],
-            community_comments: [{ count: counts.commentCount }],
-          },
-          userId,
-          counts.liked
-        ),
-      };
+      const likedSet = await fetchCommunityLikedSet([id], userId);
+      return { post: mapCommunityPost(data, userId, likedSet.has(id)) };
     }
 
     return request(`/api/community/posts/${id}`);
