@@ -3758,6 +3758,21 @@ button.danger {
   justify-content: center;
 }
 
+.register-verified__hint {
+  margin-bottom: 1.5rem;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  max-width: 28rem;
+}
+
+.register-verified__status {
+  margin-top: 1rem;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
 /* ─── Static pages (About, Contact, etc.) ─── */
 .page-static .header {
   position: sticky;
