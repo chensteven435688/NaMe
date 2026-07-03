@@ -2494,6 +2494,11 @@ const NaMeAuth = (function () {
           return;
         }
 
+        if (result?.needsConfirmation) {
+          goToSignInAfterRegister(result.email || email);
+          return;
+        }
+
         goToSignInAfterRegister(result?.email || email);
       } finally {
         setSubmitLoading(submitBtn, false);
@@ -2622,11 +2627,21 @@ const NaMeAuth = (function () {
     passwordInput?.focus({ preventScroll: true });
   }
 
+  function registerCompleteUrl(email) {
+    const base =
+      typeof NaMeBase !== "undefined"
+        ? NaMeBase.path("/register-complete.html")
+        : "/register-complete.html";
+    const url = new URL(base, window.location.origin);
+    if (email) url.searchParams.set("email", email);
+    const ret = new URLSearchParams(location.search).get("return");
+    if (ret) url.searchParams.set("return", ret);
+    return `${url.pathname}${url.search}`;
+  }
+
   function goToSignInAfterRegister(email) {
-    showAuthMessage(authT("authConfirmSent"), "success");
-    switchAuthTab("login");
-    prefillLoginEmail(email);
-    focusLoginForm();
+    closeAuthModal();
+    window.location.replace(registerCompleteUrl(email));
   }
 
   function ensureResendConfirmationControl() {
@@ -2792,6 +2807,8 @@ const NaMeAuth = (function () {
     getReturnUrl,
     isAuthPage,
     closeAuthModal,
+    authPageUrl,
+    prefillLoginEmail,
   };
 })();
 
@@ -2801,8 +2818,8 @@ if (document.body && (document.getElementById("auth-link") || document.getElemen
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await NaMeAuth.refresh();
   NaMeAuth.initAuthModal();
+  await NaMeAuth.refresh();
   NaMeAuth.initUI();
 
   const sb = typeof NaMeSupabase !== "undefined" ? NaMeSupabase.getClient() : null;
