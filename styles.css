@@ -1849,11 +1849,13 @@ html.auth-optimistic-early.auth-ui-checked #mobile-auth-link::after {
 }
 
 /* ─── Member profile ─── */
-.page-profile {
+.page-profile,
+.page-member {
   background: var(--bg);
 }
 
-.page-profile .header--minimal {
+.page-profile .header--minimal,
+.page-member .header--minimal {
   position: sticky;
   top: 0;
   z-index: 20;
