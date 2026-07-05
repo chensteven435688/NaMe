@@ -394,6 +394,8 @@ const NaMeI18n = (function () {
       authResendSent: "Confirmation email sent. Check your inbox and spam folder.",
       authResendNeedEmail: "Enter your email above, then tap resend.",
       authEmailNotConfirmed: "Please confirm your email first. Use resend below if you did not get it.",
+      authRateLimited: "Too many sign-up attempts right now. Please wait about an hour and try again — or if you already registered, just log in.",
+      authAlreadyRegistered: "This email is already registered. Try logging in instead (or reset your password).",
       registerCompletePageTitle: "Check your email — NaMe Magazine",
       registerCompletePageDescription:
         "Verify your NaMe Magazine account from the email we sent you, then log in.",
