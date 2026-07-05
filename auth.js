@@ -411,6 +411,17 @@ const NaMeAuth = (function () {
     if (error) throw new Error(error.message);
   }
 
+  function mapSignUpError(error) {
+    const msg = error?.message || "Registration failed. Please try again.";
+    if (/rate limit/i.test(msg)) {
+      return authT("authRateLimited");
+    }
+    if (/already registered|already exists|user already/i.test(msg)) {
+      return authT("authAlreadyRegistered");
+    }
+    return msg;
+  }
+
   async function register(email, password, displayName, options = {}) {
     const { subscribe = false } = options;
     if (!displayName?.trim()) {
@@ -433,7 +444,7 @@ const NaMeAuth = (function () {
           emailRedirectTo: getAuthRedirectUrl(),
         },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(mapSignUpError(error));
       if (data.session?.user) {
         await loadProfile(data.session.user.id);
         notify();
