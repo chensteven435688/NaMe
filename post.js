@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(location.search);
   const slug = params.get("slug");
   if (!slug) {
-    location.href = "/";
+    location.href = typeof NaMeBase !== "undefined" ? NaMeBase.path("/") : "/";
     return;
   }
 
