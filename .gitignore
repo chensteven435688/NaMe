@@ -4,4 +4,5 @@ server/data/
 server/uploads/
 .env
 server/.env
+server/.test-cookies.txt
 .DS_Store
