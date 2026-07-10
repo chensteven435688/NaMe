@@ -11,6 +11,8 @@ const NaMeAuth = (function () {
   const MAX_SUBMISSION_VIDEO_BYTES = 4 * 1024 * 1024 * 1024;
   const MAX_SUBMISSION_FILE_BYTES = 50 * 1024 * 1024;
   const MAX_AVATAR_BYTES = 30 * 1024 * 1024;
+  const POST_UPLOAD_MAX_EDGE = 2200;
+  const POST_UPLOAD_QUALITY = 0.82;
   const IMAGE_EXTENSIONS = new Set([
     "jpg",
     "jpeg",
@@ -24,6 +26,68 @@ const NaMeAuth = (function () {
   ]);
   if (typeof window !== "undefined") window.NA_ME_DEV_BYPASS = false;
   let profileSaveLock = 0;
+
+  async function compressImageFile(file, { maxEdge = POST_UPLOAD_MAX_EDGE, quality = POST_UPLOAD_QUALITY } = {}) {
+    if (!(file instanceof File) || !file.type.startsWith("image/")) return file;
+    if (/gif|svg|heic|heif/i.test(file.type)) return file;
+
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(file);
+    } catch {
+      return file;
+    }
+
+    const longest = Math.max(bitmap.width, bitmap.height);
+    const scale = longest > maxEdge ? maxEdge / longest : 1;
+    if (scale >= 1 && file.size <= 500 * 1024) {
+      bitmap.close();
+      return file;
+    }
+
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const preferWebp = typeof canvas.toBlob === "function";
+    const blob = await new Promise((resolve) => {
+      if (!preferWebp) {
+        resolve(null);
+        return;
+      }
+      canvas.toBlob(
+        (webp) => {
+          if (webp && webp.size > 0) {
+            resolve({ blob: webp, type: "image/webp", ext: "webp" });
+            return;
+          }
+          canvas.toBlob(
+            (jpeg) => resolve(jpeg ? { blob: jpeg, type: "image/jpeg", ext: "jpg" } : null),
+            "image/jpeg",
+            quality
+          );
+        },
+        "image/webp",
+        quality
+      );
+    });
+
+    if (!blob?.blob || blob.blob.size >= file.size * 0.95) return file;
+    const base = file.name.replace(/\.[^.]+$/, "") || "image";
+    return new File([blob.blob], `${base}.${blob.ext}`, {
+      type: blob.type,
+      lastModified: Date.now(),
+    });
+  }
 
   function readAuthSnapshot() {
     try {
@@ -1236,11 +1300,12 @@ const NaMeAuth = (function () {
       }
 
       if (!sb) throw new Error("Supabase is not configured");
-      const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+      const uploadFile = await compressImageFile(file);
+      const ext = uploadFile.name.includes(".") ? uploadFile.name.split(".").pop() : "jpg";
       const objectPath = `posts/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
       const { error: uploadError } = await sb.storage
         .from("post-images")
-        .upload(objectPath, file, { contentType: file.type, upsert: false });
+        .upload(objectPath, uploadFile, { contentType: uploadFile.type, upsert: false });
       if (uploadError) throw new Error(mapSupabaseWriteError(uploadError));
 
       const { data: urlData } = sb.storage.from("post-images").getPublicUrl(objectPath);
@@ -1272,11 +1337,12 @@ const NaMeAuth = (function () {
 
     if (useSupabase()) {
       const { sb } = await requireSupabaseAdmin();
-      const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+      const uploadFile = await compressImageFile(file);
+      const ext = uploadFile.name.includes(".") ? uploadFile.name.split(".").pop() : "jpg";
       const objectPath = `posts/body/${crypto.randomUUID()}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`;
       const { error: uploadError } = await sb.storage
         .from("post-images")
-        .upload(objectPath, file, { contentType: file.type, upsert: false });
+        .upload(objectPath, uploadFile, { contentType: uploadFile.type, upsert: false });
       if (uploadError) throw new Error(mapSupabaseWriteError(uploadError));
 
       const { data: urlData } = sb.storage.from("post-images").getPublicUrl(objectPath);
