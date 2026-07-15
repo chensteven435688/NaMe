@@ -39,7 +39,6 @@ async function loadBrowseFeed() {
     const cardClass = browseCard || `card--${browseType}`;
     const showMeta = browseShowMeta === "true";
     grid.innerHTML = posts.map((p) => renderBrowseCard(p, cardClass, showMeta)).join("");
-    if (typeof NaMeImages !== "undefined") NaMeImages.bindFallbacks(grid);
   } catch {
     grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, emptyKey))}</p>`;
   }
@@ -58,7 +57,6 @@ async function loadAllStoriesFeed(grid) {
     grid.innerHTML = posts
       .map((p) => renderBrowseCard(p, `card--${p.type}`, true, true))
       .join("");
-    if (typeof NaMeImages !== "undefined") NaMeImages.bindFallbacks(grid);
   } catch {
     grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, emptyKey))}</p>`;
   }
@@ -72,17 +70,9 @@ function renderBrowseCard(post, cardClass, showMeta, showType = false) {
     showType && typeKey
       ? `<span class="card__type">${escapeHtml(NaMeI18n.t(NaMeI18n.getLang(), typeKey))}</span>`
       : "";
-  const img =
-    typeof NaMeImages !== "undefined"
-      ? NaMeImages.imgTag(post.imageUrl || "", {
-          preset: "card",
-          alt: post.title || "",
-          loading: "lazy",
-        })
-      : `<img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title)}" loading="lazy" />`;
   return `
     <a href="${href}" class="card ${cardClass}">
-      <div class="card__img">${img}</div>
+      <div class="card__img"><img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title)}" loading="lazy" /></div>
       ${typeLabel}
       ${meta}
       <h3 class="card__title">${escapeHtml(post.title)}</h3>
