@@ -105,28 +105,21 @@ async function loadHomeIndex() {
       .map((post, i) => {
         const typeKey = TYPE_I18N[post.type] || "article";
         const typeLabel = typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, typeKey) : post.type;
-        const preview = post.imageUrl
-          ? typeof NaMeImages !== "undefined"
-            ? NaMeImages.imgTag(post.imageUrl, {
-                preset: "preview",
-                className: "home-index__preview",
-                alt: "",
-                loading: "lazy",
-              })
-            : `<img class="home-index__preview" src="${escapeHtml(post.imageUrl)}" alt="" loading="lazy" />`
-          : "";
         return `
       <li class="home-index__item">
         <a href="${postHref(post.slug)}" class="home-index__link">
           <span class="home-index__num">${String(i + 1).padStart(2, "0")}</span>
           <span class="home-index__type">${escapeHtml(typeLabel)}</span>
           <span class="home-index__name">${escapeHtml(post.title)}</span>
-          ${preview}
+          ${
+            post.imageUrl
+              ? `<img class="home-index__preview" src="${escapeHtml(post.imageUrl)}" alt="" loading="lazy" />`
+              : ""
+          }
         </a>
       </li>`;
       })
       .join("");
-    if (typeof NaMeImages !== "undefined") NaMeImages.bindFallbacks(list);
   } catch {
     list.innerHTML = `<li class="home-index__empty">${escapeHtml(emptyText)}</li>`;
   }
@@ -152,7 +145,6 @@ async function loadFeeds() {
         section: cfg.section,
       });
       el.innerHTML = posts.map((p) => renderCard(p, cfg)).join("");
-      if (typeof NaMeImages !== "undefined") NaMeImages.bindFallbacks(el);
     } catch {
       el.innerHTML = "";
     }
@@ -166,17 +158,9 @@ function renderCard(post, cfg) {
     cfg.cardClass === "card--short"
       ? ""
       : `<h3 class="card__title">${escapeHtml(post.title)}</h3>`;
-  const img =
-    typeof NaMeImages !== "undefined"
-      ? NaMeImages.imgTag(post.imageUrl || "", {
-          preset: "card",
-          alt: post.title || "",
-          loading: "lazy",
-        })
-      : `<img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title)}" loading="lazy" />`;
   return `
     <a href="${href}" class="card ${cfg.cardClass}">
-      <div class="card__img">${img}</div>
+      <div class="card__img"><img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title)}" loading="lazy" /></div>
       ${meta}
       ${title}
     </a>`;
