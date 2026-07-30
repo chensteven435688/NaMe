@@ -21,13 +21,63 @@ const TYPE_I18N = {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await NaMeAuth.refresh();
-  NaMeI18n.init();
-  NaMeAuth.initUI();
-  await initHomepage();
-  loadFeeds();
-  initScrollReveal();
+  const startedAt = performance.now();
+  try {
+    await NaMeAuth.refresh();
+    NaMeI18n.init();
+    NaMeAuth.initUI();
+    await initHomepage();
+    await loadFeeds();
+    initScrollReveal();
+    await waitForCriticalImages();
+  } finally {
+    await revealPage(startedAt);
+  }
 });
+
+const PAGE_LOADER_MIN_MS = 700;
+const CRITICAL_IMAGE_TIMEOUT_MS = 4500;
+
+function waitForCriticalImages() {
+  const imgs = [...document.querySelectorAll(".hero__slide img")].slice(0, 3);
+  if (!imgs.length) return Promise.resolve();
+
+  return Promise.all(
+    imgs.map(
+      (img) =>
+        new Promise((resolve) => {
+          if (img.complete && img.naturalWidth > 0) {
+            resolve();
+            return;
+          }
+          const done = () => resolve();
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+          setTimeout(done, CRITICAL_IMAGE_TIMEOUT_MS);
+        })
+    )
+  );
+}
+
+async function revealPage(startedAt = performance.now()) {
+  const elapsed = performance.now() - startedAt;
+  const remaining = PAGE_LOADER_MIN_MS - elapsed;
+  if (remaining > 0) {
+    await new Promise((resolve) => setTimeout(resolve, remaining));
+  }
+
+  document.body.classList.add("is-page-ready");
+  document.dispatchEvent(new CustomEvent("name:page-ready"));
+
+  const loader = document.getElementById("page-loader");
+  if (!loader) return;
+
+  loader.classList.add("is-done");
+  loader.setAttribute("aria-busy", "false");
+  const remove = () => loader.remove();
+  loader.addEventListener("transitionend", remove, { once: true });
+  setTimeout(remove, 800);
+}
 
 async function initHomepage() {
   const heroSlides = await loadHeroSlides();
@@ -260,10 +310,17 @@ function initScrollReveal() {
     if (e.key === "Escape" && modal.classList.contains("is-open")) close();
   });
 
-  if (!sessionStorage.getItem("name-modal-seen")) {
+  const scheduleOpen = () => {
+    if (sessionStorage.getItem("name-modal-seen")) return;
     setTimeout(() => {
       open();
       sessionStorage.setItem("name-modal-seen", "1");
-    }, 2500);
+    }, 900);
+  };
+
+  if (document.body.classList.contains("is-page-ready")) {
+    scheduleOpen();
+  } else {
+    document.addEventListener("name:page-ready", scheduleOpen, { once: true });
   }
 })();
