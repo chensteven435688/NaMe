@@ -7,8 +7,43 @@
   <title>NaMe Magazine — Before the Name</title>
   <script src="auth-boot.js"></script>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .page-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      color: #000;
+      transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.55s;
+    }
+    .page-loader.is-done {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    body:not(.is-page-ready) {
+      overflow: hidden;
+    }
+  </style>
 </head>
 <body>
+  <div id="page-loader" class="page-loader" role="status" aria-live="polite" aria-busy="true">
+    <div class="page-loader__inner">
+      <span class="page-loader__brand">NaMe</span>
+      <span class="page-loader__line" aria-hidden="true"></span>
+      <span class="page-loader__label">Loading</span>
+    </div>
+  </div>
+  <noscript>
+    <style>
+      .page-loader { display: none !important; }
+      body { overflow: auto !important; }
+    </style>
+  </noscript>
+
   <!-- Member modal -->
   <div class="modal" id="member-modal" aria-hidden="true">
     <div class="modal__backdrop" data-close-modal></div>
