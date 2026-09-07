@@ -36,10 +36,19 @@ function updateMediumFields() {
   if (!isImageMedium) updateGalleryPreview();
 }
 
+let galleryPreviewUrls = [];
+
+function releaseGalleryPreviewUrls() {
+  galleryPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+  galleryPreviewUrls = [];
+}
+
 function updateGalleryPreview() {
   const form = document.getElementById("submission-form");
   const preview = document.getElementById("submission-gallery-preview");
   if (!form || !preview) return;
+
+  releaseGalleryPreviewUrls();
 
   const cover = form.querySelector('[name="cover"]')?.files?.[0];
   const bodyImages = [...(form.querySelector('[name="bodyImages"]')?.files || [])];
@@ -57,6 +66,7 @@ function updateGalleryPreview() {
   preview.innerHTML = items
     .map(({ file, label }) => {
       const url = URL.createObjectURL(file);
+      galleryPreviewUrls.push(url);
       return `
         <figure class="submission-gallery__thumb">
           <img src="${escAttr(url)}" alt="" />

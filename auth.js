@@ -146,7 +146,22 @@ const NaMeAuth = (function () {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/"/g, "&quot;");
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  /** Drops javascript:/vbscript: and similar schemes before a URL is written into src/href. */
+  function safeUrl(value) {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "";
+    if (/^(?:https?:|blob:|data:image\/)/i.test(raw)) return raw;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return "";
+    return raw;
+  }
+
+  function escUrlAttr(value) {
+    return escHtml(safeUrl(value));
   }
 
   function mapPublicProfile(row) {
@@ -171,7 +186,7 @@ const NaMeAuth = (function () {
   function formatUserAvatar(author, className = "user-avatar") {
     const name = author?.displayName || "Member";
     if (author?.avatarUrl) {
-      return `<img class="${escHtml(className)}" src="${escHtml(author.avatarUrl)}" alt="${escHtml(name)}" loading="lazy" />`;
+      return `<img class="${escHtml(className)}" src="${escUrlAttr(author.avatarUrl)}" alt="${escHtml(name)}" loading="lazy" />`;
     }
     const initial = (name[0] || "?").toUpperCase();
     return `<span class="${escHtml(className)} user-avatar--initial" aria-hidden="true">${escHtml(initial)}</span>`;
@@ -277,7 +292,8 @@ const NaMeAuth = (function () {
           if (url.origin === location.origin) {
             return url.pathname + url.search + url.hash;
           }
-        } else {
+        } else if (!/^[/\\]{2}/.test(ret)) {
+          // "//evil.com" and "/\evil.com" are browser-absolute URLs, not local paths.
           const path = ret.startsWith("/") ? ret : `/${ret}`;
           return typeof NaMeBase !== "undefined" ? NaMeBase.path(path) : path;
         }
@@ -419,15 +435,24 @@ const NaMeAuth = (function () {
     if (useSupabase()) {
       try {
         await absorbAuthCallback();
+      } catch (err) {
+        // A stale or already-used ?code= in the URL must not log the visitor out;
+        // the session check below is what decides auth state.
+        console.warn("NaMe: auth callback could not be completed", err?.message || err);
+      }
+
+      try {
         const sb = supabase();
-        const { data } = await sb.auth.getSession();
+        const { data, error } = await sb.auth.getSession();
+        if (error) throw error;
         if (data.session?.user) {
           await loadProfile(data.session.user.id);
         } else {
           currentUser = null;
         }
-      } catch {
-        currentUser = null;
+      } catch (err) {
+        // Network/Supabase failure: keep the current snapshot rather than forcing a logout.
+        console.warn("NaMe: could not verify session", err?.message || err);
       }
       notify();
       return currentUser;
@@ -603,7 +628,13 @@ const NaMeAuth = (function () {
   async function fetchPosts(query = {}) {
     if (useSupabase()) {
       const sb = supabase();
-      let q = sb.from("posts").select("*").order("published_at", { ascending: false });
+      // Feeds and carousels render a handful of these; the cap keeps the archive
+      // from being downloaded in full on every page load as the magazine grows.
+      let q = sb
+        .from("posts")
+        .select("*")
+        .order("published_at", { ascending: false })
+        .limit(200);
       if (query.type) q = q.eq("type", query.type);
       if (query.section) {
         if (query.section === "latest") {
@@ -688,9 +719,8 @@ const NaMeAuth = (function () {
   }
 
   function bodyFigureHtml(url, alt = "") {
-    const safeUrl = String(url ?? "").replace(/"/g, "&quot;");
-    const safeAlt = String(alt ?? "").replace(/"/g, "&quot;");
-    return `<figure class="post__figure"><img src="${safeUrl}" alt="${safeAlt}" loading="lazy" /></figure>`;
+    // alt comes from the uploader's filename, so it must be fully escaped, not just quote-stripped.
+    return `<figure class="post__figure"><img src="${escUrlAttr(url)}" alt="${escHtml(alt)}" loading="lazy" /></figure>`;
   }
 
   function buildBodyFiguresFromFiles(files) {
@@ -803,11 +833,10 @@ const NaMeAuth = (function () {
         };
       }
 
-      const coverUpload = await uploadSubmissionFile(primaryFile);
-      const bodyFiles = [];
-      for (const img of bodyImages) {
-        bodyFiles.push(await uploadSubmissionFile(img));
-      }
+      const [coverUpload, ...bodyFiles] = await Promise.all([
+        uploadSubmissionFile(primaryFile),
+        ...bodyImages.map((img) => uploadSubmissionFile(img)),
+      ]);
 
       const { data, error } = await sb
         .from("submissions")
@@ -905,7 +934,7 @@ const NaMeAuth = (function () {
     const figures = buildBodyFiguresFromFiles(row.body_files);
     if (figures) body += `\n${figures}`;
     if (row.file_mime === "application/pdf") {
-      body += `<p><a href="${row.file_url}" target="_blank" rel="noopener">View submitted PDF</a></p>`;
+      body += `<p><a href="${escUrlAttr(row.file_url)}" target="_blank" rel="noopener">View submitted PDF</a></p>`;
     }
     return body;
   }
@@ -1865,7 +1894,9 @@ const NaMeAuth = (function () {
           if (existing) throw new Error("Slug already in use");
           slug = normalized;
         }
-      } else if (title && title !== row.title) {
+      } else if (!row.slug && title) {
+        // Only mint a slug when the post has none. Regenerating it on every title
+        // edit would silently 404 every link already shared for this post.
         slug = await uniquePostSlug(sb, title);
       }
 
@@ -2019,22 +2050,6 @@ const NaMeAuth = (function () {
     }
   }
 
-  async function fetchCommunityPostCounts(sb, postId, userId) {
-    const [likesRes, commentsRes, likedSet] = await Promise.all([
-      sb.from("community_likes").select("*", { count: "exact", head: true }).eq("post_id", postId),
-      sb
-        .from("community_comments")
-        .select("*", { count: "exact", head: true })
-        .eq("post_id", postId),
-      fetchCommunityLikedSet([postId], userId),
-    ]);
-    return {
-      likeCount: likesRes.count ?? 0,
-      commentCount: commentsRes.count ?? 0,
-      liked: likedSet.has(postId),
-    };
-  }
-
   function mapCommunityComment(row) {
     return {
       id: row.id,
@@ -2058,11 +2073,12 @@ const NaMeAuth = (function () {
   async function fetchCommunityLikedSet(postIds, userId) {
     if (!userId || !postIds.length) return new Set();
     const sb = supabase();
-    const { data } = await sb
+    const { data, error } = await sb
       .from("community_likes")
       .select("post_id")
       .eq("user_id", userId)
       .in("post_id", postIds);
+    if (error) console.warn("NaMe: could not load liked pins", error.message);
     return new Set((data || []).map((l) => l.post_id));
   }
 
@@ -2340,12 +2356,13 @@ const NaMeAuth = (function () {
       const user = getUser();
       if (!user) throw new Error("Log in required");
 
-      const { data: existing } = await sb
+      const { data: existing, error: existingError } = await sb
         .from("community_likes")
         .select("post_id")
         .eq("user_id", user.id)
         .eq("post_id", id)
         .maybeSingle();
+      if (existingError) throw new Error(existingError.message);
 
       if (existing) {
         const { error } = await sb

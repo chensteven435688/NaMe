@@ -2665,6 +2665,14 @@ img.user-avatar {
   font-size: 14px;
 }
 
+.comments__error {
+  margin: 0.75rem 0 0;
+  font-size: 13px;
+  color: var(--color-error);
+  border-left: 2px solid var(--color-error);
+  padding-left: 0.6rem;
+}
+
 .comment {
   display: flex;
   gap: 1rem;
@@ -4856,9 +4864,6 @@ button.danger {
   width: 32px;
   height: 32px;
   font-size: 12px;
-}
-  font-size: 11px;
-  flex-shrink: 0;
 }
 
 .pin-detail__comment-form {

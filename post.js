@@ -43,15 +43,16 @@ function renderPost(post) {
   const backPath = isExclusive ? "/exclusive.html" : isFilm ? "/film.html" : "/";
   const backHref =
     typeof NaMeBase !== "undefined" ? NaMeBase.path(backPath) : backPath;
+  // "backHome" already ships with its own arrow; the section labels do not.
   const backLabel = isExclusive
-    ? NaMeI18n.t(lang, "editorsExclusive")
+    ? `← ${NaMeI18n.t(lang, "editorsExclusive")}`
     : isFilm
-      ? NaMeI18n.t(lang, "film")
+      ? `← ${NaMeI18n.t(lang, "film")}`
       : NaMeI18n.t(lang, "backHome");
   const backEl = document.querySelector(".post-page__back");
   if (backEl) {
     backEl.href = backHref;
-    backEl.textContent = isExclusive ? `← ${backLabel}` : NaMeI18n.t(lang, "backHome");
+    backEl.textContent = backLabel;
   }
 
   const bodyImages = extractImagesFromBody(post.body);
@@ -60,12 +61,12 @@ function renderPost(post) {
 
   let media;
   if (post.videoUrl) {
-    media = `<video class="post__video" controls poster="${post.imageUrl || ""}" src="${post.videoUrl}"></video>`;
+    media = `<video class="post__video" controls poster="${escapeAttr(safeMediaUrl(post.imageUrl))}" src="${escapeAttr(safeMediaUrl(post.videoUrl))}"></video>`;
   } else if (galleryImages.length > 1) {
     media = buildPostGallery(galleryImages, post.title, lang);
   } else {
     const src = galleryImages[0] || post.imageUrl || "";
-    media = `<img class="post__hero-img" src="${escapeAttr(src)}" alt="${escapeHtml(post.title)}" />`;
+    media = `<img class="post__hero-img" src="${escapeAttr(safeMediaUrl(src))}" alt="${escapeHtml(post.title)}" />`;
   }
 
   const datesHtml = buildPostDates(post, lang);
@@ -258,6 +259,7 @@ function formatPostDate(iso, locale) {
 
 async function loadComments(slug) {
   const list = document.getElementById("comments-list");
+  if (!list) return;
   const data = await NaMeAuth.fetchPostComments(slug);
   list.innerHTML = "";
   if (!data.comments.length) {
@@ -317,10 +319,18 @@ function renderComment(comment, slug, isReply = false) {
       NaMeAuth.openAuthModal("login");
       return;
     }
-    const res = await NaMeAuth.togglePostCommentLike(comment.id);
     const btn = el.querySelector("[data-like]");
-    btn.classList.toggle("is-liked", res.liked);
-    btn.querySelector("span").textContent = res.likeCount;
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    try {
+      const res = await NaMeAuth.togglePostCommentLike(comment.id);
+      btn.classList.toggle("is-liked", res.liked);
+      btn.querySelector("span").textContent = res.likeCount;
+    } catch (err) {
+      showCommentError(err);
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   el.querySelector("[data-reply]")?.addEventListener("click", () => {
@@ -333,22 +343,41 @@ function renderComment(comment, slug, isReply = false) {
 
   el.querySelector(`[data-reply-form="${comment.id}"]`)?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const input = e.target.querySelector("input");
-    await NaMeAuth.createPostComment(slug, { body: input.value, parentId: comment.id });
-    await loadComments(slug);
+    const form = e.target;
+    const input = form.querySelector("input");
+    const body = input?.value.trim();
+    if (!body || form.dataset.busy) return;
+    form.dataset.busy = "1";
+    setFormDisabled(form, true);
+    try {
+      await NaMeAuth.createPostComment(slug, { body, parentId: comment.id });
+      await loadComments(slug);
+    } catch (err) {
+      showCommentError(err);
+      setFormDisabled(form, false);
+      delete form.dataset.busy;
+    }
   });
 
   el.querySelector("[data-delete]")?.addEventListener("click", async () => {
+    const btn = el.querySelector("[data-delete]");
+    if (!btn || btn.disabled) return;
     const msg = NaMeAuth.isAdmin()
       ? NaMeI18n.t(NaMeI18n.getLang(), "adminRemoveCommentConfirm")
       : "Delete this comment?";
     if (!confirm(msg)) return;
-    if (NaMeAuth.isAdmin()) {
-      await NaMeAuth.deleteAdminComment(comment.id);
-    } else {
-      await NaMeAuth.deletePostComment(comment.id);
+    btn.disabled = true;
+    try {
+      if (NaMeAuth.isAdmin()) {
+        await NaMeAuth.deleteAdminComment(comment.id);
+      } else {
+        await NaMeAuth.deletePostComment(comment.id);
+      }
+      await loadComments(slug);
+    } catch (err) {
+      showCommentError(err);
+      btn.disabled = false;
     }
-    await loadComments(slug);
   });
 
   const repliesEl = el.querySelector(".comment__replies");
@@ -365,12 +394,62 @@ document.getElementById("comment-form")?.addEventListener("submit", async (e) =>
     NaMeAuth.openAuthModal("login");
     return;
   }
+  const form = e.target;
+  if (form.dataset.busy) return;
   const slug = new URLSearchParams(location.search).get("slug");
-  const input = e.target.querySelector("textarea");
-  await NaMeAuth.createPostComment(slug, { body: input.value });
-  input.value = "";
-  await loadComments(slug);
+  const input = form.querySelector("textarea");
+  const body = input?.value.trim();
+  if (!body) return;
+
+  form.dataset.busy = "1";
+  setFormDisabled(form, true);
+  clearCommentError();
+  try {
+    await NaMeAuth.createPostComment(slug, { body });
+    input.value = "";
+    await loadComments(slug);
+  } catch (err) {
+    showCommentError(err);
+  } finally {
+    setFormDisabled(form, false);
+    delete form.dataset.busy;
+  }
 });
+
+function setFormDisabled(form, disabled) {
+  form.querySelectorAll("input, textarea, button").forEach((el) => {
+    el.disabled = disabled;
+  });
+}
+
+function commentErrorEl() {
+  const form = document.getElementById("comment-form");
+  if (!form) return null;
+  let el = document.getElementById("comment-error");
+  if (!el) {
+    el = document.createElement("p");
+    el.id = "comment-error";
+    el.className = "comments__error";
+    el.setAttribute("role", "alert");
+    form.insertAdjacentElement("afterend", el);
+  }
+  return el;
+}
+
+function showCommentError(err) {
+  const el = commentErrorEl();
+  if (!el) return;
+  el.textContent = err?.message || "Something went wrong. Please try again.";
+  el.hidden = false;
+}
+
+function clearCommentError() {
+  const el = document.getElementById("comment-error");
+  if (el) {
+    el.textContent = "";
+    el.hidden = true;
+  }
+}
 
 function escapeHtml(s) {
   const d = document.createElement("div");
@@ -380,6 +459,15 @@ function escapeHtml(s) {
 
 function escapeAttr(s) {
   return escapeHtml(s).replace(/'/g, "&#39;");
+}
+
+/** Drops javascript:/vbscript: and other script-bearing schemes before a URL reaches src/poster. */
+function safeMediaUrl(url) {
+  const raw = String(url ?? "").trim();
+  if (!raw) return "";
+  if (/^(?:https?:|blob:|data:image\/)/i.test(raw)) return raw;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return "";
+  return raw;
 }
 
 function formatTime(iso) {

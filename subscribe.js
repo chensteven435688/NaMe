@@ -55,9 +55,10 @@ function initSubscribeForm() {
     }
 
     try {
-      if (useSupabaseNewsletter()) {
-        await saveNewsletterEmail(email);
+      if (!useSupabaseNewsletter()) {
+        throw new Error("Newsletter signup is unavailable right now. Please try again later.");
       }
+      await saveNewsletterEmail(email);
       if (status) {
         status.textContent = NaMeI18n.t(lang, "newsletterThanks");
       }
