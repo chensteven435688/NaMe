@@ -1135,6 +1135,7 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
 }
 
 .carousel {
+  --carousel-pad: clamp(1rem, 4vw, 2.5rem);
   display: flex;
   gap: 1rem;
   overflow-x: auto;
@@ -1142,7 +1143,10 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 0 clamp(1rem, 4vw, 2.5rem) 0.5rem;
+  padding: 0 var(--carousel-pad) 0.5rem;
+  /* Keeps snapped cards aligned with the section heading instead of the viewport edge */
+  scroll-padding-left: var(--carousel-pad);
+  scroll-padding-right: var(--carousel-pad);
 }
 
 .carousel::-webkit-scrollbar {
@@ -1261,6 +1265,7 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
 }
 
 .carousel--shorts {
+  --carousel-pad: 0px;
   padding-left: 0;
   padding-right: 0;
 }
