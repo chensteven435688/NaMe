@@ -15,9 +15,10 @@
         <a href="subscribe.html" id="header-subscribe-link" data-i18n="subscribe">Subscribe</a>
         <a href="account.html" id="auth-link" data-i18n="loginJoin">Login / Join</a>
       </nav>
-      <button class="header__menu-btn" type="button" id="menu-btn"><span></span><span></span></button>
+      <button class="header__menu-btn" type="button" data-i18n-aria="openMenu" aria-expanded="false" aria-label="Open menu" id="menu-btn"><span></span><span></span></button>
     </div>
-    <nav class="header__nav" id="main-nav">
+    <div class="header__secondary" id="main-nav">
+      <nav class="header__nav" aria-label="Main">
       <div class="nav-dropdown" data-nav-dropdown="about">
         <a href="about.html" class="nav-dropdown__main" data-i18n="about">About</a>
         <button type="button" class="nav-dropdown__toggle" aria-expanded="false" data-i18n-aria="navAboutMenu" aria-label="About menu">
@@ -45,6 +46,10 @@
         <select id="lang-select" data-i18n-aria="language" aria-label="Language">
           <option value="en">English</option>
           <option value="ko">한국어</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+          <option value="ja">日本語</option>
           <option value="zh-Hans">简体中文</option>
           <option value="zh-Hant">繁體中文</option>
         </select>
@@ -61,12 +66,13 @@
   </footer>
   <div class="modal" id="auth-modal" aria-hidden="true">
     <div class="modal__backdrop" data-close-auth></div>
-    <div class="modal__panel modal__panel--wide" role="dialog">
-      <button class="modal__close" type="button" data-close-auth>&times;</button>
-      <form id="auth-login-form" class="auth-form" data-auth-panel="login">
-        <input type="email" name="loginEmail" data-login-email required />
-        <input type="password" name="loginPassword" data-login-password required />
-        <button type="submit" class="btn btn--primary">Login</button>
+    <div class="modal__panel modal__panel--wide" role="dialog" aria-labelledby="auth-modal-title">
+      <button class="modal__close" type="button" data-i18n-aria="close" aria-label="Close" data-close-auth>&times;</button>
+      <h2 id="auth-modal-title" class="modal__title" data-i18n="authTitle">NaMe Account</h2>
+      <form id="auth-login-form" class="auth-form" data-auth-panel="login" autocomplete="on">
+        <input type="email" name="loginEmail" data-login-email data-i18n-placeholder="authEmail" placeholder="Email" required autocomplete="username" />
+        <input type="password" name="loginPassword" data-login-password data-i18n-placeholder="authPassword" placeholder="Password" required autocomplete="current-password" />
+        <button type="submit" class="btn btn--primary" data-i18n="authLoginBtn">Login</button>
       </form>
     </div>
   </div>

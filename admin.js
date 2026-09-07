@@ -56,10 +56,6 @@ function showPanel(panel) {
   }
 }
 
-function initPanels() {
-  showPanel("dashboard");
-}
-
 async function loadDashboard() {
   try {
     const { posts, users, comments, members, admins, postsByType } =

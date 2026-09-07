@@ -58,12 +58,17 @@ async function loadStats() {
   }
 }
 
+let feedRequestId = 0;
+
 async function loadFeed() {
   const grid = document.getElementById("community-grid");
   if (!grid) return;
   const lang = NaMeI18n.getLang();
+  const requestId = ++feedRequestId;
   try {
     const { posts } = await NaMeAuth.fetchCommunityPosts();
+    // A newer load (e.g. triggered by login) already rendered — discard this stale response.
+    if (requestId !== feedRequestId) return;
     feedPosts = posts;
     NaMeCommunityPin.setFeedPosts(posts);
     if (!posts.length) {
@@ -82,6 +87,7 @@ async function loadFeed() {
       link.addEventListener("click", (e) => e.stopPropagation());
     });
   } catch (err) {
+    if (requestId !== feedRequestId) return;
     grid.innerHTML = `<p class="community-feed__empty">${esc(err.message)}</p>`;
   }
 }
@@ -123,7 +129,8 @@ function openShareModal() {
   modal?.classList.add("is-open");
   modal?.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
-  document.getElementById("share-status").textContent = "";
+  const status = document.getElementById("share-status");
+  if (status) status.textContent = "";
 }
 
 function closeShareModal() {
@@ -137,23 +144,27 @@ function initShareForm() {
   document.getElementById("share-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const status = document.getElementById("share-status");
+    const setStatus = (text) => {
+      if (status) status.textContent = text;
+    };
     const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn?.disabled) return;
     const fd = new FormData(e.target);
     if (!fd.get("image")?.size) {
-      status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "communityImageRequired");
+      setStatus(NaMeI18n.t(NaMeI18n.getLang(), "communityImageRequired"));
       return;
     }
     if (submitBtn) submitBtn.disabled = true;
-    status.textContent = "";
+    setStatus("");
     try {
       await NaMeAuth.createCommunityPost(fd);
-      status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "communityShareSuccess");
+      setStatus(NaMeI18n.t(NaMeI18n.getLang(), "communityShareSuccess"));
       e.target.reset();
       closeShareModal();
       loadFeed();
       loadStats();
     } catch (err) {
-      status.textContent = err.message;
+      setStatus(err.message);
     } finally {
       if (submitBtn) submitBtn.disabled = false;
     }
