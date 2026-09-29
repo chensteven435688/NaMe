@@ -3946,7 +3946,12 @@ button.danger {
   font-size: 1.5rem;
   font-weight: 400;
   color: var(--text);
-  margin: 2rem 0 1rem;
+  margin: 2.25rem 0 0.75rem;
+}
+
+.static-page__content strong {
+  font-weight: 500;
+  color: var(--text);
 }
 
 .static-page__content p {
