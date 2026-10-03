@@ -184,7 +184,21 @@ const FEED_CONFIG = {
   short: { type: "short", section: "latest", cardClass: "card--short" },
 };
 
+const HOME_SECTION_FOR_FEED = {
+  exclusive: "exclusive",
+  article: "articles",
+  "editorial-latest": "editorial",
+  "editorial-popular": "magazine",
+};
+
+function hideBlock(el) {
+  if (!el) return;
+  el.hidden = true;
+  el.classList.add("is-empty-section");
+}
+
 async function loadFeeds() {
+  const counts = {};
   for (const el of document.querySelectorAll("[data-feed]")) {
     const key = el.dataset.feed;
     const cfg = FEED_CONFIG[key];
@@ -194,11 +208,28 @@ async function loadFeeds() {
         type: cfg.type,
         section: cfg.section,
       });
+      counts[key] = posts.length;
       el.innerHTML = posts.map((p) => renderCard(p, cfg)).join("");
     } catch {
       el.innerHTML = "";
     }
   }
+
+  for (const [feed, id] of Object.entries(HOME_SECTION_FOR_FEED)) {
+    if (counts[feed] === 0) hideBlock(document.getElementById(id));
+  }
+
+  const filmSection = document.getElementById("film");
+  if (!filmSection || counts.film === undefined || counts.short === undefined) return;
+  if (counts.film === 0 && counts.short === 0) {
+    hideBlock(filmSection);
+    return;
+  }
+  if (counts.film === 0) {
+    hideBlock(filmSection.querySelector(".section__head"));
+    hideBlock(document.getElementById("carousel-films"));
+  }
+  if (counts.short === 0) hideBlock(filmSection.querySelector(".shorts"));
 }
 
 function renderCard(post, cfg) {

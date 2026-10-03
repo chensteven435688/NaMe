@@ -100,9 +100,47 @@ const NaMeNav = (function () {
     });
   }
 
+  const SECTION_PAGES = {
+    "exclusive.html": "exclusive",
+    "articles.html": "article",
+    "editorial.html": "editorial",
+    "magazine.html": "magazine",
+    "film.html": "film",
+  };
+
+  function linkFile(href) {
+    return (href || "").split(/[?#]/)[0].split("/").filter(Boolean).pop() || "";
+  }
+
+  async function hideEmptySectionLinks() {
+    if (typeof NaMeAuth === "undefined" || !NaMeAuth.fetchPostIndex) return;
+    let sections;
+    try {
+      sections = NaMeAuth.publishedSections(await NaMeAuth.fetchPostIndex());
+    } catch {
+      return;
+    }
+
+    document.querySelectorAll("a[href]").forEach((link) => {
+      const key = SECTION_PAGES[linkFile(link.getAttribute("href"))];
+      if (!key || sections[key]) return;
+      link.hidden = true;
+      link.classList.add("is-empty-section");
+    });
+
+    document.querySelectorAll(".stories-categories").forEach((nav) => {
+      const visible = [...nav.querySelectorAll("a")].some((link) => !link.hidden);
+      if (!visible) {
+        nav.hidden = true;
+        nav.classList.add("is-empty-section");
+      }
+    });
+  }
+
   function init() {
     initDropdowns();
     initMobileMenu();
+    hideEmptySectionLinks();
   }
 
   return { init };
