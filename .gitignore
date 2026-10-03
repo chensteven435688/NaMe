@@ -2,7 +2,25 @@ node_modules/
 server/node_modules/
 server/data/
 server/uploads/
+
+# Secrets — never commit real keys. Templates like server/.env.example are fine.
 .env
+.env.*
+!.env.example
 server/.env
+server/.env.*
+!server/.env.example
+*.pem
+*.key
+.vercel/
+
+# Local databases, cookies, logs
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
 server/.test-cookies.txt
+*cookies*.txt
+*.log
+
 .DS_Store

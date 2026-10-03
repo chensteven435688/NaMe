@@ -282,7 +282,7 @@ grant select, insert on table public.newsletter_subscribers to anon, authenticat
 grant update on table public.newsletter_subscribers to authenticated;
 
 -- Make yourself admin (replace with your email after you sign up once)
--- update public.profiles set role = 'admin' where email = 'chensteven435688@gmail.com';
+-- update public.profiles set role = 'admin' where email = 'you@example.com';
 
 create or replace function public.admin_delete_user(target_id uuid)
 returns void
