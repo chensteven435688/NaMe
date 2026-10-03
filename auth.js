@@ -660,6 +660,36 @@ const NaMeAuth = (function () {
     return data.posts;
   }
 
+  /** type + section only, used to hide empty public sections. */
+  async function fetchPostIndex() {
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb.from("posts").select("type, section");
+      if (error) throw new Error(error.message);
+      return data || [];
+    }
+
+    const posts = await fetchPosts({});
+    return posts.map((post) => ({ type: post.type, section: post.section }));
+  }
+
+  function publishedSections(rows) {
+    const types = new Set((rows || []).map((row) => row.type));
+    const editorialSections = new Set(
+      (rows || [])
+        .filter((row) => row.type === "editorial")
+        .map((row) => row.section || "latest")
+    );
+    return {
+      exclusive: types.has("exclusive"),
+      article: types.has("article"),
+      editorial: types.has("editorial"),
+      magazine: editorialSections.has("popular"),
+      film: types.has("film"),
+      short: types.has("short"),
+    };
+  }
+
   async function fetchPost(slug) {
     if (useSupabase()) {
       const sb = supabase();
@@ -2933,6 +2963,8 @@ const NaMeAuth = (function () {
     memberProfilePath,
     fetchPublicProfile,
     fetchPosts,
+    fetchPostIndex,
+    publishedSections,
     fetchPost,
     fetchPostComments,
     createPostComment,

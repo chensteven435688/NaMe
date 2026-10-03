@@ -1056,6 +1056,10 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
 }
 
 /* ─── Sections & carousels ─── */
+.is-empty-section {
+  display: none !important;
+}
+
 .section {
   padding: var(--section-pad) 0;
 }

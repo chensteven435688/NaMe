@@ -33,7 +33,8 @@ async function loadBrowseFeed() {
     if (browseSection) params.section = browseSection;
     const posts = await NaMeAuth.fetchPosts(params);
     if (!posts.length) {
-      grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, emptyKey))}</p>`;
+      const home = typeof NaMeBase !== "undefined" ? NaMeBase.path("/") : "/";
+      window.location.replace(home);
       return;
     }
     const cardClass = browseCard || `card--${browseType}`;
