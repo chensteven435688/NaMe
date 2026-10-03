@@ -12,7 +12,7 @@ const NaMeCommunityPin = (function () {
   function esc(s) {
     const d = document.createElement("div");
     d.textContent = s ?? "";
-    return d.innerHTML;
+    return d.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
   function withTimeout(promise, ms = 15000, message = "Could not load this pin.") {

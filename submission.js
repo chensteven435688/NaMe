@@ -227,7 +227,7 @@ function formatDate(iso) {
 function esc(s) {
   const d = document.createElement("div");
   d.textContent = s ?? "";
-  return d.innerHTML;
+  return d.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 function escAttr(s) {

@@ -117,11 +117,11 @@ const NaMeAuth = (function () {
     return true;
   }
 
-  function mapProfile(row) {
+  function mapProfile(row, email) {
     if (!row) return null;
     return {
       id: row.id,
-      email: row.email,
+      email: row.email || email || "",
       displayName: row.display_name,
       avatarUrl: row.avatar_url || null,
       signature: row.signature || null,
@@ -130,6 +130,8 @@ const NaMeAuth = (function () {
   }
 
   const PROFILE_PUBLIC_SELECT = "id, display_name, avatar_url, signature";
+  // profiles.email is not readable by anon/authenticated; members get it from their auth session.
+  const PROFILE_SELF_SELECT = "id, display_name, avatar_url, signature, role";
 
   function mapPublicAuthor(row, userId) {
     const profile = row?.profiles;
@@ -245,13 +247,17 @@ const NaMeAuth = (function () {
     };
   }
 
-  async function loadProfile(userId) {
+  async function loadProfile(userId, email = "") {
     const sb = supabase();
     if (!sb) return null;
 
-    const { data, error } = await sb.from("profiles").select("*").eq("id", userId).single();
+    const { data, error } = await sb
+      .from("profiles")
+      .select(PROFILE_SELF_SELECT)
+      .eq("id", userId)
+      .single();
     if (data) {
-      currentUser = mapProfile(data);
+      currentUser = mapProfile(data, email);
       return currentUser;
     }
 
@@ -446,7 +452,7 @@ const NaMeAuth = (function () {
         const { data, error } = await sb.auth.getSession();
         if (error) throw error;
         if (data.session?.user) {
-          await loadProfile(data.session.user.id);
+          await loadProfile(data.session.user.id, data.session.user.email);
         } else {
           currentUser = null;
         }
@@ -535,7 +541,7 @@ const NaMeAuth = (function () {
       });
       if (error) throw new Error(mapSignUpError(error));
       if (data.session?.user) {
-        await loadProfile(data.session.user.id);
+        await loadProfile(data.session.user.id, data.session.user.email);
         notify();
         return { user: currentUser };
       }
@@ -570,7 +576,7 @@ const NaMeAuth = (function () {
       if (!data.session?.user) {
         throw new Error("Could not establish session. Please try again.");
       }
-      await loadProfile(data.session.user.id);
+      await loadProfile(data.session.user.id, data.session.user.email);
       if (!currentUser) {
         throw new Error("Could not load your profile. Please try again.");
       }
@@ -947,6 +953,23 @@ const NaMeAuth = (function () {
     return decodeURIComponent(fileUrl.slice(idx + marker.length));
   }
 
+  /** Fills `row.profiles.email` via an admin-only RPC; emails stay blank if it is unavailable. */
+  async function attachAdminEmails(sb, rows) {
+    const ids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
+    if (!ids.length) return rows;
+    const { data, error } = await sb.rpc("admin_profile_emails", { ids });
+    if (error) {
+      console.warn("NaMe: could not load member emails", error.message);
+      return rows;
+    }
+    const emailById = new Map((data || []).map((r) => [r.id, r.email]));
+    for (const row of rows) {
+      const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+      if (profile) profile.email = emailById.get(row.user_id) || "";
+    }
+    return rows;
+  }
+
   async function fetchAdminSubmissions() {
     if (!isAdmin()) throw new Error("Admin access required");
 
@@ -954,11 +977,12 @@ const NaMeAuth = (function () {
       const sb = supabase();
       const { data, error } = await sb
         .from("submissions")
-        .select("*, profiles!user_id(id, display_name, email), posts(slug)")
+        .select("*, profiles!user_id(id, display_name), posts(slug)")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw new Error(error.message);
 
+      await attachAdminEmails(sb, data || []);
       const submissions = (data || []).map(mapAdminSubmission);
       return { submissions, counts: submissionStatusCounts(submissions) };
     }
@@ -983,7 +1007,7 @@ const NaMeAuth = (function () {
         .from("submissions")
         .update(patch)
         .eq("id", id)
-        .select("*, profiles!user_id(id, display_name, email), posts(slug)")
+        .select("*, profiles!user_id(id, display_name), posts(slug)")
         .single();
       if (error) throw new Error(error.message);
 
@@ -1048,7 +1072,7 @@ const NaMeAuth = (function () {
           reviewed_by: user?.id || null,
         })
         .eq("id", id)
-        .select("*, profiles!user_id(id, display_name, email), posts(slug)")
+        .select("*, profiles!user_id(id, display_name), posts(slug)")
         .single();
       if (subError) throw new Error(subError.message);
 
@@ -1159,7 +1183,7 @@ const NaMeAuth = (function () {
       userData = { user: refreshed.session.user };
     }
 
-    await loadProfile(userData.user.id);
+    await loadProfile(userData.user.id, userData.user.email);
     return { sb, user: userData.user };
   }
 
@@ -1280,11 +1304,11 @@ const NaMeAuth = (function () {
           .from("profiles")
           .update(patch)
           .eq("id", user.id)
-          .select("*")
+          .select(PROFILE_SELF_SELECT)
           .single();
         if (error) throw new Error(mapSupabaseWriteError(error, "avatar"));
 
-        currentUser = mapProfile(data);
+        currentUser = mapProfile(data, currentUser?.email || user.email);
         if (wantsAvatarChange && !removeAvatar && !currentUser?.avatarUrl) {
           throw new Error(
             "Photo uploaded but your profile did not update. Log out, log in again, then try once more."
@@ -1697,7 +1721,7 @@ const NaMeAuth = (function () {
       const sb = supabase();
       const [postsRes, usersRes, commentsRes, rolesRes] = await Promise.all([
         sb.from("posts").select("type"),
-        sb.from("profiles").select("*", { count: "exact", head: true }),
+        sb.from("profiles").select("id", { count: "exact", head: true }),
         sb.from("comments").select("*", { count: "exact", head: true }),
         sb.from("profiles").select("role"),
       ]);
@@ -1735,10 +1759,13 @@ const NaMeAuth = (function () {
 
     if (useSupabase()) {
       const sb = supabase();
-      const { data, error } = await sb
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
+      let { data, error } = await sb.rpc("admin_list_profiles");
+      if (error?.code === "PGRST202") {
+        ({ data, error } = await sb
+          .from("profiles")
+          .select("*")
+          .order("created_at", { ascending: false }));
+      }
       if (error) throw new Error(error.message);
       return { users: (data || []).map(mapAdminUser) };
     }
@@ -1767,7 +1794,7 @@ const NaMeAuth = (function () {
         .from("profiles")
         .update(patch)
         .eq("id", id)
-        .select("*")
+        .select("id, display_name, role, created_at")
         .single();
       if (error) throw new Error(error.message);
       return { user: mapAdminUser(data) };
@@ -1800,11 +1827,12 @@ const NaMeAuth = (function () {
       const { data, error } = await sb
         .from("comments")
         .select(
-          "*, profiles!user_id(id, display_name, email), posts(title, slug), comment_likes(count)"
+          "*, profiles!user_id(id, display_name), posts(title, slug), comment_likes(count)"
         )
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw new Error(error.message);
+      await attachAdminEmails(sb, data || []);
       return { comments: (data || []).map(mapAdminComment) };
     }
 
@@ -2087,7 +2115,7 @@ const NaMeAuth = (function () {
       const sb = supabase();
       const [posts, membersRes] = await Promise.all([
         countSupabaseCommunityPosts(sb),
-        sb.from("profiles").select("*", { count: "exact", head: true }),
+        sb.from("profiles").select("id", { count: "exact", head: true }),
       ]);
       if (membersRes.error) throw new Error(membersRes.error.message);
       return { posts, members: membersRes.count ?? 0 };

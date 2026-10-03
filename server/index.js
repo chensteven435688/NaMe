@@ -44,7 +44,8 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use("/uploads", express.static(uploadsDir));
-app.use(express.static(rootDir));
+app.use(["/server", "/supabase", "/scripts"], (_req, res) => res.status(404).end());
+app.use(express.static(rootDir, { dotfiles: "deny" }));
 
 const storage = multer.diskStorage({
   destination: uploadsDir,
