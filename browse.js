@@ -81,6 +81,6 @@ function renderBrowseCard(post, cardClass, showMeta, showType = false) {
 
 function escapeHtml(s) {
   const d = document.createElement("div");
-  d.textContent = s;
-  return d.innerHTML;
+  d.textContent = s ?? "";
+  return d.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }

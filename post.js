@@ -453,12 +453,12 @@ function clearCommentError() {
 
 function escapeHtml(s) {
   const d = document.createElement("div");
-  d.textContent = s;
-  return d.innerHTML;
+  d.textContent = s ?? "";
+  return d.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 function escapeAttr(s) {
-  return escapeHtml(s).replace(/'/g, "&#39;");
+  return escapeHtml(s);
 }
 
 /** Drops javascript:/vbscript: and other script-bearing schemes before a URL reaches src/poster. */

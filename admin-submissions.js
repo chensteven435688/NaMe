@@ -97,7 +97,8 @@ function renderCard(s, lang) {
   } else if (s.fileMime?.startsWith("video/")) {
     preview = `<video src="${NaMeAdmin.esc(s.fileUrl)}" controls class="admin-submission-card__video"></video>`;
   } else {
-    preview = `<a href="${NaMeAdmin.esc(s.fileUrl)}" target="_blank" rel="noopener" class="admin-submission-card__file">${NaMeAdmin.esc(s.fileName || "PDF")}</a>`;
+    const href = /^https?:\/\//i.test(String(s.fileUrl || "").trim()) ? s.fileUrl : "#";
+    preview = `<a href="${NaMeAdmin.esc(href)}" target="_blank" rel="noopener" class="admin-submission-card__file">${NaMeAdmin.esc(s.fileName || "PDF")}</a>`;
   }
 
   const live = s.postSlug
