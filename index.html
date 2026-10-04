@@ -6,6 +6,9 @@
   <meta name="description" content="NaMe Magazine — Before the Name" />
   <title>NaMe Magazine — Before the Name</title>
   <script src="auth-boot.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Bodoni:opsz,wght@6..96,500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <style>
     .page-loader {
@@ -15,8 +18,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #fff;
-      color: #000;
+      background: #f4f0e8;
+      color: #1a1a1a;
       transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.55s;
     }
     .page-loader.is-done {
@@ -29,7 +32,7 @@
     }
   </style>
 </head>
-<body>
+<body class="page-home">
   <div id="page-loader" class="page-loader" role="status" aria-live="polite" aria-busy="true">
     <div class="page-loader__inner">
       <span class="page-loader__brand">NaMe</span>
@@ -113,32 +116,63 @@
   </header>
 
   <main>
-    <!-- Cover hero -->
-    <section class="hero hero--marquee" id="hero" data-i18n-aria="coverStory" aria-label="Cover story">
-      <div class="hero__media" id="hero-media" aria-hidden="true"></div>
-    </section>
-
-    <div class="home-marquee" aria-hidden="true">
-      <div class="home-marquee__track">
-        <div class="home-marquee__set">
-          <span>Before the Name</span><span>NaMe Magazine</span><span>Before the Name</span><span>NaMe Magazine</span>
-          <span>Before the Name</span><span>NaMe Magazine</span><span>Before the Name</span><span>NaMe Magazine</span>
+    <section class="atelier" aria-labelledby="atelier-title">
+      <div class="atelier__stage">
+        <div class="atelier__mast">
+          <h1 class="atelier__title" id="atelier-title">
+            <span>Name</span>
+            <span>Maga</span>
+            <span class="atelier__title-line">
+              <span>Zine</span>
+              <span class="atelier__count"><b id="atelier-count">0</b> <span data-i18n="atelierStories">stories</span></span>
+            </span>
+          </h1>
         </div>
-        <div class="home-marquee__set" aria-hidden="true">
-          <span>Before the Name</span><span>NaMe Magazine</span><span>Before the Name</span><span>NaMe Magazine</span>
-          <span>Before the Name</span><span>NaMe Magazine</span><span>Before the Name</span><span>NaMe Magazine</span>
-        </div>
+        <nav class="atelier__side" aria-label="Explore">
+          <a href="stories.html">
+            <strong data-i18n="navStories">Stories</strong>
+            <span data-i18n="atelierSideStories">Magazine, editorial, and film</span>
+          </a>
+          <a href="community.html">
+            <strong data-i18n="community">Community</strong>
+            <span data-i18n="atelierSideCommunity">Open calls and conversation</span>
+          </a>
+          <a href="about.html">
+            <strong data-i18n="about">About</strong>
+            <span data-i18n="atelierSideAbout">Before the name</span>
+          </a>
+          <a href="exclusive.html">
+            <strong data-i18n="editorsExclusive">Editor's Exclusive</strong>
+            <span data-i18n="atelierSideExclusive">Notes from the desk</span>
+          </a>
+        </nav>
       </div>
-    </div>
 
-    <section class="home-index" id="home-index">
-      <div class="home-index__head">
-        <span class="section__label" data-i18n="homeIndexLabel">Index</span>
-        <h2 class="home-index__title" data-i18n="homeIndexTitle">Latest Stories</h2>
-      </div>
-      <ol class="home-index__list" id="home-index-list">
-        <li class="home-index__loading" data-i18n="browseLoading">Loading…</li>
-      </ol>
+      <form class="atelier__tools" id="atelier-tools" role="search">
+        <label class="atelier__field">
+          <span class="visually-hidden" data-i18n="atelierSection">Section</span>
+          <select id="atelier-filter" name="section">
+            <option value="" data-i18n="atelierAll">All</option>
+            <option value="editorial" data-i18n="editorial">Editorial</option>
+            <option value="article" data-i18n="article">Article</option>
+            <option value="film" data-i18n="film">Film</option>
+            <option value="exclusive" data-i18n="editorsExclusive">Editor's Exclusive</option>
+          </select>
+        </label>
+        <label class="atelier__search">
+          <span class="visually-hidden" data-i18n="atelierSearch">Search</span>
+          <input id="atelier-search" type="search" name="q" data-i18n-placeholder="atelierSearch" placeholder="Search" autocomplete="off" />
+        </label>
+        <div class="atelier__chips" id="atelier-chips"></div>
+        <button class="atelier__go" type="submit" data-i18n-aria="atelierSearch" aria-label="Search">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.7" />
+            <path d="M16.2 16.2 20.5 20.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+          </svg>
+        </button>
+      </form>
+
+      <div class="atelier__gallery" id="atelier-gallery"></div>
     </section>
 
     <!-- Community CTA -->

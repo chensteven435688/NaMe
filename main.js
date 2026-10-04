@@ -39,7 +39,7 @@ const PAGE_LOADER_MIN_MS = 700;
 const CRITICAL_IMAGE_TIMEOUT_MS = 4500;
 
 function waitForCriticalImages() {
-  const imgs = [...document.querySelectorAll(".hero__slide img")].slice(0, 3);
+  const imgs = [...document.querySelectorAll(".atelier-piece img, .hero__slide img")].slice(0, 3);
   if (!imgs.length) return Promise.resolve();
 
   return Promise.all(
@@ -80,9 +80,151 @@ async function revealPage(startedAt = performance.now()) {
 }
 
 async function initHomepage() {
+  if (document.getElementById("atelier-gallery")) {
+    await initAtelier();
+    return;
+  }
   const heroSlides = await loadHeroSlides();
   initHero(heroSlides);
   await loadHomeIndex();
+}
+
+let atelierPosts = [];
+
+async function initAtelier() {
+  try {
+    atelierPosts = await NaMeAuth.fetchPosts({});
+  } catch {
+    atelierPosts = [];
+  }
+
+  const form = document.getElementById("atelier-tools");
+  const filter = document.getElementById("atelier-filter");
+  const search = document.getElementById("atelier-search");
+
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    renderAtelier();
+  });
+  filter?.addEventListener("change", () => renderAtelier());
+  search?.addEventListener("input", () => renderAtelier());
+  document.getElementById("atelier-chips")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-type]");
+    if (!btn || !filter) return;
+    filter.value = filter.value === btn.dataset.type ? "" : btn.dataset.type;
+    renderAtelier();
+  });
+  document.addEventListener("name:languagechange", () => renderAtelier());
+  renderAtelier();
+}
+
+function atelierSource() {
+  if (atelierPosts.length) return atelierPosts;
+  return [1, 2, 3].map((n, i) => ({
+    slug: "",
+    type: ["editorial", "article", "film"][i],
+    title: ["Before the Name", "Cover study", "New voices"][i],
+    meta: "Photography, film, and writing from voices still becoming known.",
+    imageUrl: heroImagePath(n),
+  }));
+}
+
+function stripHtml(value) {
+  const node = document.createElement("div");
+  node.innerHTML = value || "";
+  return (node.textContent || "").replace(/\s+/g, " ").trim();
+}
+
+function clipText(value, max) {
+  const text = (value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max).replace(/\s+\S*$/, "")}…`;
+}
+
+function storyBlurb(post) {
+  const fromBody = stripHtml(post.body);
+  if (fromBody.length > 36) return clipText(fromBody, 148);
+  if (post.meta) return clipText(stripHtml(post.meta), 148);
+  return "";
+}
+
+function renderAtelier() {
+  const gallery = document.getElementById("atelier-gallery");
+  const countEl = document.getElementById("atelier-count");
+  const chips = document.getElementById("atelier-chips");
+  if (!gallery) return;
+
+  const lang = typeof NaMeI18n !== "undefined" ? NaMeI18n.getLang() : "en";
+  const filter = document.getElementById("atelier-filter")?.value || "";
+  const query = (document.getElementById("atelier-search")?.value || "").trim().toLowerCase();
+  const source = atelierSource();
+
+  const matches = source.filter((post) => {
+    if (filter && post.type !== filter) return false;
+    if (!query) return true;
+    const haystack = `${post.title || ""} ${post.meta || ""} ${stripHtml(post.body)}`.toLowerCase();
+    return haystack.includes(query);
+  });
+
+  if (countEl) countEl.textContent = String(matches.length);
+
+  const types = [...new Set(source.map((post) => post.type).filter(Boolean))].slice(0, 4);
+  if (chips) {
+    chips.innerHTML = types
+      .map((type) => {
+        const typeKey = TYPE_I18N[type] || "article";
+        const label = typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, typeKey) : type;
+        const active = filter === type ? " is-active" : "";
+        return `<button type="button" class="atelier-chip${active}" data-type="${escapeHtml(type)}"><span class="atelier-chip__mark" aria-hidden="true">${escapeHtml(label.slice(0, 1))}</span>${escapeHtml(label)}</button>`;
+      })
+      .join("");
+  }
+
+  if (!matches.length) {
+    const emptyText =
+      typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "atelierEmpty") : "No stories match.";
+    gallery.innerHTML = `<p class="atelier__empty">${escapeHtml(emptyText)}</p>`;
+    return;
+  }
+
+  const slots =
+    matches.length === 1
+      ? { center: matches[0] }
+      : matches.length === 2
+        ? { left: matches[0], right: matches[1] }
+        : { left: matches[0], center: matches[1], right: matches[2] };
+
+  gallery.innerHTML = ["left", "center", "right"]
+    .map((slot) => atelierPieceHtml(slots[slot], slot, lang))
+    .join("");
+}
+
+function atelierPieceHtml(post, slot, lang) {
+  if (!post) return "";
+  const href = post.slug
+    ? postHref(post.slug)
+    : typeof NaMeBase !== "undefined"
+      ? NaMeBase.path("/stories.html")
+      : "stories.html";
+  const typeKey = TYPE_I18N[post.type] || "article";
+  const typeLabel = typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, typeKey) : post.type;
+  const blurb = storyBlurb(post);
+  const copy =
+    slot === "center"
+      ? ""
+      : `<span class="atelier-piece__copy">
+          <span class="atelier-piece__kicker">${escapeHtml(typeLabel)}</span>
+          <span class="atelier-piece__title">${escapeHtml(post.title)}</span>
+          ${blurb ? `<span class="atelier-piece__text">${escapeHtml(blurb)}</span>` : ""}
+        </span>`;
+
+  return `
+    <a class="atelier-piece atelier-piece--${slot}" href="${href}">
+      <span class="atelier-piece__frame">
+        <img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title || "")}" />
+      </span>
+      ${copy}
+    </a>`;
 }
 
 async function loadHeroSlides() {
