@@ -117,6 +117,11 @@ const NaMeAuth = (function () {
     return true;
   }
 
+  // Public reads follow the live magazine, including on the local server.
+  function useLiveCatalog() {
+    return Boolean(supabase());
+  }
+
   function mapProfile(row, email) {
     if (!row) return null;
     return {
@@ -632,7 +637,7 @@ const NaMeAuth = (function () {
   }
 
   async function fetchPosts(query = {}) {
-    if (useSupabase()) {
+    if (useLiveCatalog()) {
       const sb = supabase();
       // Feeds and carousels render a handful of these; the cap keeps the archive
       // from being downloaded in full on every page load as the magazine grows.
@@ -662,7 +667,7 @@ const NaMeAuth = (function () {
 
   /** type + section only, used to hide empty public sections. */
   async function fetchPostIndex() {
-    if (useSupabase()) {
+    if (useLiveCatalog()) {
       const sb = supabase();
       const { data, error } = await sb.from("posts").select("type, section");
       if (error) throw new Error(error.message);
@@ -691,7 +696,7 @@ const NaMeAuth = (function () {
   }
 
   async function fetchPost(slug) {
-    if (useSupabase()) {
+    if (useLiveCatalog()) {
       const sb = supabase();
       const { data, error } = await sb
         .from("posts")
@@ -1574,7 +1579,7 @@ const NaMeAuth = (function () {
   }
 
   async function fetchPostComments(slug) {
-    if (useSupabase()) {
+    if (useLiveCatalog()) {
       const sb = supabase();
       const { data: post, error: postError } = await sb
         .from("posts")
@@ -2141,7 +2146,7 @@ const NaMeAuth = (function () {
   }
 
   async function fetchCommunityStats() {
-    if (useSupabase()) {
+    if (useLiveCatalog()) {
       const sb = supabase();
       const [posts, membersRes] = await Promise.all([
         countSupabaseCommunityPosts(sb),
@@ -2155,7 +2160,7 @@ const NaMeAuth = (function () {
   }
 
   async function fetchCommunityPosts() {
-    if (useSupabase()) {
+    if (useLiveCatalog()) {
       const sb = supabase();
       const userId = getUser()?.id || null;
       const rows = await querySupabaseCommunityRows(sb);
@@ -2175,7 +2180,7 @@ const NaMeAuth = (function () {
   async function fetchMemberCommunityPosts(memberId) {
     if (!memberId) throw new Error("Member not found");
 
-    if (useSupabase()) {
+    if (useLiveCatalog()) {
       const sb = supabase();
       const viewerId = getUser()?.id || null;
       const rows = await querySupabaseCommunityRows(sb, { memberId });
@@ -2197,7 +2202,7 @@ const NaMeAuth = (function () {
   async function fetchMemberLikedCommunityPosts(memberId) {
     if (!memberId) throw new Error("Member not found");
 
-    if (useSupabase()) {
+    if (useLiveCatalog()) {
       const sb = supabase();
       const viewerId = getUser()?.id || null;
 
@@ -2242,7 +2247,7 @@ const NaMeAuth = (function () {
   }
 
   async function fetchCommunityPost(id) {
-    if (useSupabase()) {
+    if (useLiveCatalog()) {
       const sb = supabase();
       const userId = getUser()?.id || null;
       const { data, error } = await sb
@@ -2450,7 +2455,7 @@ const NaMeAuth = (function () {
   }
 
   async function fetchCommunityPostComments(id) {
-    if (useSupabase()) {
+    if (useLiveCatalog()) {
       const sb = supabase();
       const { data, error } = await sb
         .from("community_comments")
