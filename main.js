@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-const PAGE_LOADER_MIN_MS = 700;
+const PAGE_LOADER_MIN_MS = 0;
 const CRITICAL_IMAGE_TIMEOUT_MS = 4500;
 
 function waitForCriticalImages() {
@@ -175,7 +175,7 @@ function renderAtelier() {
         const typeKey = TYPE_I18N[type] || "article";
         const label = typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, typeKey) : type;
         const active = filter === type ? " is-active" : "";
-        return `<button type="button" class="atelier-chip${active}" data-type="${escapeHtml(type)}"><span class="atelier-chip__mark" aria-hidden="true">${escapeHtml(label.slice(0, 1))}</span>${escapeHtml(label)}</button>`;
+        return `<button type="button" class="atelier-chip${active}" data-type="${escapeHtml(type)}" aria-pressed="${filter === type}"><span class="atelier-chip__mark" aria-hidden="true">${escapeHtml(label.slice(0, 1))}</span>${escapeHtml(label)}</button>`;
       })
       .join("");
   }
@@ -187,15 +187,11 @@ function renderAtelier() {
     return;
   }
 
-  const slots =
-    matches.length === 1
-      ? { center: matches[0] }
-      : matches.length === 2
-        ? { left: matches[0], right: matches[1] }
-        : { left: matches[0], center: matches[1], right: matches[2] };
-
-  gallery.innerHTML = ["left", "center", "right"]
-    .map((slot) => atelierPieceHtml(slots[slot], slot, lang))
+  // Browsing shows an editorial selection; searching exposes every match.
+  const visible = filter || query ? matches : matches.slice(0, 3);
+  gallery.classList.toggle("is-filtered", Boolean(filter || query));
+  gallery.innerHTML = visible
+    .map((post, index) => atelierPieceHtml(post, ["left", "center", "right"][index % 3], lang))
     .join("");
 }
 
@@ -209,10 +205,7 @@ function atelierPieceHtml(post, slot, lang) {
   const typeKey = TYPE_I18N[post.type] || "article";
   const typeLabel = typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, typeKey) : post.type;
   const blurb = storyBlurb(post);
-  const copy =
-    slot === "center"
-      ? ""
-      : `<span class="atelier-piece__copy">
+  const copy = `<span class="atelier-piece__copy">
           <span class="atelier-piece__kicker">${escapeHtml(typeLabel)}</span>
           <span class="atelier-piece__title">${escapeHtml(post.title)}</span>
           ${blurb ? `<span class="atelier-piece__text">${escapeHtml(blurb)}</span>` : ""}
@@ -221,7 +214,7 @@ function atelierPieceHtml(post, slot, lang) {
   return `
     <a class="atelier-piece atelier-piece--${slot}" href="${href}">
       <span class="atelier-piece__frame">
-        <img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title || "")}" />
+        <img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title || "")}" decoding="async" />
       </span>
       ${copy}
     </a>`;
@@ -483,17 +476,5 @@ function initScrollReveal() {
     if (e.key === "Escape" && modal.classList.contains("is-open")) close();
   });
 
-  const scheduleOpen = () => {
-    if (sessionStorage.getItem("name-modal-seen")) return;
-    setTimeout(() => {
-      open();
-      sessionStorage.setItem("name-modal-seen", "1");
-    }, 900);
-  };
-
-  if (document.body.classList.contains("is-page-ready")) {
-    scheduleOpen();
-  } else {
-    document.addEventListener("name:page-ready", scheduleOpen, { once: true });
-  }
+  // Membership stays available through Login / Join without interrupting reading.
 })();
