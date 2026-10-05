@@ -219,7 +219,7 @@ function migrateExclusiveMetas() {
   `);
 
   const posts = db
-    .prepare("SELECT meta FROM posts WHERE meta IS NOT NULL")
+    .prepare("SELECT meta FROM posts WHERE type = 'exclusive' AND meta IS NOT NULL")
     .all();
   const insert = db.prepare(
     "INSERT OR IGNORE INTO exclusive_metas (id, name, created_at) VALUES (?, ?, ?)"
@@ -233,5 +233,46 @@ function migrateExclusiveMetas() {
 }
 
 migrateExclusiveMetas();
+
+function migratePostMetas() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS post_metas (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  const exclusiveNames = new Set();
+  for (const row of db
+    .prepare("SELECT meta FROM posts WHERE type = 'exclusive' AND meta IS NOT NULL")
+    .all()) {
+    const name = collectionName(row.meta);
+    if (name) exclusiveNames.add(name.toLowerCase());
+  }
+
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO post_metas (id, name, created_at) VALUES (?, ?, ?)"
+  );
+  const now = new Date().toISOString();
+  const otherNames = new Set();
+  for (const row of db
+    .prepare("SELECT meta FROM posts WHERE type != 'exclusive' AND meta IS NOT NULL")
+    .all()) {
+    const name = collectionName(row.meta);
+    if (!name || name.length > 80) continue;
+    otherNames.add(name.toLowerCase());
+    insert.run(randomUUID(), name, now);
+  }
+
+  const remove = db.prepare("DELETE FROM exclusive_metas WHERE name = ? COLLATE NOCASE");
+  for (const row of db.prepare("SELECT name FROM exclusive_metas").all()) {
+    const key = collectionName(row.name).toLowerCase();
+    if (!key || exclusiveNames.has(key) || !otherNames.has(key)) continue;
+    remove.run(row.name);
+  }
+}
+
+migratePostMetas();
 
 export default db;

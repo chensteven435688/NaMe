@@ -188,11 +188,12 @@ export function registerAdminRoutes(app, { upload, uniqueSlug }) {
         const checked = validateMetaName(raw);
         if (checked.error) return res.status(400).json({ error: checked.error });
         nextMeta = checked.name;
+        const catalog = (type ?? row.type) === "exclusive" ? "exclusive_metas" : "post_metas";
         const existing = db
-          .prepare("SELECT name FROM exclusive_metas WHERE name = ? COLLATE NOCASE")
+          .prepare(`SELECT name FROM ${catalog} WHERE name = ? COLLATE NOCASE`)
           .get(nextMeta);
         if (!existing) {
-          db.prepare("INSERT INTO exclusive_metas (id, name, created_at) VALUES (?, ?, ?)").run(
+          db.prepare(`INSERT INTO ${catalog} (id, name, created_at) VALUES (?, ?, ?)`).run(
             randomUUID(),
             nextMeta,
             new Date().toISOString()

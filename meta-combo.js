@@ -116,11 +116,12 @@ const NaMeMetaCombo = (function () {
     return { close };
   }
 
-  async function loadNames() {
+  async function loadNames(scope = "post") {
     if (typeof NaMeAuth === "undefined") return [];
+    const exclusive = scope === "exclusive";
     const [metas, posts] = await Promise.all([
-      NaMeAuth.fetchExclusiveMetas().catch(() => []),
-      NaMeAuth.fetchPosts({}).catch(() => []),
+      (exclusive ? NaMeAuth.fetchExclusiveMetas() : NaMeAuth.fetchPostMetas()).catch(() => []),
+      NaMeAuth.fetchPosts(exclusive ? { type: "exclusive" } : {}).catch(() => []),
     ]);
     const map = new Map();
     const clean = (value) => NaMeAuth.exclusiveCollectionName(value);
@@ -129,6 +130,7 @@ const NaMeMetaCombo = (function () {
       if (name) map.set(name.toLowerCase(), name);
     }
     for (const post of posts) {
+      if (!exclusive && post.type === "exclusive") continue;
       const name = clean(post.meta);
       if (name && !map.has(name.toLowerCase())) map.set(name.toLowerCase(), name);
     }

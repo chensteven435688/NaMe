@@ -22,7 +22,7 @@ function bootUpload() {
   let metaNames = [];
   if (typeof NaMeMetaCombo !== "undefined") {
     NaMeMetaCombo.attach(metaInput, { getNames: () => metaNames });
-    NaMeMetaCombo.loadNames().then((names) => {
+    NaMeMetaCombo.loadNames("post").then((names) => {
       metaNames = names;
     });
   }
