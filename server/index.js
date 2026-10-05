@@ -327,19 +327,22 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
     now,
     now
   );
-  if (storedMeta) rememberExclusiveMeta(storedMeta);
+  if (storedMeta) {
+    rememberMeta(type === "exclusive" ? "exclusive_metas" : "post_metas", storedMeta);
+  }
   const row = db.prepare("SELECT * FROM posts WHERE id = ?").get(id);
   res.status(201).json({ post: publicPost(row) });
 });
 
-function rememberExclusiveMeta(meta) {
+function rememberMeta(table, meta) {
+  if (table !== "exclusive_metas" && table !== "post_metas") return;
   const checked = validateMetaName(meta);
   if (checked.error) return;
   const existing = db
-    .prepare("SELECT name FROM exclusive_metas WHERE name = ? COLLATE NOCASE")
+    .prepare(`SELECT name FROM ${table} WHERE name = ? COLLATE NOCASE`)
     .get(checked.name);
   if (existing) return existing.name;
-  db.prepare("INSERT INTO exclusive_metas (id, name, created_at) VALUES (?, ?, ?)").run(
+  db.prepare(`INSERT INTO ${table} (id, name, created_at) VALUES (?, ?, ?)`).run(
     randomUUID(),
     checked.name,
     new Date().toISOString()
@@ -350,43 +353,61 @@ function rememberExclusiveMeta(meta) {
 function exclusiveMetaInUse(name) {
   const key = collectionName(name).toLowerCase();
   if (!key) return false;
-  const rows = db.prepare("SELECT meta FROM posts").all();
+  const rows = db.prepare("SELECT meta FROM posts WHERE type = 'exclusive'").all();
   return rows.some((row) => collectionName(row.meta).toLowerCase() === key);
 }
 
-app.get("/api/exclusive/metas", (_req, res) => {
+function listMetaCatalog(table) {
   const rows = db
-    .prepare("SELECT id, name, created_at FROM exclusive_metas ORDER BY created_at ASC")
+    .prepare(`SELECT id, name, created_at FROM ${table} ORDER BY created_at ASC`)
     .all();
-  res.json({
-    metas: rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      createdAt: row.created_at,
-    })),
-  });
-});
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    createdAt: row.created_at,
+  }));
+}
 
-app.post("/api/exclusive/metas", requireAdmin, (req, res) => {
-  const checked = validateMetaName(req.body?.name);
-  if (checked.error) return res.status(400).json({ error: checked.error });
+function insertMetaCatalog(table, name) {
+  const checked = validateMetaName(name);
+  if (checked.error) return { error: checked.error };
   const existing = db
-    .prepare("SELECT id, name, created_at FROM exclusive_metas WHERE name = ? COLLATE NOCASE")
+    .prepare(`SELECT id, name, created_at FROM ${table} WHERE name = ? COLLATE NOCASE`)
     .get(checked.name);
   if (existing) {
-    return res.json({
+    return {
       meta: { id: existing.id, name: existing.name, createdAt: existing.created_at },
       created: false,
-    });
+    };
   }
   const id = randomUUID();
   const createdAt = new Date().toISOString();
-  db.prepare("INSERT INTO exclusive_metas (id, name, created_at) VALUES (?, ?, ?)").run(
+  db.prepare(`INSERT INTO ${table} (id, name, created_at) VALUES (?, ?, ?)`).run(
     id,
     checked.name,
     createdAt
   );
-  res.status(201).json({ meta: { id, name: checked.name, createdAt }, created: true });
+  return { meta: { id, name: checked.name, createdAt }, created: true };
+}
+
+app.get("/api/exclusive/metas", (_req, res) => {
+  res.json({ metas: listMetaCatalog("exclusive_metas") });
+});
+
+app.get("/api/post-metas", (_req, res) => {
+  res.json({ metas: listMetaCatalog("post_metas") });
+});
+
+app.post("/api/exclusive/metas", requireAdmin, (req, res) => {
+  const result = insertMetaCatalog("exclusive_metas", req.body?.name);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.status(result.created ? 201 : 200).json(result);
+});
+
+app.post("/api/post-metas", requireAdmin, (req, res) => {
+  const result = insertMetaCatalog("post_metas", req.body?.name);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.status(result.created ? 201 : 200).json(result);
 });
 
 app.delete("/api/exclusive/metas", requireAdmin, (req, res) => {

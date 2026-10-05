@@ -1459,14 +1459,23 @@ const NaMeAuth = (function () {
 
   function isMissingExclusiveMetaTable(error) {
     const msg = `${error?.message || ""} ${error?.code || ""}`;
-    return /exclusive_metas|schema cache|does not exist|could not find the table|PGRST205/i.test(msg);
+    return /exclusive_metas|post_metas|schema cache|does not exist|could not find the table|PGRST205/i.test(msg);
   }
 
-  async function fetchExclusiveMetas() {
+  function metaCatalogTable(scope) {
+    return scope === "exclusive" ? "exclusive_metas" : "post_metas";
+  }
+
+  function metaCatalogPath(scope) {
+    return scope === "exclusive" ? "/api/exclusive/metas" : "/api/post-metas";
+  }
+
+  async function fetchMetaCatalog(scope) {
+    const table = metaCatalogTable(scope);
     if (useLiveCatalog()) {
       const sb = supabase();
       const { data, error } = await sb
-        .from("exclusive_metas")
+        .from(table)
         .select("id, name, created_at")
         .order("created_at", { ascending: true });
       if (error) {
@@ -1480,11 +1489,11 @@ const NaMeAuth = (function () {
       }));
     }
 
-    const data = await request("/api/exclusive/metas");
+    const data = await request(metaCatalogPath(scope));
     return data.metas || [];
   }
 
-  async function createExclusiveMeta(name) {
+  async function createMetaCatalog(scope, name) {
     const cleaned = exclusiveCollectionName(name);
     if (!cleaned) throw new Error("Meta name required");
     if (cleaned.length > EXCLUSIVE_META_MAX) {
@@ -1494,7 +1503,7 @@ const NaMeAuth = (function () {
       throw new Error("Choose a different meta name");
     }
 
-    const existing = (await fetchExclusiveMetas()).find(
+    const existing = (await fetchMetaCatalog(scope)).find(
       (meta) => meta.name.toLowerCase() === cleaned.toLowerCase()
     );
     if (existing) return { name: existing.name, created: false };
@@ -1502,15 +1511,17 @@ const NaMeAuth = (function () {
     if (useSupabase()) {
       const sb = supabase();
       const { data, error } = await sb
-        .from("exclusive_metas")
+        .from(metaCatalogTable(scope))
         .insert({ name: cleaned })
         .select("id, name, created_at")
         .single();
       if (error) {
         if (/duplicate|unique/i.test(error.message)) return { name: cleaned, created: false };
         if (isMissingExclusiveMetaTable(error)) {
+          const file =
+            scope === "exclusive" ? "supabase/exclusive-metas.sql" : "supabase/post-metas.sql";
           throw new Error(
-            "Meta collections are not set up yet. Run supabase/exclusive-metas.sql in the Supabase SQL editor, then try again."
+            `Meta collections are not set up yet. Run ${file} in the Supabase SQL editor, then try again.`
           );
         }
         throw new Error(error.message);
@@ -1518,17 +1529,37 @@ const NaMeAuth = (function () {
       return { name: data.name, created: true };
     }
 
-    const data = await request("/api/exclusive/metas", {
+    const data = await request(metaCatalogPath(scope), {
       method: "POST",
       body: { name: cleaned },
     });
     return { name: data.meta.name, created: !!data.created };
   }
 
+  function fetchExclusiveMetas() {
+    return fetchMetaCatalog("exclusive");
+  }
+
+  function createExclusiveMeta(name) {
+    return createMetaCatalog("exclusive", name);
+  }
+
+  function fetchPostMetas() {
+    return fetchMetaCatalog("post");
+  }
+
+  function createPostMeta(name) {
+    return createMetaCatalog("post", name);
+  }
+
+  function saveMetaForType(type, name) {
+    return type === "exclusive" ? createExclusiveMeta(name) : createPostMeta(name);
+  }
+
   async function deleteExclusiveMeta(name) {
     const cleaned = exclusiveCollectionName(name);
     if (!cleaned) throw new Error("Meta name required");
-    const posts = await fetchPosts({});
+    const posts = await fetchPosts({ type: "exclusive" });
     const used = posts.some(
       (post) => exclusiveCollectionName(post.meta).toLowerCase() === cleaned.toLowerCase()
     );
@@ -1596,7 +1627,7 @@ const NaMeAuth = (function () {
 
       if (meta) {
         try {
-          await createExclusiveMeta(meta);
+          await saveMetaForType(type, meta);
         } catch (metaError) {
           if (!isMissingExclusiveMetaTable(metaError)) {
             console.warn("NaMe: could not save meta collection", metaError.message);
@@ -2111,7 +2142,7 @@ const NaMeAuth = (function () {
 
       if (meta) {
         try {
-          await createExclusiveMeta(meta);
+          await saveMetaForType(postType, meta);
         } catch (metaError) {
           if (!isMissingExclusiveMetaTable(metaError)) {
             console.warn("NaMe: could not save meta collection", metaError.message);
@@ -3105,6 +3136,8 @@ const NaMeAuth = (function () {
     fetchExclusiveMetas,
     createExclusiveMeta,
     deleteExclusiveMeta,
+    fetchPostMetas,
+    createPostMeta,
     fetchPostIndex,
     publishedSections,
     fetchPost,

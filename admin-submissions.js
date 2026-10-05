@@ -143,7 +143,7 @@ function openPublishModal(id) {
   document.getElementById("publish-modal-summary").textContent = `${s.title} — ${s.author?.displayName || ""}`;
   document.getElementById("publish-meta").value = `${s.medium} — ${new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`;
   if (typeof NaMeMetaCombo !== "undefined") {
-    NaMeMetaCombo.loadNames().then((names) => {
+    NaMeMetaCombo.loadNames("post").then((names) => {
       publishMetaNames = names;
     });
   }

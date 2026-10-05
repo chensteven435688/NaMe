@@ -4,9 +4,9 @@
 let allPosts = [];
 let editMetaNames = [];
 
-async function refreshEditMetaNames() {
+async function refreshEditMetaNames(type) {
   if (typeof NaMeMetaCombo === "undefined") return;
-  editMetaNames = await NaMeMetaCombo.loadNames();
+  editMetaNames = await NaMeMetaCombo.loadNames(type === "exclusive" ? "exclusive" : "post");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -188,8 +188,10 @@ function initEditModal() {
   const editMeta = document.getElementById("edit-meta");
   if (editMeta && typeof NaMeMetaCombo !== "undefined") {
     NaMeMetaCombo.attach(editMeta, { getNames: () => editMetaNames });
-    refreshEditMetaNames();
   }
+  document.querySelector("#edit-form select[name=type]")?.addEventListener("change", (event) => {
+    refreshEditMetaNames(event.target.value);
+  });
 
   document.getElementById("edit-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -224,7 +226,7 @@ async function openEditModal(id) {
   f.elements.title.value = post.title;
   f.elements.slug.value = post.slug;
   f.elements.meta.value = post.meta || "";
-  refreshEditMetaNames();
+  refreshEditMetaNames(post.type);
   f.elements.contentDate.value = post.contentDate ? post.contentDate.slice(0, 10) : "";
   f.elements.imageUrl.value = post.imageUrl || "";
   f.elements.body.value = post.body || "";

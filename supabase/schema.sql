@@ -44,6 +44,16 @@ create table if not exists public.exclusive_metas (
 create unique index if not exists exclusive_metas_name_lower
   on public.exclusive_metas (lower(name));
 
+-- Folder names for articles, editorials, film, and shorts. Separate from exclusive_metas.
+create table if not exists public.post_metas (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists post_metas_name_lower
+  on public.post_metas (lower(name));
+
 -- ─── Post comments ───
 create table if not exists public.comments (
   id uuid primary key default gen_random_uuid(),
@@ -177,6 +187,7 @@ alter table public.community_comments enable row level security;
 alter table public.submissions enable row level security;
 alter table public.newsletter_subscribers enable row level security;
 alter table public.exclusive_metas enable row level security;
+alter table public.post_metas enable row level security;
 
 -- Profiles
 create policy "Profiles are viewable by everyone"
@@ -208,6 +219,15 @@ create policy "Admins insert exclusive metas"
 
 create policy "Admins delete exclusive metas"
   on public.exclusive_metas for delete using (public.is_admin());
+
+create policy "Post metas are public"
+  on public.post_metas for select using (true);
+
+create policy "Admins insert post metas"
+  on public.post_metas for insert with check (public.is_admin());
+
+create policy "Admins delete post metas"
+  on public.post_metas for delete using (public.is_admin());
 
 -- Comments
 create policy "Comments are public"
@@ -288,6 +308,8 @@ grant select on table public.posts to anon, authenticated;
 grant insert, update, delete on table public.posts to authenticated;
 grant select on table public.exclusive_metas to anon, authenticated;
 grant insert, delete on table public.exclusive_metas to authenticated;
+grant select on table public.post_metas to anon, authenticated;
+grant insert, delete on table public.post_metas to authenticated;
 grant select on table public.comments to anon, authenticated;
 grant insert, delete on table public.comments to authenticated;
 grant select on table public.comment_likes to anon, authenticated;

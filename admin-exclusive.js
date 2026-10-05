@@ -89,7 +89,7 @@ function bootExclusive() {
   async function refreshExclusiveMetas() {
     const [metas, posts] = await Promise.all([
       NaMeAuth.fetchExclusiveMetas().catch(() => []),
-      NaMeAuth.fetchPosts({}).catch(() => metaPosts),
+      NaMeAuth.fetchPosts({ type: "exclusive" }).catch(() => metaPosts),
     ]);
     declaredMetas = metas;
     metaPosts = posts;
