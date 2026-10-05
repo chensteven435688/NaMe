@@ -19,6 +19,13 @@ function bootUpload() {
   const imageUrlInput = document.getElementById("upload-image-url");
   const titleInput = document.getElementById("upload-title");
   const metaInput = document.getElementById("upload-meta");
+  let metaNames = [];
+  if (typeof NaMeMetaCombo !== "undefined") {
+    NaMeMetaCombo.attach(metaInput, { getNames: () => metaNames });
+    NaMeMetaCombo.loadNames().then((names) => {
+      metaNames = names;
+    });
+  }
   const typeSelect = document.getElementById("upload-type");
   const videoWrap = document.getElementById("upload-video-wrap");
 

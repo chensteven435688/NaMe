@@ -4,6 +4,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import db from "../db.js";
 import { requireAdmin, roleForEmail } from "../middleware/auth.js";
+import { validateMetaName } from "../lib/exclusive-meta.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, "..", "uploads");
@@ -178,10 +179,32 @@ export function registerAdminRoutes(app, { upload, uniqueSlug }) {
       image_url = imageUrl || null;
     }
 
+    let nextMeta = row.meta;
+    if (meta !== undefined) {
+      const raw = String(meta || "").trim();
+      if (!raw) {
+        nextMeta = null;
+      } else {
+        const checked = validateMetaName(raw);
+        if (checked.error) return res.status(400).json({ error: checked.error });
+        nextMeta = checked.name;
+        const existing = db
+          .prepare("SELECT name FROM exclusive_metas WHERE name = ? COLLATE NOCASE")
+          .get(nextMeta);
+        if (!existing) {
+          db.prepare("INSERT INTO exclusive_metas (id, name, created_at) VALUES (?, ?, ?)").run(
+            randomUUID(),
+            nextMeta,
+            new Date().toISOString()
+          );
+        }
+      }
+    }
+
     const updates = {
       type: type ?? row.type,
       title: title?.trim() ?? row.title,
-      meta: meta !== undefined ? meta || null : row.meta,
+      meta: nextMeta,
       body: body ?? row.body,
       video_url: videoUrl !== undefined ? videoUrl || null : row.video_url,
       section: section !== undefined ? section || null : row.section,

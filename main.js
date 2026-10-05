@@ -90,12 +90,19 @@ async function initHomepage() {
 }
 
 let atelierPosts = [];
+let atelierMetas = [];
 
 async function initAtelier() {
   try {
-    atelierPosts = await NaMeAuth.fetchPosts({});
+    const [posts, metas] = await Promise.all([
+      NaMeAuth.fetchPosts({}),
+      NaMeAuth.fetchExclusiveMetas().catch(() => []),
+    ]);
+    atelierPosts = posts;
+    atelierMetas = metas;
   } catch {
     atelierPosts = [];
+    atelierMetas = [];
   }
 
   const form = document.getElementById("atelier-tools");
@@ -159,15 +166,6 @@ function renderAtelier() {
   const query = (document.getElementById("atelier-search")?.value || "").trim().toLowerCase();
   const source = atelierSource();
 
-  const matches = source.filter((post) => {
-    if (filter && post.type !== filter) return false;
-    if (!query) return true;
-    const haystack = `${post.title || ""} ${post.meta || ""} ${stripHtml(post.body)}`.toLowerCase();
-    return haystack.includes(query);
-  });
-
-  if (countEl) countEl.textContent = String(matches.length);
-
   const types = [...new Set(source.map((post) => post.type).filter(Boolean))].slice(0, 4);
   if (chips) {
     chips.innerHTML = types
@@ -180,6 +178,23 @@ function renderAtelier() {
       .join("");
   }
 
+  if (filter === "exclusive") {
+    renderAtelierExclusive(gallery, countEl, lang, query, source);
+    return;
+  }
+
+  gallery.classList.remove("is-folders");
+  gallery.classList.toggle("is-filtered", Boolean(filter || query));
+
+  const matches = source.filter((post) => {
+    if (filter && post.type !== filter) return false;
+    if (!query) return true;
+    const haystack = `${post.title || ""} ${post.meta || ""} ${stripHtml(post.body)}`.toLowerCase();
+    return haystack.includes(query);
+  });
+
+  if (countEl) countEl.textContent = String(matches.length);
+
   if (!matches.length) {
     const emptyText =
       typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "atelierEmpty") : "No stories match.";
@@ -189,9 +204,38 @@ function renderAtelier() {
 
   // Browsing shows an editorial selection; searching exposes every match.
   const visible = filter || query ? matches : matches.slice(0, 3);
-  gallery.classList.toggle("is-filtered", Boolean(filter || query));
   gallery.innerHTML = visible
     .map((post, index) => atelierPieceHtml(post, ["left", "center", "right"][index % 3], lang))
+    .join("");
+}
+
+function renderAtelierExclusive(gallery, countEl, lang, query, source) {
+  const exclusivePosts = source.filter((post) => post.type === "exclusive");
+  let folders =
+    typeof buildExclusiveFolders === "function"
+      ? buildExclusiveFolders(exclusivePosts, atelierMetas)
+      : [];
+  if (query) {
+    folders = folders.filter((folder) => {
+      const label = folder.uncategorized
+        ? typeof NaMeI18n !== "undefined"
+          ? NaMeI18n.t(lang, "exclusiveUncategorized")
+          : folder.name
+        : folder.name;
+      return label.toLowerCase().includes(query);
+    });
+  }
+
+  if (countEl) countEl.textContent = String(folders.length);
+  gallery.classList.add("is-filtered", "is-folders");
+  if (!folders.length) {
+    const emptyText =
+      typeof NaMeI18n !== "undefined" ? NaMeI18n.t(lang, "atelierEmpty") : "No stories match.";
+    gallery.innerHTML = `<p class="atelier__empty">${escapeHtml(emptyText)}</p>`;
+    return;
+  }
+  gallery.innerHTML = folders
+    .map((folder) => renderExclusiveFolderCard(folder, lang))
     .join("");
 }
 
@@ -311,7 +355,6 @@ async function loadHomeIndex() {
 }
 
 const FEED_CONFIG = {
-  exclusive: { type: "exclusive", cardClass: "card--exclusive", showMeta: true },
   article: { type: "article", section: "latest", cardClass: "card--article", showMeta: true },
   "editorial-latest": { type: "editorial", section: "latest", cardClass: "card--editorial" },
   "editorial-popular": { type: "editorial", section: "popular", cardClass: "card--editorial" },
@@ -332,8 +375,37 @@ function hideBlock(el) {
   el.classList.add("is-empty-section");
 }
 
+async function loadExclusiveHome() {
+  const el = document.getElementById("home-meta-folders");
+  if (!el || typeof buildExclusiveFolders !== "function") return 0;
+  try {
+    const [posts, declared] = await Promise.all([
+      NaMeAuth.fetchPosts({ type: "exclusive" }),
+      NaMeAuth.fetchExclusiveMetas().catch(() => []),
+    ]);
+    const folders = buildExclusiveFolders(posts, declared);
+    const lang = typeof NaMeI18n !== "undefined" ? NaMeI18n.getLang() : "en";
+    el.innerHTML = folders.map((folder) => renderExclusiveFolderCard(folder, lang)).join("");
+    return folders.length;
+  } catch {
+    el.innerHTML = "";
+    return 0;
+  }
+}
+
+let homeFoldersReady = false;
+
+document.addEventListener("name:languagechange", () => {
+  if (!homeFoldersReady) return;
+  loadFeeds();
+});
+
 async function loadFeeds() {
   const counts = {};
+  if (document.getElementById("home-meta-folders")) {
+    counts.exclusive = await loadExclusiveHome();
+    homeFoldersReady = true;
+  }
   for (const el of document.querySelectorAll("[data-feed]")) {
     const key = el.dataset.feed;
     const cfg = FEED_CONFIG[key];
@@ -343,8 +415,17 @@ async function loadFeeds() {
         type: cfg.type,
         section: cfg.section,
       });
-      counts[key] = posts.length;
-      el.innerHTML = posts.map((p) => renderCard(p, cfg)).join("");
+      if (el.classList.contains("home-meta-folders")) {
+        const folders = buildExclusiveFolders(posts, []);
+        const lang = typeof NaMeI18n !== "undefined" ? NaMeI18n.getLang() : "en";
+        el.innerHTML = folders
+          .map((folder) => renderExclusiveFolderCard(folder, lang, el.dataset.folderPage))
+          .join("");
+        counts[key] = folders.length;
+      } else {
+        counts[key] = posts.length;
+        el.innerHTML = posts.map((p) => renderCard(p, cfg)).join("");
+      }
     } catch {
       el.innerHTML = "";
     }
@@ -362,7 +443,7 @@ async function loadFeeds() {
   }
   if (counts.film === 0) {
     hideBlock(filmSection.querySelector(".section__head"));
-    hideBlock(document.getElementById("carousel-films"));
+    hideBlock(document.getElementById("home-films"));
   }
   if (counts.short === 0) hideBlock(filmSection.querySelector(".shorts"));
 }
@@ -389,7 +470,6 @@ function escapeHtml(s) {
 }
 
 const CAROUSEL_MAP = {
-  exclusive: "carousel-exclusive",
   articles: "carousel-articles",
   "editorials-latest": "carousel-editorials-latest",
   "editorials-popular": "carousel-editorials-popular",

@@ -1528,7 +1528,7 @@ const NaMeAuth = (function () {
   async function deleteExclusiveMeta(name) {
     const cleaned = exclusiveCollectionName(name);
     if (!cleaned) throw new Error("Meta name required");
-    const posts = await fetchPosts({ type: "exclusive" });
+    const posts = await fetchPosts({});
     const used = posts.some(
       (post) => exclusiveCollectionName(post.meta).toLowerCase() === cleaned.toLowerCase()
     );
@@ -1555,8 +1555,7 @@ const NaMeAuth = (function () {
     const type = formData.get("type")?.toString() || "";
     const title = formData.get("title")?.toString().trim() || "";
     const rawMeta = formData.get("meta")?.toString().trim() || "";
-    const meta =
-      type === "exclusive" ? exclusiveCollectionName(rawMeta) || null : rawMeta || null;
+    const meta = exclusiveCollectionName(rawMeta) || null;
     const body = formData.get("body")?.toString().trim() || "";
     const videoUrl = formData.get("videoUrl")?.toString().trim() || null;
     const section = normalizePostSection(type, formData.get("section"));
@@ -1595,7 +1594,7 @@ const NaMeAuth = (function () {
         .single();
       if (error) throw new Error(mapSupabaseWriteError(error));
 
-      if (type === "exclusive" && meta) {
+      if (meta) {
         try {
           await createExclusiveMeta(meta);
         } catch (metaError) {
@@ -1610,7 +1609,7 @@ const NaMeAuth = (function () {
 
     if (!isAdmin()) throw new Error("Admin access required");
     formData.set("section", section ?? "");
-    if (type === "exclusive") formData.set("meta", meta || "");
+    formData.set("meta", meta || "");
     return request("/api/posts", { method: "POST", body: formData });
   }
 
@@ -2032,7 +2031,10 @@ const NaMeAuth = (function () {
 
     const type = formData.get("type")?.toString() || "";
     const title = formData.get("title")?.toString().trim() || "";
-    const meta = formData.get("meta")?.toString().trim() || null;
+    const meta = formData.has("meta")
+      ? exclusiveCollectionName(formData.get("meta")) || null
+      : undefined;
+    if (formData.has("meta")) formData.set("meta", meta || "");
     const body = formData.get("body")?.toString().trim() || "";
     const videoUrl = formData.get("videoUrl")?.toString().trim() || null;
     const sectionRaw = formData.has("section") ? formData.get("section") : undefined;
@@ -2087,7 +2089,7 @@ const NaMeAuth = (function () {
       const patch = {
         type: postType,
         title: title || row.title,
-        meta: formData.has("meta") ? meta : row.meta,
+        meta: meta !== undefined ? meta : row.meta,
         body: body || row.body,
         video_url: formData.has("videoUrl") ? videoUrl : row.video_url,
         section,
@@ -2106,6 +2108,16 @@ const NaMeAuth = (function () {
         .select("*")
         .single();
       if (error) throw new Error(mapSupabaseWriteError(error));
+
+      if (meta) {
+        try {
+          await createExclusiveMeta(meta);
+        } catch (metaError) {
+          if (!isMissingExclusiveMetaTable(metaError)) {
+            console.warn("NaMe: could not save meta collection", metaError.message);
+          }
+        }
+      }
 
       return { post: mapPost(data) };
     }

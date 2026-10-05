@@ -194,13 +194,9 @@
         </div>
         <div class="section__head-actions">
           <a href="exclusive.html" class="section__view-all" data-i18n="viewAll">View all →</a>
-          <div class="carousel-nav">
-            <button type="button" class="carousel-nav__btn" data-carousel="exclusive" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
-            <button type="button" class="carousel-nav__btn" data-carousel="exclusive" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
-          </div>
         </div>
       </div>
-      <div class="carousel carousel--exclusive" id="carousel-exclusive" data-feed="exclusive"></div>
+      <div class="home-meta-folders" id="home-meta-folders"></div>
     </section>
 
     <!-- Latest articles -->
@@ -209,13 +205,9 @@
         <h2 class="section__title" data-i18n="latestArticles">Latest Articles</h2>
         <div class="section__head-actions">
           <a href="articles.html" class="section__view-all" data-i18n="viewAll">View all →</a>
-          <div class="carousel-nav">
-            <button type="button" class="carousel-nav__btn" data-carousel="articles" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
-            <button type="button" class="carousel-nav__btn" data-carousel="articles" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
-          </div>
         </div>
       </div>
-      <div class="carousel" id="carousel-articles" data-feed="article"></div>
+      <div class="home-meta-folders" id="home-articles" data-feed="article" data-folder-page="/articles.html"></div>
     </section>
 
     <!-- Latest editorials -->
@@ -224,13 +216,9 @@
         <h2 class="section__title" data-i18n="latestEditorials">Latest Editorials</h2>
         <div class="section__head-actions">
           <a href="editorial.html" class="section__view-all" data-i18n="viewAll">View all →</a>
-          <div class="carousel-nav">
-            <button type="button" class="carousel-nav__btn" data-carousel="editorials-latest" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
-            <button type="button" class="carousel-nav__btn" data-carousel="editorials-latest" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
-          </div>
         </div>
       </div>
-      <div class="carousel carousel--editorial" id="carousel-editorials-latest" data-feed="editorial-latest"></div>
+      <div class="home-meta-folders" id="home-editorials" data-feed="editorial-latest" data-folder-page="/editorial.html"></div>
     </section>
 
     <!-- Popular editorials -->
@@ -239,13 +227,9 @@
         <h2 class="section__title" data-i18n="popularEditorials">Popular Magazines</h2>
         <div class="section__head-actions">
           <a href="magazine.html" class="section__view-all" data-i18n="viewAll">View all →</a>
-          <div class="carousel-nav">
-            <button type="button" class="carousel-nav__btn" data-carousel="editorials-popular" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
-            <button type="button" class="carousel-nav__btn" data-carousel="editorials-popular" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
-          </div>
         </div>
       </div>
-      <div class="carousel carousel--editorial" id="carousel-editorials-popular" data-feed="editorial-popular"></div>
+      <div class="home-meta-folders" id="home-magazines" data-feed="editorial-popular" data-folder-page="/magazine.html"></div>
     </section>
 
     <!-- Film -->
@@ -254,23 +238,15 @@
         <h2 class="section__title" data-i18n="filmSection">Film</h2>
         <div class="section__head-actions">
           <a href="film.html" class="section__view-all" data-i18n="viewAll">View all →</a>
-          <div class="carousel-nav">
-            <button type="button" class="carousel-nav__btn" data-carousel="films" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
-            <button type="button" class="carousel-nav__btn" data-carousel="films" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
-          </div>
         </div>
       </div>
-      <div class="carousel carousel--film" id="carousel-films" data-feed="film"></div>
+      <div class="home-meta-folders" id="home-films" data-feed="film" data-folder-page="/film.html"></div>
 
       <div class="shorts">
         <div class="shorts__head">
           <span class="shorts__badge" data-i18n="shorts">Shorts</span>
-          <div class="carousel-nav">
-            <button type="button" class="carousel-nav__btn" data-carousel="shorts" data-dir="-1" data-i18n-aria="previous" aria-label="Previous">‹</button>
-            <button type="button" class="carousel-nav__btn" data-carousel="shorts" data-dir="1" data-i18n-aria="next" aria-label="Next">›</button>
-          </div>
         </div>
-        <div class="carousel carousel--shorts" id="carousel-shorts" data-feed="short"></div>
+        <div class="home-meta-folders" id="home-shorts" data-feed="short" data-folder-page="/film.html?feed=short"></div>
       </div>
     </section>
 
@@ -347,6 +323,7 @@
   <script src="i18n.js"></script>
   <script src="auth.js"></script>
   <script src="nav.js"></script>
+  <script src="exclusive-folders.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

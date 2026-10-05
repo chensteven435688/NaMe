@@ -219,7 +219,7 @@ function migrateExclusiveMetas() {
   `);
 
   const posts = db
-    .prepare("SELECT meta FROM posts WHERE type = 'exclusive' AND meta IS NOT NULL")
+    .prepare("SELECT meta FROM posts WHERE meta IS NOT NULL")
     .all();
   const insert = db.prepare(
     "INSERT OR IGNORE INTO exclusive_metas (id, name, created_at) VALUES (?, ?, ?)"

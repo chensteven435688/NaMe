@@ -303,11 +303,9 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
     ? new Date(`${contentDate.trim()}T12:00:00`).toISOString()
     : null;
   let storedMeta = meta?.toString().trim() || null;
-  if (type === "exclusive") {
+  if (storedMeta) {
     const checked = validateMetaName(meta);
-    if (checked.error && meta?.toString().trim()) {
-      return res.status(400).json({ error: checked.error });
-    }
+    if (checked.error) return res.status(400).json({ error: checked.error });
     storedMeta = checked.name || null;
   }
   db.prepare(
@@ -329,7 +327,7 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
     now,
     now
   );
-  if (type === "exclusive" && storedMeta) rememberExclusiveMeta(storedMeta);
+  if (storedMeta) rememberExclusiveMeta(storedMeta);
   const row = db.prepare("SELECT * FROM posts WHERE id = ?").get(id);
   res.status(201).json({ post: publicPost(row) });
 });
@@ -352,7 +350,7 @@ function rememberExclusiveMeta(meta) {
 function exclusiveMetaInUse(name) {
   const key = collectionName(name).toLowerCase();
   if (!key) return false;
-  const rows = db.prepare("SELECT meta FROM posts WHERE type = 'exclusive'").all();
+  const rows = db.prepare("SELECT meta FROM posts").all();
   return rows.some((row) => collectionName(row.meta).toLowerCase() === key);
 }
 
