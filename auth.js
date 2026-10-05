@@ -1443,10 +1443,120 @@ const NaMeAuth = (function () {
     return res.url;
   }
 
+  const EXCLUSIVE_UNCATEGORIZED = "__uncategorized__";
+  const EXCLUSIVE_META_MAX = 80;
+
+  function exclusiveCollectionName(meta) {
+    const raw = String(meta ?? "").replace(/\s+/g, " ").trim();
+    if (!raw) return "";
+    const parts = raw.split(/\s+[—–-]\s+/);
+    if (parts.length >= 2) {
+      const tail = parts.slice(1).join(" — ").trim();
+      if (/^\d/.test(tail) && /\d{4}/.test(tail)) return parts[0].trim();
+    }
+    return raw;
+  }
+
+  function isMissingExclusiveMetaTable(error) {
+    const msg = `${error?.message || ""} ${error?.code || ""}`;
+    return /exclusive_metas|schema cache|does not exist|could not find the table|PGRST205/i.test(msg);
+  }
+
+  async function fetchExclusiveMetas() {
+    if (useLiveCatalog()) {
+      const sb = supabase();
+      const { data, error } = await sb
+        .from("exclusive_metas")
+        .select("id, name, created_at")
+        .order("created_at", { ascending: true });
+      if (error) {
+        if (isMissingExclusiveMetaTable(error)) return [];
+        throw new Error(error.message);
+      }
+      return (data || []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        createdAt: row.created_at,
+      }));
+    }
+
+    const data = await request("/api/exclusive/metas");
+    return data.metas || [];
+  }
+
+  async function createExclusiveMeta(name) {
+    const cleaned = exclusiveCollectionName(name);
+    if (!cleaned) throw new Error("Meta name required");
+    if (cleaned.length > EXCLUSIVE_META_MAX) {
+      throw new Error("Meta name must be 80 characters or fewer");
+    }
+    if (cleaned.toLowerCase() === EXCLUSIVE_UNCATEGORIZED) {
+      throw new Error("Choose a different meta name");
+    }
+
+    const existing = (await fetchExclusiveMetas()).find(
+      (meta) => meta.name.toLowerCase() === cleaned.toLowerCase()
+    );
+    if (existing) return { name: existing.name, created: false };
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { data, error } = await sb
+        .from("exclusive_metas")
+        .insert({ name: cleaned })
+        .select("id, name, created_at")
+        .single();
+      if (error) {
+        if (/duplicate|unique/i.test(error.message)) return { name: cleaned, created: false };
+        if (isMissingExclusiveMetaTable(error)) {
+          throw new Error(
+            "Meta collections are not set up yet. Run supabase/exclusive-metas.sql in the Supabase SQL editor, then try again."
+          );
+        }
+        throw new Error(error.message);
+      }
+      return { name: data.name, created: true };
+    }
+
+    const data = await request("/api/exclusive/metas", {
+      method: "POST",
+      body: { name: cleaned },
+    });
+    return { name: data.meta.name, created: !!data.created };
+  }
+
+  async function deleteExclusiveMeta(name) {
+    const cleaned = exclusiveCollectionName(name);
+    if (!cleaned) throw new Error("Meta name required");
+    const posts = await fetchPosts({ type: "exclusive" });
+    const used = posts.some(
+      (post) => exclusiveCollectionName(post.meta).toLowerCase() === cleaned.toLowerCase()
+    );
+    if (used) throw new Error("This meta still has posts.");
+
+    const existing = (await fetchExclusiveMetas()).find(
+      (meta) => meta.name.toLowerCase() === cleaned.toLowerCase()
+    );
+    if (!existing) return { ok: true };
+
+    if (useSupabase()) {
+      const sb = supabase();
+      const { error } = await sb.from("exclusive_metas").delete().eq("id", existing.id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
+    return request(`/api/exclusive/metas?name=${encodeURIComponent(existing.name)}`, {
+      method: "DELETE",
+    });
+  }
+
   async function createPost(formData) {
     const type = formData.get("type")?.toString() || "";
     const title = formData.get("title")?.toString().trim() || "";
-    const meta = formData.get("meta")?.toString().trim() || null;
+    const rawMeta = formData.get("meta")?.toString().trim() || "";
+    const meta =
+      type === "exclusive" ? exclusiveCollectionName(rawMeta) || null : rawMeta || null;
     const body = formData.get("body")?.toString().trim() || "";
     const videoUrl = formData.get("videoUrl")?.toString().trim() || null;
     const section = normalizePostSection(type, formData.get("section"));
@@ -1485,11 +1595,22 @@ const NaMeAuth = (function () {
         .single();
       if (error) throw new Error(mapSupabaseWriteError(error));
 
+      if (type === "exclusive" && meta) {
+        try {
+          await createExclusiveMeta(meta);
+        } catch (metaError) {
+          if (!isMissingExclusiveMetaTable(metaError)) {
+            console.warn("NaMe: could not save meta collection", metaError.message);
+          }
+        }
+      }
+
       return { post: mapPost(data) };
     }
 
     if (!isAdmin()) throw new Error("Admin access required");
     formData.set("section", section ?? "");
+    if (type === "exclusive") formData.set("meta", meta || "");
     return request("/api/posts", { method: "POST", body: formData });
   }
 
@@ -2968,6 +3089,10 @@ const NaMeAuth = (function () {
     memberProfilePath,
     fetchPublicProfile,
     fetchPosts,
+    exclusiveCollectionName,
+    fetchExclusiveMetas,
+    createExclusiveMeta,
+    deleteExclusiveMeta,
     fetchPostIndex,
     publishedSections,
     fetchPost,

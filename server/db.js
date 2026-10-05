@@ -1,7 +1,9 @@
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
+import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
+import { collectionName } from "./lib/exclusive-meta.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, "data");
@@ -206,5 +208,30 @@ function migrateCommunityModeration() {
 }
 
 migrateCommunityModeration();
+
+function migrateExclusiveMetas() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS exclusive_metas (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  const posts = db
+    .prepare("SELECT meta FROM posts WHERE type = 'exclusive' AND meta IS NOT NULL")
+    .all();
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO exclusive_metas (id, name, created_at) VALUES (?, ?, ?)"
+  );
+  const now = new Date().toISOString();
+  for (const row of posts) {
+    const name = collectionName(row.meta);
+    if (!name || name.length > 80) continue;
+    insert.run(randomUUID(), name, now);
+  }
+}
+
+migrateExclusiveMetas();
 
 export default db;

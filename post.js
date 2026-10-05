@@ -40,12 +40,19 @@ function renderPost(post) {
   const typeLabel = isExclusive
     ? NaMeI18n.t(lang, "exclusiveBadge")
     : post.type + (isFilm ? " · Film" : "");
-  const backPath = isExclusive ? "/exclusive.html" : isFilm ? "/film.html" : "/";
+  const collection = isExclusive ? NaMeAuth.exclusiveCollectionName(post.meta) : "";
+  const backPath = isExclusive
+    ? collection
+      ? `/exclusive.html?meta=${encodeURIComponent(collection)}`
+      : "/exclusive.html"
+    : isFilm
+      ? "/film.html"
+      : "/";
   const backHref =
     typeof NaMeBase !== "undefined" ? NaMeBase.path(backPath) : backPath;
   // "backHome" already ships with its own arrow; the section labels do not.
   const backLabel = isExclusive
-    ? `← ${NaMeI18n.t(lang, "editorsExclusive")}`
+    ? `← ${collection || NaMeI18n.t(lang, "editorsExclusive")}`
     : isFilm
       ? `← ${NaMeI18n.t(lang, "film")}`
       : NaMeI18n.t(lang, "backHome");
