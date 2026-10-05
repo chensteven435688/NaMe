@@ -35,7 +35,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  document.getElementById("community-grid")?.addEventListener("click", onGridClick);
+
   document.addEventListener("name:languagechange", () => {
+    const grid = document.getElementById("community-grid");
+    if (grid?._pinOps) NaMePinOps.attach(grid, grid._pinOps);
     if (!currentPinId || !NaMeCommunityPin.isOpen?.()) return;
     const idx = feedPosts.findIndex((p) => String(p.id) === String(currentPinId));
     const post = idx >= 0 ? feedPosts[idx] : null;
@@ -71,35 +75,85 @@ async function loadFeed() {
     if (requestId !== feedRequestId) return;
     feedPosts = posts;
     NaMeCommunityPin.setFeedPosts(posts);
-    if (!posts.length) {
-      grid.innerHTML = `<p class="community-feed__empty" data-i18n="communityEmpty">${esc(NaMeI18n.t(lang, "communityEmpty"))}</p>`;
-      return;
-    }
-    grid.innerHTML = posts.map((p) => renderPinCard(p)).join("");
-    grid.querySelectorAll("[data-pin-id]").forEach((card) => {
-      card.addEventListener("click", () => {
-        const idx = feedPosts.findIndex((p) => String(p.id) === String(card.dataset.pinId));
-        const post = idx >= 0 ? feedPosts[idx] : null;
-        openPin(card.dataset.pinId, post, idx);
-      });
-    });
-    grid.querySelectorAll(".pin-card__avatar a, .pin-card__author").forEach((link) => {
-      link.addEventListener("click", (e) => e.stopPropagation());
+    NaMePinOps.attach(grid, {
+      kind: "community",
+      items: posts,
+      emptyClass: "community-feed__empty",
+      emptyHtml: `<p class="community-feed__empty">${esc(NaMeI18n.t(lang, "communityEmpty"))}</p>`,
+      renderItem: (post) => renderPinCard(post),
     });
   } catch (err) {
     if (requestId !== feedRequestId) return;
+    NaMePinOps.detach(grid);
     grid.innerHTML = `<p class="community-feed__empty">${esc(err.message)}</p>`;
   }
 }
 
+function onGridClick(e) {
+  const likeBtn = e.target.closest("[data-community-like]");
+  if (likeBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleCardLike(likeBtn);
+    return;
+  }
+  if (e.target.closest("a")) return;
+  const card = e.target.closest("[data-pin-id]");
+  if (!card) return;
+  const idx = feedPosts.findIndex((p) => String(p.id) === String(card.dataset.pinId));
+  const post = idx >= 0 ? feedPosts[idx] : null;
+  openPin(card.dataset.pinId, post, idx);
+}
+
+async function toggleCardLike(btn) {
+  if (!NaMeAuth.isLoggedIn()) {
+    NaMeAuth.openAuthModal("login");
+    return;
+  }
+  if (btn.disabled) return;
+  btn.disabled = true;
+  try {
+    const res = await NaMeAuth.toggleCommunityPostLike(btn.dataset.communityLike);
+    const post = feedPosts.find((p) => String(p.id) === String(btn.dataset.communityLike));
+    if (post) {
+      post.liked = res.liked;
+      post.likeCount = res.likeCount;
+    }
+    btn.classList.toggle("is-on", !!res.liked);
+    btn.setAttribute("aria-pressed", res.liked ? "true" : "false");
+    const count = btn.querySelector(".pin-like__count");
+    if (count) count.textContent = String(res.likeCount);
+    const counts = btn.closest(".pin-card")?.querySelector(".pin-card__counts");
+    if (counts && post) counts.textContent = `♥ ${post.likeCount} · 💬 ${post.commentCount}`;
+  } catch (err) {
+    NaMePinOps.toast(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function renderPinCard(post) {
+  const lang = NaMeI18n.getLang();
   const title = post.title || post.caption?.slice(0, 40) || "Moodboard";
   const avatar = NaMeAuth.formatUserAvatarLink(post.author, "user-avatar user-avatar--sm");
+  const save = NaMePinOps.saveButton({
+    kind: "community",
+    key: String(post.id),
+    title,
+    imageUrl: post.imageUrl || "",
+    href: "",
+    authorName: post.author?.displayName || "",
+  });
   return `
-    <article class="pin-card" data-pin-id="${post.id}">
+    <article class="pin-card" data-pin-id="${esc(post.id)}">
       <div class="pin-card__img">
-        <img src="${esc(post.imageUrl)}" alt="${esc(title)}" loading="lazy" />
+        <img class="pin-fade" src="${esc(post.imageUrl)}" alt="${esc(title)}" loading="lazy" decoding="async" />
       </div>
+      <button type="button" class="pin-like${post.liked ? " is-on" : ""}" data-community-like="${esc(post.id)}" aria-pressed="${post.liked ? "true" : "false"}" aria-label="${esc(NaMeI18n.t(lang, "pinOpsLike"))}">
+        <span aria-hidden="true">♥</span>
+        <span class="pin-like__count">${Number(post.likeCount) || 0}</span>
+      </button>
+      ${save}
       <div class="pin-card__overlay">
         <p class="pin-card__title">${esc(title)}</p>
         <div class="pin-card__meta">

@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     const post = await NaMeAuth.fetchPost(slug);
     renderPost(post);
+    loadRelated(post);
   } catch {
     document.getElementById("post-root").innerHTML =
       '<p class="post-error">Post not found.</p>';
@@ -82,6 +83,7 @@ function renderPost(post) {
     <article class="post${isExclusive ? " post--exclusive" : ""}">
       <div class="post__media">${media}</div>
       <div class="post__body">
+        <div class="post__toolbar">${NaMePinOps.saveButton(NaMePinOps.storySnapshot(post, { showMeta: true }))}</div>
         ${post.meta ? `<p class="post__meta">${escapeHtml(post.meta)}</p>` : ""}
         <h1 class="post__title">${escapeHtml(post.title)}</h1>
         <p class="post__type${isExclusive ? " post__type--exclusive" : ""}">${escapeHtml(typeLabel)}</p>
@@ -95,6 +97,33 @@ function renderPost(post) {
   if (gallery) initPostGallery(gallery);
 
   document.title = `${post.title} — NaMe Magazine`;
+}
+
+async function loadRelated(post) {
+  const section = document.getElementById("post-related");
+  const grid = document.getElementById("post-related-grid");
+  if (!section || !grid || !post?.type) return;
+  try {
+    const posts = (await NaMeAuth.fetchPosts({ type: post.type })).filter((item) => item.slug !== post.slug);
+    if (!posts.length) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    NaMePinOps.attach(grid, {
+      kind: "story",
+      toolbar: false,
+      items: posts,
+      renderItem: (item) =>
+        NaMePinOps.storyCardHtml(item, {
+          cardClass: `card--${item.type || "article"}`,
+          showMeta: false,
+          showType: false,
+        }),
+    });
+  } catch {
+    section.hidden = true;
+  }
 }
 
 function collectGalleryImages(coverUrl, bodyImages) {
