@@ -3,13 +3,6 @@
  */
 const STORY_TYPES = new Set(["article", "editorial", "film", "short"]);
 
-const TYPE_I18N = {
-  article: "article",
-  editorial: "editorial",
-  film: "film",
-  short: "shorts",
-};
-
 async function loadBrowseFeed() {
   const grid = document.getElementById("browse-grid");
   if (!grid) return;
@@ -33,13 +26,13 @@ async function loadAllStoriesFeed(grid) {
   try {
     const posts = (await NaMeAuth.fetchPosts({})).filter((p) => STORY_TYPES.has(p.type));
     if (!posts.length) {
+      NaMePinOps.detach(grid);
       grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, emptyKey))}</p>`;
       return;
     }
-    grid.innerHTML = posts
-      .map((p) => renderBrowseCard(p, `card--${p.type}`, true, true))
-      .join("");
+    mountStoryBoard(grid, posts, true, true, emptyKey);
   } catch {
+    NaMePinOps.detach(grid);
     grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, emptyKey))}</p>`;
   }
 }
@@ -75,6 +68,7 @@ async function loadSectionFolders(grid) {
     else renderExclusiveFolderIndex(grid, folders, lang, pagePath);
     folderViewReady = true;
   } catch {
+    NaMePinOps.detach(grid);
     grid.classList.remove("browse-grid--folders");
     grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, "exclusiveCollectionsEmpty"))}</p>`;
     folderViewReady = true;
@@ -82,6 +76,7 @@ async function loadSectionFolders(grid) {
 }
 
 function renderExclusiveFolderIndex(grid, folders, lang, pagePath) {
+  NaMePinOps.detach(grid);
   if (!folders.length) {
     grid.classList.remove("browse-grid--folders");
     grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, "exclusiveCollectionsEmpty"))}</p>`;
@@ -104,41 +99,45 @@ function renderExclusiveFolder(grid, folders, selected, lang, cardClass, pagePat
     ? NaMeI18n.t(lang, "exclusiveUncategorized")
     : folder?.name || NaMeAuth.exclusiveCollectionName(selected) || selected;
   const posts = folder?.posts || [];
-  const cards = posts.length
-    ? posts.map((post) => renderBrowseCard(post, cardClass || "card--exclusive", false)).join("")
-    : `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, "exclusiveCollectionEmpty"))}</p>`;
-  grid.innerHTML = `
+  const leadHtml = `
     <div class="meta-folder-bar">
       <a class="meta-folder-bar__back" href="${escapeHtml(exclusivePageHref(null, pagePath))}">${escapeHtml(NaMeI18n.t(lang, "exclusiveBackCollections"))}</a>
       <h2 class="meta-folder-bar__title">${escapeHtml(title)}</h2>
-    </div>
-    ${cards}`;
+    </div>`;
+  if (!posts.length) {
+    NaMePinOps.detach(grid);
+    grid.innerHTML = `${leadHtml}<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, "exclusiveCollectionEmpty"))}</p>`;
+    return;
+  }
+  mountStoryBoard(grid, posts, false, false, "exclusiveCollectionEmpty", cardClass || "card--exclusive", leadHtml);
 }
 
-function renderBrowseCard(post, cardClass, showMeta, showType = false) {
-  const href = `${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(post.slug)}`;
-  const meta = showMeta && post.meta ? `<p class="card__meta">${escapeHtml(post.meta)}</p>` : "";
-  const typeKey = TYPE_I18N[post.type];
-  const typeLabel =
-    showType && typeKey
-      ? `<span class="card__type">${escapeHtml(NaMeI18n.t(NaMeI18n.getLang(), typeKey))}</span>`
-      : "";
-  return `
-    <a href="${href}" class="card ${cardClass}">
-      <div class="card__img"><img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title)}" loading="lazy" /></div>
-      ${typeLabel}
-      ${meta}
-      <h3 class="card__title">${escapeHtml(post.title)}</h3>
-    </a>`;
+function mountStoryBoard(grid, posts, showMeta, showType, emptyKey, cardClass, leadHtml) {
+  NaMePinOps.attach(grid, {
+    kind: "story",
+    items: posts,
+    leadHtml: leadHtml || "",
+    emptyClass: "browse-grid__empty",
+    emptyHtml: `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(NaMeI18n.getLang(), emptyKey))}</p>`,
+    renderItem: (post) =>
+      NaMePinOps.storyCardHtml(post, {
+        cardClass: cardClass || `card--${post.type || "article"}`,
+        showMeta,
+        showType,
+      }),
+  });
 }
 
 let folderViewReady = false;
 
 document.addEventListener("name:languagechange", () => {
   const grid = document.getElementById("browse-grid");
-  if (!folderViewReady || !grid || !document.body.dataset.browseType || document.body.dataset.browseAll === "true") {
+  if (!grid) return;
+  if (document.body.dataset.browseAll === "true") {
+    loadAllStoriesFeed(grid);
     return;
   }
+  if (!folderViewReady || !document.body.dataset.browseType) return;
   loadSectionFolders(grid);
 });
 
