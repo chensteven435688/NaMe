@@ -2,6 +2,12 @@
  * NaMe — full admin dashboard
  */
 let allPosts = [];
+let editMetaNames = [];
+
+async function refreshEditMetaNames() {
+  if (typeof NaMeMetaCombo === "undefined") return;
+  editMetaNames = await NaMeMetaCombo.loadNames();
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   const ok = await NaMeAdmin.init("dashboard");
@@ -179,6 +185,12 @@ function initEditModal() {
     el.addEventListener("click", () => closeEditModal());
   });
 
+  const editMeta = document.getElementById("edit-meta");
+  if (editMeta && typeof NaMeMetaCombo !== "undefined") {
+    NaMeMetaCombo.attach(editMeta, { getNames: () => editMetaNames });
+    refreshEditMetaNames();
+  }
+
   document.getElementById("edit-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -212,6 +224,7 @@ async function openEditModal(id) {
   f.elements.title.value = post.title;
   f.elements.slug.value = post.slug;
   f.elements.meta.value = post.meta || "";
+  refreshEditMetaNames();
   f.elements.contentDate.value = post.contentDate ? post.contentDate.slice(0, 10) : "";
   f.elements.imageUrl.value = post.imageUrl || "";
   f.elements.body.value = post.body || "";

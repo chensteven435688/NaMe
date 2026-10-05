@@ -14,8 +14,7 @@ async function loadBrowseFeed() {
   const grid = document.getElementById("browse-grid");
   if (!grid) return;
 
-  const { browseType, browseSection, browseCard, browseShowMeta, browseAll } =
-    document.body.dataset;
+  const { browseAll, browseType } = document.body.dataset;
 
   if (browseAll === "true") {
     await loadAllStoriesFeed(grid);
@@ -24,30 +23,7 @@ async function loadBrowseFeed() {
 
   if (!browseType) return;
 
-  if (browseType === "exclusive") {
-    await loadExclusiveCollections(grid);
-    return;
-  }
-
-  const lang = NaMeI18n.getLang();
-  const loadingKey = document.body.dataset.browseLoading || "browseLoading";
-  const emptyKey = document.body.dataset.browseEmpty || "browseEmpty";
-
-  try {
-    const params = { type: browseType };
-    if (browseSection) params.section = browseSection;
-    const posts = await NaMeAuth.fetchPosts(params);
-    if (!posts.length) {
-      const home = typeof NaMeBase !== "undefined" ? NaMeBase.path("/") : "/";
-      window.location.replace(home);
-      return;
-    }
-    const cardClass = browseCard || `card--${browseType}`;
-    const showMeta = browseShowMeta === "true";
-    grid.innerHTML = posts.map((p) => renderBrowseCard(p, cardClass, showMeta)).join("");
-  } catch {
-    grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, emptyKey))}</p>`;
-  }
+  await loadSectionFolders(grid);
 }
 
 async function loadAllStoriesFeed(grid) {
@@ -68,114 +44,56 @@ async function loadAllStoriesFeed(grid) {
   }
 }
 
-const EXCLUSIVE_UNCATEGORIZED = "__uncategorized__";
-
-function exclusivePageHref(meta) {
-  const path =
-    typeof NaMeBase !== "undefined" ? NaMeBase.path("/exclusive.html") : "/exclusive.html";
-  if (!meta) return path;
-  return `${path}?meta=${encodeURIComponent(meta)}`;
+function folderPagePath() {
+  const url = new URL(location.href);
+  url.searchParams.delete("meta");
+  return `${url.pathname}${url.search}`;
 }
 
-function buildExclusiveFolders(posts, declared) {
-  const byKey = new Map();
-
-  function ensure(name, createdAt, uncategorized = false) {
-    const key = uncategorized ? EXCLUSIVE_UNCATEGORIZED : name.toLowerCase();
-    if (!byKey.has(key)) {
-      byKey.set(key, {
-        name,
-        posts: [],
-        createdAt: createdAt || null,
-        uncategorized,
-      });
-    } else if (createdAt && !byKey.get(key).createdAt) {
-      byKey.get(key).createdAt = createdAt;
-    }
-    return byKey.get(key);
-  }
-
-  for (const meta of declared || []) {
-    const name = NaMeAuth.exclusiveCollectionName(meta.name);
-    if (!name || name.toLowerCase() === EXCLUSIVE_UNCATEGORIZED) continue;
-    ensure(name, meta.createdAt);
-  }
-
-  for (const post of posts || []) {
-    const name = NaMeAuth.exclusiveCollectionName(post.meta);
-    if (!name) {
-      ensure(EXCLUSIVE_UNCATEGORIZED, null, true).posts.push(post);
-      continue;
-    }
-    ensure(name, null).posts.push(post);
-  }
-
-  const folders = [...byKey.values()];
-  folders.sort((a, b) => {
-    if (a.uncategorized) return 1;
-    if (b.uncategorized) return -1;
-    return latestFolderTime(b) - latestFolderTime(a);
-  });
-  return folders;
-}
-
-function latestFolderTime(folder) {
-  const postTime = folder.posts.reduce((latest, post) => {
-    const time = Date.parse(post.publishedAt || "") || 0;
-    return Math.max(latest, time);
-  }, 0);
-  const created = Date.parse(folder.createdAt || "") || 0;
-  return Math.max(postTime, created);
-}
-
-async function loadExclusiveCollections(grid) {
+async function loadSectionFolders(grid) {
   const lang = NaMeI18n.getLang();
+  const { browseType, browseSection, browseCard } = document.body.dataset;
+  const query = new URLSearchParams(location.search);
+  const type = query.get("feed") === "short" ? "short" : browseType;
+  const cardClass = type === "short" ? "card--short" : browseCard || `card--${type}`;
+  const pagePath = folderPagePath();
   try {
+    const params = { type };
+    if (type !== "short" && browseSection) params.section = browseSection;
     const [posts, declared] = await Promise.all([
-      NaMeAuth.fetchPosts({ type: "exclusive" }),
-      NaMeAuth.fetchExclusiveMetas().catch(() => []),
+      NaMeAuth.fetchPosts(params),
+      type === "exclusive" ? NaMeAuth.fetchExclusiveMetas().catch(() => []) : Promise.resolve([]),
     ]);
+    if (!posts.length && !declared.length && !query.get("meta")) {
+      const home = typeof NaMeBase !== "undefined" ? NaMeBase.path("/") : "/";
+      window.location.replace(home);
+      return;
+    }
     const folders = buildExclusiveFolders(posts, declared);
-    const selected = new URLSearchParams(location.search).get("meta");
-    if (selected) renderExclusiveFolder(grid, folders, selected, lang);
-    else renderExclusiveFolderIndex(grid, folders, lang);
-    exclusiveViewReady = true;
+    const selected = query.get("meta");
+    if (selected) renderExclusiveFolder(grid, folders, selected, lang, cardClass, pagePath);
+    else renderExclusiveFolderIndex(grid, folders, lang, pagePath);
+    folderViewReady = true;
   } catch {
     grid.classList.remove("browse-grid--folders");
     grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, "exclusiveCollectionsEmpty"))}</p>`;
-    exclusiveViewReady = true;
+    folderViewReady = true;
   }
 }
 
-function renderExclusiveFolderIndex(grid, folders, lang) {
+function renderExclusiveFolderIndex(grid, folders, lang, pagePath) {
   if (!folders.length) {
     grid.classList.remove("browse-grid--folders");
     grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, "exclusiveCollectionsEmpty"))}</p>`;
     return;
   }
   grid.classList.add("browse-grid--folders");
-  grid.innerHTML = folders.map((folder) => renderExclusiveFolderCard(folder, lang)).join("");
+  grid.innerHTML = folders
+    .map((folder) => renderExclusiveFolderCard(folder, lang, pagePath))
+    .join("");
 }
 
-function renderExclusiveFolderCard(folder, lang) {
-  const label = folder.uncategorized
-    ? NaMeI18n.t(lang, "exclusiveUncategorized")
-    : folder.name;
-  const href = exclusivePageHref(folder.uncategorized ? EXCLUSIVE_UNCATEGORIZED : folder.name);
-  const count = folder.posts.length;
-  const countWord = NaMeI18n.t(lang, count === 1 ? "exclusivePiece" : "exclusivePieces");
-  const cover = folder.posts[0]?.imageUrl
-    ? `<img src="${escapeHtml(folder.posts[0].imageUrl)}" alt="" />`
-    : `<span class="meta-folder__mark">${escapeHtml(label.slice(0, 1) || "—")}</span>`;
-  return `
-    <a class="meta-folder" href="${escapeHtml(href)}">
-      <div class="meta-folder__cover">${cover}</div>
-      <h2 class="meta-folder__name">${escapeHtml(label)}</h2>
-      <p class="meta-folder__count">${escapeHtml(`${count} ${countWord}`)}</p>
-    </a>`;
-}
-
-function renderExclusiveFolder(grid, folders, selected, lang) {
+function renderExclusiveFolder(grid, folders, selected, lang, cardClass, pagePath) {
   grid.classList.remove("browse-grid--folders");
   const key = selected.toLowerCase();
   const folder = folders.find((item) => {
@@ -187,11 +105,11 @@ function renderExclusiveFolder(grid, folders, selected, lang) {
     : folder?.name || NaMeAuth.exclusiveCollectionName(selected) || selected;
   const posts = folder?.posts || [];
   const cards = posts.length
-    ? posts.map((post) => renderBrowseCard(post, "card--exclusive", false)).join("")
+    ? posts.map((post) => renderBrowseCard(post, cardClass || "card--exclusive", false)).join("")
     : `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, "exclusiveCollectionEmpty"))}</p>`;
   grid.innerHTML = `
     <div class="meta-folder-bar">
-      <a class="meta-folder-bar__back" href="${escapeHtml(exclusivePageHref())}">${escapeHtml(NaMeI18n.t(lang, "exclusiveBackCollections"))}</a>
+      <a class="meta-folder-bar__back" href="${escapeHtml(exclusivePageHref(null, pagePath))}">${escapeHtml(NaMeI18n.t(lang, "exclusiveBackCollections"))}</a>
       <h2 class="meta-folder-bar__title">${escapeHtml(title)}</h2>
     </div>
     ${cards}`;
@@ -214,12 +132,14 @@ function renderBrowseCard(post, cardClass, showMeta, showType = false) {
     </a>`;
 }
 
-let exclusiveViewReady = false;
+let folderViewReady = false;
 
 document.addEventListener("name:languagechange", () => {
   const grid = document.getElementById("browse-grid");
-  if (!exclusiveViewReady || document.body.dataset.browseType !== "exclusive" || !grid) return;
-  loadExclusiveCollections(grid);
+  if (!folderViewReady || !grid || !document.body.dataset.browseType || document.body.dataset.browseAll === "true") {
+    return;
+  }
+  loadSectionFolders(grid);
 });
 
 function escapeHtml(s) {

@@ -1,4 +1,5 @@
 let allSubmissions = [];
+let publishMetaNames = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   const ok = await NaMeAdmin.init("submissions");
@@ -22,6 +23,10 @@ function bootSubmissions() {
     document.querySelectorAll("[data-close-publish]").forEach((el) => {
       el.addEventListener("click", closePublishModal);
     });
+    const publishMeta = document.getElementById("publish-meta");
+    if (publishMeta && typeof NaMeMetaCombo !== "undefined") {
+      NaMeMetaCombo.attach(publishMeta, { getNames: () => publishMetaNames });
+    }
   }
 
   loadSubmissions();
@@ -137,6 +142,11 @@ function openPublishModal(id) {
   document.getElementById("publish-submission-id").value = id;
   document.getElementById("publish-modal-summary").textContent = `${s.title} — ${s.author?.displayName || ""}`;
   document.getElementById("publish-meta").value = `${s.medium} — ${new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`;
+  if (typeof NaMeMetaCombo !== "undefined") {
+    NaMeMetaCombo.loadNames().then((names) => {
+      publishMetaNames = names;
+    });
+  }
   const typeSelect = document.querySelector("#publish-form select[name=type]");
   if (typeSelect) {
     typeSelect.value = s.medium === "film" ? "film" : s.medium === "photography" ? "editorial" : "article";

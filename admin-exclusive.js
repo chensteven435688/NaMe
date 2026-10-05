@@ -23,11 +23,10 @@ function bootExclusive() {
   const imageUrlInput = document.getElementById("exclusive-image-url");
   const titleInput = document.getElementById("exclusive-title");
   const metaInput = document.getElementById("exclusive-meta");
-  const metaChips = document.getElementById("exclusive-meta-chips");
   const metaStatus = document.getElementById("exclusive-meta-status");
   const metaManage = document.getElementById("exclusive-meta-manage");
   let declaredMetas = [];
-  let exclusivePosts = [];
+  let metaPosts = [];
 
   function metaKey(name) {
     return NaMeAuth.exclusiveCollectionName(name).toLowerCase();
@@ -40,7 +39,7 @@ function bootExclusive() {
       if (!name) continue;
       map.set(name.toLowerCase(), name);
     }
-    for (const post of exclusivePosts) {
+    for (const post of metaPosts) {
       const name = NaMeAuth.exclusiveCollectionName(post.meta);
       if (!name || map.has(name.toLowerCase())) continue;
       map.set(name.toLowerCase(), name);
@@ -50,27 +49,11 @@ function bootExclusive() {
 
   function postsInMeta(name) {
     const key = metaKey(name);
-    return exclusivePosts.filter((post) => metaKey(post.meta) === key).length;
+    return metaPosts.filter((post) => metaKey(post.meta) === key).length;
   }
 
   function renderMetaChoices() {
-    const selected = metaKey(metaInput.value);
     const names = knownMetas();
-    metaChips.innerHTML = names
-      .map((name) => {
-        const active = metaKey(name) === selected ? " is-selected" : "";
-        return `<button type="button" class="meta-chip${active}" data-meta-choice="${NaMeAdmin.esc(name)}">${NaMeAdmin.esc(name)}</button>`;
-      })
-      .join("");
-    metaChips.querySelectorAll("[data-meta-choice]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        metaInput.value = btn.dataset.metaChoice;
-        metaStatus.textContent = "";
-        updatePreview();
-        renderMetaChoices();
-      });
-    });
-
     const lang = NaMeI18n.getLang();
     metaManage.innerHTML = names.length
       ? names
@@ -106,11 +89,15 @@ function bootExclusive() {
   async function refreshExclusiveMetas() {
     const [metas, posts] = await Promise.all([
       NaMeAuth.fetchExclusiveMetas().catch(() => []),
-      NaMeAuth.fetchPosts({ type: "exclusive" }).catch(() => exclusivePosts),
+      NaMeAuth.fetchPosts({}).catch(() => metaPosts),
     ]);
     declaredMetas = metas;
-    exclusivePosts = posts;
+    metaPosts = posts;
     renderMetaChoices();
+  }
+
+  if (typeof NaMeMetaCombo !== "undefined") {
+    NaMeMetaCombo.attach(metaInput, { getNames: knownMetas });
   }
 
   document.getElementById("exclusive-meta-add")?.addEventListener("click", async () => {
@@ -133,8 +120,6 @@ function bootExclusive() {
       metaStatus.textContent = err.message;
     }
   });
-
-  metaInput?.addEventListener("input", renderMetaChoices);
 
   function updatePreview() {
     const title = titleInput.value.trim() || "Title";

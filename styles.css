@@ -1081,6 +1081,33 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
   border-bottom: 1px solid var(--border);
 }
 
+.home-meta-folders {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2rem 1.25rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 clamp(1.5rem, 5vw, 3rem) var(--section-pad);
+}
+
+@media (max-width: 1100px) {
+  .home-meta-folders {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .home-meta-folders {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .home-meta-folders {
+    grid-template-columns: 1fr;
+  }
+}
+
 .section__head-text {
   max-width: 640px;
 }
@@ -1257,6 +1284,12 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+}
+
+.shorts .home-meta-folders {
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 0;
 }
 
 .shorts__badge {
@@ -4229,9 +4262,47 @@ button.danger {
   align-items: center;
 }
 
-.meta-field__row input {
+.meta-field__row input,
+.meta-field__row .meta-combo {
   flex: 1;
   min-width: 0;
+}
+
+.meta-combo {
+  position: relative;
+}
+
+.meta-combo input {
+  width: 100%;
+}
+
+.meta-combo__list {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  max-height: 240px;
+  overflow: auto;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+}
+
+.meta-combo__list li {
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.meta-combo__list li.is-active,
+.meta-combo__list li:hover {
+  background: var(--text);
+  color: var(--text-inverse);
 }
 
 .meta-chips {
@@ -5926,6 +5997,29 @@ button.danger {
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.15fr) minmax(0, 1fr);
   gap: 1.5rem 2.4rem;
   align-items: start;
+}
+
+.atelier__gallery.is-folders {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2rem 1.25rem;
+}
+
+@media (max-width: 1100px) {
+  .atelier__gallery.is-folders {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .atelier__gallery.is-folders {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .atelier__gallery.is-folders {
+    grid-template-columns: 1fr;
+  }
 }
 
 .atelier__empty {
