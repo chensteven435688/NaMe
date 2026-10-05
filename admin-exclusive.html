@@ -58,10 +58,16 @@
               <input type="text" name="title" id="exclusive-title" required />
             </label>
 
-            <label>
-              <span data-i18n="adminMeta">Meta (category — date)</span>
-              <input type="text" name="meta" id="exclusive-meta" placeholder="Editor's note — 02 Jun 2026" />
-            </label>
+            <div class="meta-field">
+              <span data-i18n="exclusiveMetaLabel">Meta</span>
+              <p class="meta-field__hint" data-i18n="exclusiveMetaHint">Each meta is a folder on this page. Choose one already declared, or add a new name.</p>
+              <div class="meta-field__row">
+                <input type="text" name="meta" id="exclusive-meta" maxlength="80" autocomplete="off" data-i18n-placeholder="exclusiveMetaPlaceholder" placeholder="New collection name" />
+                <button type="button" class="btn btn--ghost btn--sm" id="exclusive-meta-add" data-i18n="exclusiveMetaAdd">Add meta</button>
+              </div>
+              <div class="meta-chips" id="exclusive-meta-chips"></div>
+              <p id="exclusive-meta-status" class="admin__status" role="status"></p>
+            </div>
 
             <label>
               <span data-content-date-label data-i18n="adminCreatedDate">Date created / filmed</span>
@@ -109,6 +115,13 @@
               <p class="admin-upload-preview__type" data-i18n="exclusiveLabel">Editor's Exclusive</p>
             </div>
           </aside>
+        </div>
+
+        <div class="admin-exclusive-metas">
+          <div class="admin-panel__head">
+            <h2 data-i18n="adminExclusiveMetas">Meta collections</h2>
+          </div>
+          <ul class="meta-manage" id="exclusive-meta-manage"></ul>
         </div>
 
         <div class="admin-exclusive-list">

@@ -13,6 +13,7 @@ function bootExclusive() {
   if (!form) return;
   if (form.dataset.booted) {
     loadExclusivePosts();
+    document.dispatchEvent(new CustomEvent("name:exclusive-changed"));
     return;
   }
   form.dataset.booted = "1";
@@ -22,6 +23,118 @@ function bootExclusive() {
   const imageUrlInput = document.getElementById("exclusive-image-url");
   const titleInput = document.getElementById("exclusive-title");
   const metaInput = document.getElementById("exclusive-meta");
+  const metaChips = document.getElementById("exclusive-meta-chips");
+  const metaStatus = document.getElementById("exclusive-meta-status");
+  const metaManage = document.getElementById("exclusive-meta-manage");
+  let declaredMetas = [];
+  let exclusivePosts = [];
+
+  function metaKey(name) {
+    return NaMeAuth.exclusiveCollectionName(name).toLowerCase();
+  }
+
+  function knownMetas() {
+    const map = new Map();
+    for (const meta of declaredMetas) {
+      const name = NaMeAuth.exclusiveCollectionName(meta.name);
+      if (!name) continue;
+      map.set(name.toLowerCase(), name);
+    }
+    for (const post of exclusivePosts) {
+      const name = NaMeAuth.exclusiveCollectionName(post.meta);
+      if (!name || map.has(name.toLowerCase())) continue;
+      map.set(name.toLowerCase(), name);
+    }
+    return [...map.values()];
+  }
+
+  function postsInMeta(name) {
+    const key = metaKey(name);
+    return exclusivePosts.filter((post) => metaKey(post.meta) === key).length;
+  }
+
+  function renderMetaChoices() {
+    const selected = metaKey(metaInput.value);
+    const names = knownMetas();
+    metaChips.innerHTML = names
+      .map((name) => {
+        const active = metaKey(name) === selected ? " is-selected" : "";
+        return `<button type="button" class="meta-chip${active}" data-meta-choice="${NaMeAdmin.esc(name)}">${NaMeAdmin.esc(name)}</button>`;
+      })
+      .join("");
+    metaChips.querySelectorAll("[data-meta-choice]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        metaInput.value = btn.dataset.metaChoice;
+        metaStatus.textContent = "";
+        updatePreview();
+        renderMetaChoices();
+      });
+    });
+
+    const lang = NaMeI18n.getLang();
+    metaManage.innerHTML = names.length
+      ? names
+          .map((name) => {
+            const count = postsInMeta(name);
+            const countWord = NaMeI18n.t(lang, count === 1 ? "exclusivePiece" : "exclusivePieces");
+            const inCatalog = declaredMetas.some((meta) => metaKey(meta.name) === metaKey(name));
+            const remove = inCatalog && count === 0
+              ? `<button type="button" class="danger" data-delete-meta="${NaMeAdmin.esc(name)}">${NaMeAdmin.esc(NaMeI18n.t(lang, "adminExclusiveMetaRemove"))}</button>`
+              : `<span class="text-dim">${NaMeAdmin.esc(count ? NaMeI18n.t(lang, "adminExclusiveMetaInUse") : "")}</span>`;
+            return `<li class="meta-manage__item"><span>${NaMeAdmin.esc(name)}</span><span class="text-dim">${count} ${NaMeAdmin.esc(countWord)}</span>${remove}</li>`;
+          })
+          .join("")
+      : `<li class="meta-manage__empty">${NaMeAdmin.esc(NaMeI18n.t(lang, "exclusiveCollectionsEmpty"))}</li>`;
+
+    metaManage.querySelectorAll("[data-delete-meta]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const msg = NaMeI18n.t(NaMeI18n.getLang(), "adminExclusiveMetaRemoveConfirm");
+        if (!confirm(msg)) return;
+        metaStatus.textContent = "";
+        try {
+          await NaMeAuth.deleteExclusiveMeta(btn.dataset.deleteMeta);
+          if (metaKey(metaInput.value) === metaKey(btn.dataset.deleteMeta)) metaInput.value = "";
+          updatePreview();
+          await refreshExclusiveMetas();
+        } catch (err) {
+          metaStatus.textContent = err.message;
+        }
+      });
+    });
+  }
+
+  async function refreshExclusiveMetas() {
+    const [metas, posts] = await Promise.all([
+      NaMeAuth.fetchExclusiveMetas().catch(() => []),
+      NaMeAuth.fetchPosts({ type: "exclusive" }).catch(() => exclusivePosts),
+    ]);
+    declaredMetas = metas;
+    exclusivePosts = posts;
+    renderMetaChoices();
+  }
+
+  document.getElementById("exclusive-meta-add")?.addEventListener("click", async () => {
+    const name = NaMeAuth.exclusiveCollectionName(metaInput.value);
+    metaStatus.textContent = "";
+    if (!name) {
+      metaStatus.textContent = NaMeI18n.t(NaMeI18n.getLang(), "exclusiveMetaRequired");
+      metaInput.focus();
+      return;
+    }
+    try {
+      const saved = await NaMeAuth.createExclusiveMeta(name);
+      metaInput.value = saved.name;
+      metaStatus.textContent = saved.created
+        ? NaMeI18n.t(NaMeI18n.getLang(), "exclusiveMetaAdded")
+        : "";
+      updatePreview();
+      await refreshExclusiveMetas();
+    } catch (err) {
+      metaStatus.textContent = err.message;
+    }
+  });
+
+  metaInput?.addEventListener("input", renderMetaChoices);
 
   function updatePreview() {
     const title = titleInput.value.trim() || "Title";
@@ -59,7 +172,11 @@ function bootExclusive() {
   });
 
   form?.addEventListener("reset", () => {
-    setTimeout(updatePreview, 0);
+    setTimeout(() => {
+      updatePreview();
+      renderMetaChoices();
+      metaStatus.textContent = "";
+    }, 0);
     success.classList.add("is-hidden");
     status.textContent = "";
   });
@@ -68,6 +185,13 @@ function bootExclusive() {
     e.preventDefault();
     status.textContent = "";
     success.classList.add("is-hidden");
+
+    const metaName = NaMeAuth.exclusiveCollectionName(metaInput.value);
+    if (!metaName) {
+      status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "exclusiveMetaRequired");
+      return;
+    }
+    metaInput.value = metaName;
 
     const fd = new FormData(form);
     const hasFile = fd.get("image")?.size > 0;
@@ -85,17 +209,25 @@ function bootExclusive() {
         <p><strong>${NaMeI18n.t(NaMeI18n.getLang(), "adminPublishSuccess")}</strong> ${NaMeAdmin.esc(post.title)}</p>
         <p>
           <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(post.slug)}" class="btn btn--primary" target="_blank">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewPost")}</a>
-          <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/exclusive.html") : "/exclusive.html"}" class="btn btn--ghost" target="_blank">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewExclusive")}</a>
+          <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/exclusive.html") : "/exclusive.html"}?meta=${encodeURIComponent(post.meta || metaName)}" class="btn btn--ghost" target="_blank">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewExclusive")}</a>
         </p>`;
       form.reset();
       updatePreview();
+      await refreshExclusiveMetas();
       loadExclusivePosts();
     } catch (err) {
       status.textContent = err.message;
     }
   });
 
-  document.getElementById("exclusive-refresh")?.addEventListener("click", loadExclusivePosts);
+  document.getElementById("exclusive-refresh")?.addEventListener("click", async () => {
+    await refreshExclusiveMetas();
+    loadExclusivePosts();
+  });
+  document.addEventListener("name:exclusive-changed", () => {
+    refreshExclusiveMetas();
+  });
+  refreshExclusiveMetas();
   loadExclusivePosts();
 }
 
@@ -114,7 +246,7 @@ async function loadExclusivePosts() {
       <tr>
         <td>
           <strong>${NaMeAdmin.esc(p.title)}</strong>
-          <br><small class="text-dim">/${NaMeAdmin.esc(p.slug)} · ${NaMeAdmin.formatDate(p.publishedAt)}</small>
+          <br><small class="text-dim">/${NaMeAdmin.esc(p.slug)} · ${NaMeAdmin.formatDate(p.publishedAt)}${p.meta ? ` · ${NaMeAdmin.esc(NaMeAuth.exclusiveCollectionName(p.meta))}` : ""}</small>
         </td>
         <td class="admin-actions">
           <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(p.slug)}" target="_blank">${NaMeAdmin.esc(NaMeI18n.t(lang, "adminViewPost"))}</a>
@@ -129,6 +261,7 @@ async function loadExclusivePosts() {
         const msg = NaMeI18n.t(NaMeI18n.getLang(), "adminRemoveExclusiveConfirm");
         if (!confirm(msg)) return;
         await NaMeAuth.deletePost(btn.dataset.deleteExclusive);
+        document.dispatchEvent(new CustomEvent("name:exclusive-changed"));
         loadExclusivePosts();
       });
     });

@@ -23,6 +23,7 @@ import { registerSubmissionRoutes } from "./routes/submissions.js";
 import { seedCommunity } from "./seed-community.js";
 import { isAuthBypassEnabled } from "./middleware/auth.js";
 import { isSupabaseConfigured } from "./supabase.js";
+import { collectionName, validateMetaName } from "./lib/exclusive-meta.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, "..");
@@ -301,6 +302,14 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
   const content_date = contentDate?.trim()
     ? new Date(`${contentDate.trim()}T12:00:00`).toISOString()
     : null;
+  let storedMeta = meta?.toString().trim() || null;
+  if (type === "exclusive") {
+    const checked = validateMetaName(meta);
+    if (checked.error && meta?.toString().trim()) {
+      return res.status(400).json({ error: checked.error });
+    }
+    storedMeta = checked.name || null;
+  }
   db.prepare(
     `INSERT INTO posts (id, slug, type, title, meta, image_url, body, video_url, section, featured, author_id, content_date, published_at, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -309,7 +318,7 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
     slug,
     type,
     title.trim(),
-    meta || null,
+    storedMeta,
     imageUrl,
     body || `<p>${title}</p>`,
     videoUrl || null,
@@ -320,8 +329,76 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
     now,
     now
   );
+  if (type === "exclusive" && storedMeta) rememberExclusiveMeta(storedMeta);
   const row = db.prepare("SELECT * FROM posts WHERE id = ?").get(id);
   res.status(201).json({ post: publicPost(row) });
+});
+
+function rememberExclusiveMeta(meta) {
+  const checked = validateMetaName(meta);
+  if (checked.error) return;
+  const existing = db
+    .prepare("SELECT name FROM exclusive_metas WHERE name = ? COLLATE NOCASE")
+    .get(checked.name);
+  if (existing) return existing.name;
+  db.prepare("INSERT INTO exclusive_metas (id, name, created_at) VALUES (?, ?, ?)").run(
+    randomUUID(),
+    checked.name,
+    new Date().toISOString()
+  );
+  return checked.name;
+}
+
+function exclusiveMetaInUse(name) {
+  const key = collectionName(name).toLowerCase();
+  if (!key) return false;
+  const rows = db.prepare("SELECT meta FROM posts WHERE type = 'exclusive'").all();
+  return rows.some((row) => collectionName(row.meta).toLowerCase() === key);
+}
+
+app.get("/api/exclusive/metas", (_req, res) => {
+  const rows = db
+    .prepare("SELECT id, name, created_at FROM exclusive_metas ORDER BY created_at ASC")
+    .all();
+  res.json({
+    metas: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      createdAt: row.created_at,
+    })),
+  });
+});
+
+app.post("/api/exclusive/metas", requireAdmin, (req, res) => {
+  const checked = validateMetaName(req.body?.name);
+  if (checked.error) return res.status(400).json({ error: checked.error });
+  const existing = db
+    .prepare("SELECT id, name, created_at FROM exclusive_metas WHERE name = ? COLLATE NOCASE")
+    .get(checked.name);
+  if (existing) {
+    return res.json({
+      meta: { id: existing.id, name: existing.name, createdAt: existing.created_at },
+      created: false,
+    });
+  }
+  const id = randomUUID();
+  const createdAt = new Date().toISOString();
+  db.prepare("INSERT INTO exclusive_metas (id, name, created_at) VALUES (?, ?, ?)").run(
+    id,
+    checked.name,
+    createdAt
+  );
+  res.status(201).json({ meta: { id, name: checked.name, createdAt }, created: true });
+});
+
+app.delete("/api/exclusive/metas", requireAdmin, (req, res) => {
+  const checked = validateMetaName(req.query.name);
+  if (checked.error) return res.status(400).json({ error: checked.error });
+  if (exclusiveMetaInUse(checked.name)) {
+    return res.status(409).json({ error: "This meta still has posts." });
+  }
+  db.prepare("DELETE FROM exclusive_metas WHERE name = ? COLLATE NOCASE").run(checked.name);
+  res.json({ ok: true });
 });
 
 app.delete("/api/posts/:id", requireAdmin, (req, res) => {
