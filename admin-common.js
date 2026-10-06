@@ -95,8 +95,8 @@ const NaMeAdmin = (function () {
 
     nav.innerHTML = NAV.map((item) => {
       const label = t(item.key);
-      const active = item.page === current ? " is-active" : "";
-      return `<a href="${path(item.href)}" class="admin-nav__item${active}" data-admin-nav>${label}</a>`;
+      const active = item.page === current;
+      return `<a href="${path(item.href)}" class="admin-nav__item${active ? " is-active" : ""}"${active ? ' aria-current="page"' : ""} data-admin-nav>${label}</a>`;
     }).join("");
   }
 
