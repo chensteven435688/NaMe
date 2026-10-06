@@ -4,16 +4,18 @@ A fashion editorial magazine website inspired by [PAP Magazine](https://www.pap-
 
 ## Features
 
-- Full-screen cover hero with rotating editorials
+- Homepage atelier: search, filter, and a story gallery, then folders for exclusive, articles, editorials, magazines, and film
 - Community call-to-action banner
-- Horizontal carousels for articles, editorials, films, and shorts (loaded from API)
-- **Member accounts** — register, login, comment, and like posts
-- **Admin uploads** — only emails listed in `ADMIN_EMAILS` can publish content
-- Subscribe newsletter section
-- Member signup modal
+- Community moodboard — share, like, and comment
+- Story indexes in a masonry grid, with **Latest**, **Mixed**, and **Saved**
+- Saves stay in this browser (no account required)
+- **Member accounts** — register, login, profile, comment, and like
+- **Admin desk** — only emails listed in `ADMIN_EMAILS` can publish and moderate
+- Subscribe page and member signup modal
 - Responsive layout with mobile navigation
-- Dark editorial aesthetic with serif typography
-- 8 languages via `i18n.js`
+- Paper editorial palette, serif titles, and a system sans for UI text
+- Visible keyboard focus, 44px controls, and reduced-motion handling
+- 8 languages via `locales/*.json` (compiled into `i18n.js`)
 
 ## Run locally
 
@@ -47,8 +49,10 @@ In the repo: **Settings → Pages → Build from branch → `main` → `/ (root)
 
 | Role | Who | Can do |
 |------|-----|--------|
-| **Admin** | Emails in `ADMIN_EMAILS` | Full control at `/admin.html` — dashboard, content CRUD, comments, users |
-| **Member** | Anyone who registers | View content, comment, like comments, reply (one level) |
+| **Admin** | Emails in `ADMIN_EMAILS` | Full control at `/admin.html` — dashboard, content, uploads, comments, community, users |
+| **Member** | Anyone who registers | View content, comment, like, share to the community, edit their profile |
+
+Anyone can save stories and community posts locally. Saves are not synced to the account.
 
 ### Setup admins
 
@@ -59,60 +63,68 @@ ADMIN_EMAILS=you@example.com,coeditor@example.com
 JWT_SECRET=your-long-random-secret
 ```
 
-Register with one of those emails (or log in again after adding your email) to get the **Upload** link in the header.
+Register with one of those emails (or log in again after adding your email) to get the **Admin** link in the header.
 
 ## Pages
 
 | Path | Purpose |
 |------|---------|
 | `/` | Homepage |
-| `/film.html` | Films and moving-image stories |
-| `/about.html` | About NaMe & editor |
-| `/business.html` | Partnerships & advertising |
-| `/contact.html` | Contact form |
-| `/submission.html` | Creator submission guidelines |
-| `/community.html` | Community moodboard — share, like, and comment |
+| `/stories.html` | All stories |
+| `/magazine.html` · `/editorial.html` · `/articles.html` · `/film.html` | Section indexes |
+| `/exclusive.html` | Editor's Exclusive |
+| `/about.html` · `/business.html` · `/contact.html` | About, partnerships, contact |
+| `/submission.html` | Creator submissions |
+| `/community.html` | Community moodboard |
+| `/subscribe.html` | Subscribe |
+| `/account.html` | Login / join |
+| `/profile.html` | Signed-in member profile |
+| `/member.html?id=…` | Public member profile |
+| `/post.html?slug=…` | Story, comments, and save |
 | `/terms.html` · `/privacy.html` | Legal pages |
-| `/post.html?slug=…` | Story detail + comments |
-| `/admin.html` | Admin dashboard (stats, content, users) |
-| `/admin-upload.html` | Dedicated post upload page with live preview |
-| `/admin-comments.html` | Comment moderation — remove inappropriate comments |
 
 ### Admin pages
 
-- **`/admin-upload.html`** — full upload form with image preview; publish to homepage
-- **`/admin-comments.html`** — search all comments; **Remove** inappropriate/spam/abusive posts
-- **`/admin.html`** — dashboard, manage/edit/delete content, user roles
+- **`/admin.html`** — dashboard, content, and users
+- **`/admin-upload.html`** — publish a post, with image preview
+- **`/admin-exclusive.html`** — Editor's Exclusive
+- **`/admin-submissions.html`** — review creator submissions
+- **`/admin-comments.html`** — comment moderation
+- **`/admin-community.html`** — community posts
 - On any **post page**, logged-in admins see **Remove** on every comment
 
 ## API (summary)
 
-- `POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me`
-- `GET /api/posts` · `GET /api/posts/:slug` · `POST /api/posts` (admin) · `DELETE /api/posts/:id` (admin)
-- `GET /api/admin/stats` · `GET /api/admin/users` · `PATCH /api/admin/users/:id` · `DELETE /api/admin/users/:id`
-- `GET /api/admin/comments` · `DELETE /api/admin/comments/:id` (admin moderation)
-- `GET /api/admin/posts/:id` · `PATCH /api/admin/posts/:id` (admin)
+- `POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me` · `PATCH /api/auth/profile`
+- `GET /api/posts` · `GET /api/posts/:slug` · `POST /api/posts` (admin) · `PATCH /api/admin/posts/:id` (admin) · `DELETE /api/posts/:id` (admin)
 - `GET /api/posts/:slug/comments` · `POST /api/posts/:slug/comments` · `POST /api/comments/:id/like` · `DELETE /api/comments/:id`
+- `GET /api/admin/stats` · `GET /api/admin/users` · `PATCH /api/admin/users/:id` · `DELETE /api/admin/users/:id`
+- `GET /api/admin/comments` · `DELETE /api/admin/comments/:id`
+- `GET /api/community/posts` · `POST /api/community/posts` · `POST /api/community/posts/:id/like` · `DELETE /api/community/posts/:id`
 
 ## Customize
 
-- **Brand**: `NaMe` in `index.html` and translations
+- **Brand**: `NaMe` in the HTML pages and `locales/`
 - **Images**: Upload via admin or use URLs
-- **Colors**: CSS variables in `styles.css`
-- **Translations**: `i18n.js` (edit `aboutBody`, `businessBody`, etc. for page copy)
+- **Colors and type**: CSS variables at the top of `styles.css`. The refresh at the end of that file sets UI type, focus rings, buttons, and the admin workspace
+- **Homepage**: `home-design.css` loads after `styles.css` and overrides the homepage only
+- **Translations**: edit `locales/*.json`, then run `node scripts/rebuild-i18n.js` so `i18n.js` matches
 - **Static pages**: `about.html`, `business.html`, `contact.html`, `submission.html`
 
 ## Structure
 
 ```
-index.html      — homepage
-post.html       — post + comments
-admin.html      — admin upload
-auth.js         — client auth & API
-main.js         — UI interactions + feeds
-post.js         — post page logic
-admin.js        — admin panel
-i18n.js         — translations
-styles.css      — styling
-server/         — Express API, SQLite, uploads
+index.html        — homepage
+styles.css        — site styles, including the refresh block at the end
+home-design.css   — homepage overrides
+post.html         — story + comments
+community.html    — community moodboard
+admin.html        — admin dashboard
+pin-ops.js        — save, latest/mixed, masonry feeds
+browse.js         — story index grids
+main.js           — homepage and shared UI
+auth.js           — client auth and API
+i18n.js           — translation runtime
+locales/          — translation source
+server/           — Express API, SQLite, uploads
 ```
