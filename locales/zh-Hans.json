@@ -451,5 +451,18 @@
   "adminSection": "分区",
   "adminFeatured": "在封面英雄区展示",
   "adminPublish": "发布",
-  "adminManage": "管理帖子"
+  "adminManage": "管理帖子",
+  "coverMagazine": "独立杂志",
+  "coverCoordinates": "艺术 · 文化 · 新视角",
+  "coverStatus": "不断生长",
+  "coverLoading": "正在寻找新的视角…",
+  "coverManifesto": "为尚未被看见的声音留一处空间。以影像、想法与创作者，共同塑造未来。",
+  "coverArchive": "探索档案 ↗",
+  "archiveSearch": "搜索档案",
+  "clearFilters": "清除",
+  "loadMore": "加载更多",
+  "backToTop": "返回顶部",
+  "readingFocus": "专注阅读",
+  "readingTime": "分钟阅读",
+  "unsavedChanges": "你有尚未保存的更改。确定离开此页面吗？"
 }

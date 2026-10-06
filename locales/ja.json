@@ -451,5 +451,18 @@
   "adminSection": "セクション",
   "adminFeatured": "カバーヒーローに掲載",
   "adminPublish": "公開",
-  "adminManage": "投稿を管理"
+  "adminManage": "投稿を管理",
+  "coverMagazine": "インディペンデント・マガジン",
+  "coverCoordinates": "アート · カルチャー · 新たな視点",
+  "coverStatus": "変わり続ける",
+  "coverLoading": "新たな視点を探しています…",
+  "coverManifesto": "まだ知られていない存在のための場所。これからを形づくるイメージ、アイデア、そして人々。",
+  "coverArchive": "アーカイブを見る ↗",
+  "archiveSearch": "アーカイブを検索",
+  "clearFilters": "クリア",
+  "loadMore": "もっと見る",
+  "backToTop": "トップへ戻る",
+  "readingFocus": "集中モード",
+  "readingTime": "分で読めます",
+  "unsavedChanges": "保存されていない変更があります。このページを離れますか？"
 }

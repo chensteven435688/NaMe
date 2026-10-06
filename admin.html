@@ -6,6 +6,8 @@
   <title>NaMe — Admin</title>
   <script src="admin-boot.js"></script>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="experience.css" />
+  <script src="experience.js" defer></script>
 </head>
 <body class="page-admin">
   <div id="admin-gate" class="admin-gate">
@@ -46,6 +48,7 @@
 
       <!-- Dashboard -->
       <section class="admin-panel is-active" data-panel-view="dashboard">
+        <div class="admin-quick-actions"><a class="btn btn--primary" href="admin-upload.html" data-admin-nav data-i18n="adminNavUpload">Upload post</a><a class="btn btn--ghost" href="admin-submissions.html" data-admin-nav data-i18n="adminNavSubmissions">Submissions</a></div>
         <div class="admin-stats" id="admin-stats"></div>
         <div class="admin-card">
           <h2 data-i18n="adminRecentPosts">Recent posts</h2>
@@ -55,9 +58,10 @@
 
       <!-- Content list -->
       <section class="admin-panel" data-panel-view="content">
+        <p id="content-results" role="status" class="admin-results"></p>
         <div class="admin-toolbar">
-          <input type="search" id="content-search" placeholder="Search title…" data-i18n-placeholder="adminSearch" />
-          <select id="content-filter-type">
+          <input type="search" id="content-search" aria-label="Search content" placeholder="Search title…" data-i18n-placeholder="adminSearch" />
+          <select id="content-filter-type" aria-label="Content type">
             <option value="" data-i18n="adminAllTypes">All types</option>
             <option value="article">Article</option>
             <option value="editorial">Editorial</option>
@@ -66,15 +70,15 @@
             <option value="exclusive">Editor's Exclusive</option>
           </select>
         </div>
-        <div class="admin-card admin-card--flush">
+        <div class="admin-card admin-card--flush admin-table-wrap" tabindex="0" role="region" aria-label="Admin records">
           <table class="admin-data-table">
             <thead>
               <tr>
-                <th data-i18n="adminColTitle">Title</th>
-                <th data-i18n="adminType">Type</th>
-                <th data-i18n="adminSection">Section</th>
-                <th data-i18n="adminFeatured">Featured</th>
-                <th></th>
+                <th scope="col" data-i18n="adminColTitle">Title</th>
+                <th scope="col" data-i18n="adminType">Type</th>
+                <th scope="col" data-i18n="adminSection">Section</th>
+                <th scope="col" data-i18n="adminFeatured">Featured</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody id="content-table-body"></tbody>
@@ -84,15 +88,15 @@
 
       <!-- Users -->
       <section class="admin-panel" data-panel-view="users">
-        <div class="admin-card admin-card--flush">
+        <div class="admin-card admin-card--flush admin-table-wrap" tabindex="0" role="region" aria-label="Admin records">
           <table class="admin-data-table">
             <thead>
               <tr>
-                <th data-i18n="adminColName">Name</th>
-                <th>Email</th>
-                <th data-i18n="adminColRole">Role</th>
-                <th data-i18n="adminColJoined">Joined</th>
-                <th></th>
+                <th scope="col" data-i18n="adminColName">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col" data-i18n="adminColRole">Role</th>
+                <th scope="col" data-i18n="adminColJoined">Joined</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody id="users-table-body"></tbody>

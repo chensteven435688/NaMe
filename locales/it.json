@@ -451,5 +451,18 @@
   "adminSection": "Sezione",
   "adminFeatured": "In evidenza sull'hero di copertina",
   "adminPublish": "Pubblica",
-  "adminManage": "Gestisci post"
+  "adminManage": "Gestisci post",
+  "coverMagazine": "Rivista indipendente",
+  "coverCoordinates": "Arte · Cultura · Nuove prospettive",
+  "coverStatus": "Sempre in divenire",
+  "coverLoading": "Alla ricerca di nuove prospettive…",
+  "coverManifesto": "Uno spazio per chi deve ancora farsi conoscere. Immagini, idee e persone che danno forma al futuro.",
+  "coverArchive": "Esplora l’archivio ↗",
+  "archiveSearch": "Cerca nell’archivio",
+  "clearFilters": "Cancella",
+  "loadMore": "Carica altro",
+  "backToTop": "Torna in alto",
+  "readingFocus": "Modalità lettura",
+  "readingTime": "min di lettura",
+  "unsavedChanges": "Hai modifiche non salvate. Vuoi lasciare questa pagina?"
 }

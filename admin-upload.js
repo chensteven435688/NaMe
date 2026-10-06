@@ -41,16 +41,30 @@ function bootUpload() {
     const file = imageInput.files?.[0];
     const imgBox = document.getElementById("preview-img");
 
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        imgBox.innerHTML = `<img src="${e.target.result}" alt="" />`;
-      };
-      reader.readAsDataURL(file);
-    } else if (url) {
-      imgBox.innerHTML = `<img src="${url}" alt="" onerror="this.parentElement.innerHTML='<span>Invalid image URL</span>'" />`;
+    if (imgBox.dataset.objectUrl) {
+      URL.revokeObjectURL(imgBox.dataset.objectUrl);
+      delete imgBox.dataset.objectUrl;
+    }
+    imgBox.replaceChildren();
+    if (file || url) {
+      const img = document.createElement("img");
+      img.alt = title;
+      if (file) {
+        imgBox.dataset.objectUrl = URL.createObjectURL(file);
+        img.src = imgBox.dataset.objectUrl;
+      } else {
+        try {
+          const parsed = new URL(url, location.href);
+          if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Invalid URL");
+          img.src = parsed.href;
+        } catch {
+          imgBox.textContent = "Invalid image URL";
+        }
+      }
+      img.addEventListener("error", () => { imgBox.textContent = "Invalid image URL"; });
+      if (img.getAttribute("src")) imgBox.append(img);
     } else {
-      imgBox.innerHTML = `<span>${NaMeI18n.t(NaMeI18n.getLang(), "adminPreviewEmpty")}</span>`;
+      imgBox.textContent = NaMeI18n.t(NaMeI18n.getLang(), "adminPreviewEmpty");
     }
 
     videoWrap.classList.toggle("is-hidden", type !== "film");
@@ -77,6 +91,7 @@ function bootUpload() {
 
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (form.querySelector('button[type="submit"]')?.disabled) return;
     status.textContent = "";
     success.classList.add("is-hidden");
 
@@ -95,6 +110,9 @@ function bootUpload() {
     try {
       const res = await NaMeAuth.createPost(fd);
       const post = res.post;
+      form.reset();
+      document.dispatchEvent(new CustomEvent("name:form-saved", { detail: { form } }));
+      updatePreview();
       status.textContent = "";
       success.classList.remove("is-hidden");
       success.innerHTML = `
@@ -108,8 +126,8 @@ function bootUpload() {
         success.classList.add("is-hidden");
         updatePreview();
       });
-      form.reset();
-      updatePreview();
+      success.setAttribute("tabindex", "-1");
+      success.focus();
     } catch (err) {
       status.textContent = err.message;
     } finally {

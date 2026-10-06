@@ -25,6 +25,35 @@ const NaMeAdmin = (function () {
 
   const loadedScripts = new Set();
   let renderedPage = resolvePage(location.pathname, location.hash);
+  let navigating = false;
+  const dirtyForms = new Set();
+  const hasChanges = () => [...dirtyForms].some((form) => form.isConnected);
+  document.addEventListener("input", (event) => {
+    const form = event.target.closest("#upload-form, #edit-form");
+    if (form) dirtyForms.add(form);
+  });
+  document.addEventListener("reset", (event) => dirtyForms.delete(event.target));
+  document.addEventListener("name:form-saved", (event) => dirtyForms.delete(event.detail.form));
+  window.addEventListener("beforeunload", (event) => {
+    if (!hasChanges()) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
+  function discardForm(form) {
+    if (!dirtyForms.has(form)) return true;
+    if (!confirm(t("unsavedChanges"))) return false;
+    dirtyForms.delete(form);
+    return true;
+  }
+  function canLeave() {
+    return !hasChanges() || confirm(t("unsavedChanges"));
+  }
+  function focusPage() {
+    closeMobileNav(false);
+    const title = document.getElementById("admin-page-title");
+    if (title) { title.tabIndex = -1; title.focus({ preventScroll: true }); }
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
 
   try {
     if (sessionStorage.getItem(ADMIN_SESSION_KEY) === "1" && document.body) {
@@ -116,14 +145,14 @@ const NaMeAdmin = (function () {
             <button type="button" class="auth-tabs__btn" data-auth-tab="register" data-i18n="authRegister">Join</button>
           </div>
           <form id="auth-login-form" class="auth-form" data-auth-panel="login" autocomplete="on">
-            <input type="email" name="loginEmail" data-login-email autocomplete="username" required />
-            <input type="password" name="loginPassword" data-login-password autocomplete="current-password" required />
+            <input type="email" name="loginEmail" data-login-email data-i18n-aria="authEmail" aria-label="Email" autocomplete="username" required />
+            <input type="password" name="loginPassword" data-login-password data-i18n-aria="authPassword" aria-label="Password" autocomplete="current-password" required />
             <button type="submit" class="btn btn--primary" data-i18n="authLoginBtn">Login</button>
           </form>
           <form id="auth-register-form" class="auth-form is-hidden" data-auth-panel="register" autocomplete="on">
-            <input type="text" name="registerName" data-register-name autocomplete="name" required />
-            <input type="email" name="registerEmail" data-register-email autocomplete="email" required />
-            <input type="password" name="registerPassword" data-register-password autocomplete="new-password" required minlength="8" />
+            <input type="text" name="registerName" data-register-name data-i18n-aria="authDisplayName" aria-label="Display name" autocomplete="name" required />
+            <input type="email" name="registerEmail" data-register-email data-i18n-aria="authEmail" aria-label="Email" autocomplete="email" required />
+            <input type="password" name="registerPassword" data-register-password data-i18n-aria="authPasswordMin" aria-label="Password (8+ characters)" autocomplete="new-password" required minlength="8" />
             <button type="submit" class="btn btn--primary" data-i18n="authRegisterBtn">Create account</button>
           </form>
         </div>
@@ -234,15 +263,25 @@ const NaMeAdmin = (function () {
       return;
     }
 
+    if (navigating) return;
+    if (!canLeave()) {
+      if (!push) history.pushState(null, "", NAV.find((item) => item.page === renderedPage)?.href ? path(NAV.find((item) => item.page === renderedPage).href) : location.href);
+      return;
+    }
+    dirtyForms.clear();
+
     if (isDashboardFile(target.pathname) && isDashboardFile(location.pathname)) {
       if (push) history.pushState({ adminPage: page }, "", target.pathname + target.hash);
       renderSidebar(page === "dashboard" ? "dashboard" : page);
       document.title = docTitleForPage(page);
       renderedPage = page;
       document.dispatchEvent(new CustomEvent("name:adminpage", { detail: { page } }));
+      focusPage();
       return;
     }
 
+    navigating = true;
+    closeMobileNav(false);
     setNavLoading(true);
     try {
       const res = await fetch(target.pathname + target.search, { credentials: "same-origin" });
@@ -271,9 +310,11 @@ const NaMeAdmin = (function () {
       if (typeof NaMeI18n !== "undefined") NaMeI18n.apply(NaMeI18n.getLang());
       renderedPage = page;
       document.dispatchEvent(new CustomEvent("name:adminpage", { detail: { page } }));
+      focusPage();
     } catch {
       window.location.href = url;
     } finally {
+      navigating = false;
       setNavLoading(false);
     }
   }
@@ -318,40 +359,62 @@ const NaMeAdmin = (function () {
     window.addEventListener("popstate", onAdminPopState);
   }
 
+  function closeMobileNav(restore = true) {
+    const sidebar = document.querySelector(".admin-sidebar");
+    sidebar?.classList.remove("is-open");
+    document.querySelector(".admin-main")?.removeAttribute("inert");
+    const btn = document.querySelector("[data-admin-menu]");
+    btn?.setAttribute("aria-expanded", "false");
+    const backdrop = document.querySelector(".admin-sidebar-backdrop");
+    if (backdrop) backdrop.hidden = true;
+    if (restore) btn?.focus();
+  }
+
   function initMobileNav() {
     const sidebar = document.querySelector(".admin-sidebar");
     const topbar = document.querySelector(".admin-topbar");
     if (!sidebar || !topbar) return;
-
-    let btn = topbar.querySelector("[data-admin-menu]");
-    if (!btn) {
-      btn = document.createElement("button");
+    sidebar.id ||= "admin-sidebar";
+    if (!topbar.querySelector("[data-admin-menu]")) {
+      const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "admin-topbar__menu";
       btn.dataset.adminMenu = "1";
+      btn.setAttribute("aria-controls", sidebar.id);
       btn.setAttribute("aria-expanded", "false");
       btn.setAttribute("aria-label", t("openMenu"));
       btn.innerHTML = "<span></span><span></span>";
       topbar.prepend(btn);
       btn.addEventListener("click", () => {
-        const open = sidebar.classList.toggle("is-open");
-        btn.setAttribute("aria-expanded", String(open));
-        const backdrop = document.querySelector(".admin-sidebar-backdrop");
-        if (backdrop) backdrop.hidden = !open;
+        sidebar.classList.add("is-open");
+        btn.setAttribute("aria-expanded", "true");
+        document.querySelector(".admin-sidebar-backdrop").hidden = false;
+        document.querySelector(".admin-main").inert = true;
+        sidebar.querySelector(".admin-sidebar-close").focus();
       });
     }
-
-    if (!document.querySelector(".admin-sidebar-backdrop")) {
-      const backdrop = document.createElement("div");
-      backdrop.className = "admin-sidebar-backdrop";
-      backdrop.hidden = true;
-      document.body.appendChild(backdrop);
-      backdrop.addEventListener("click", () => {
-        sidebar.classList.remove("is-open");
-        btn?.setAttribute("aria-expanded", "false");
-        backdrop.hidden = true;
-      });
-    }
+    if (sidebar.dataset.drawerBound) return;
+    sidebar.dataset.drawerBound = "1";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "admin-sidebar-close";
+    close.textContent = t("close");
+    close.addEventListener("click", () => closeMobileNav());
+    sidebar.prepend(close);
+    const backdrop = document.createElement("div");
+    backdrop.className = "admin-sidebar-backdrop";
+    backdrop.hidden = true;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener("click", () => closeMobileNav());
+    sidebar.addEventListener("keydown", (event) => {
+      if (!sidebar.classList.contains("is-open")) return;
+      if (event.key === "Escape") { event.preventDefault(); closeMobileNav(); }
+      if (event.key !== "Tab") return;
+      const items = [...sidebar.querySelectorAll("a[href],button")].filter((el) => !el.disabled && el.getClientRects().length);
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items.at(-1).focus(); }
+      else if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }
+    });
+    matchMedia("(max-width: 900px)").addEventListener("change", () => closeMobileNav(false));
   }
 
   async function init(activePage) {
@@ -402,5 +465,5 @@ const NaMeAdmin = (function () {
     onDone?.();
   }
 
-  return { init, renderSidebar, updateGate, navigateTo, esc, formatDate, deleteComment };
+  return { init, renderSidebar, updateGate, navigateTo, esc, formatDate, deleteComment, discardForm };
 })();

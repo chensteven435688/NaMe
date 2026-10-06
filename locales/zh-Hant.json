@@ -451,5 +451,18 @@
   "adminSection": "分區",
   "adminFeatured": "在封面英雄區展示",
   "adminPublish": "發佈",
-  "adminManage": "管理貼文"
+  "adminManage": "管理貼文",
+  "coverMagazine": "獨立雜誌",
+  "coverCoordinates": "藝術 · 文化 · 新視角",
+  "coverStatus": "不斷生長",
+  "coverLoading": "正在尋找新的視角…",
+  "coverManifesto": "為尚未被看見的聲音留一處空間。以影像、想法與創作者，共同塑造未來。",
+  "coverArchive": "探索檔案 ↗",
+  "archiveSearch": "搜尋檔案",
+  "clearFilters": "清除",
+  "loadMore": "載入更多",
+  "backToTop": "返回頂部",
+  "readingFocus": "專注閱讀",
+  "readingTime": "分鐘閱讀",
+  "unsavedChanges": "你有尚未儲存的變更。確定離開此頁面嗎？"
 }

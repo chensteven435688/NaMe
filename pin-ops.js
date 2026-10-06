@@ -74,7 +74,9 @@ const NaMePinOps = (function () {
   }
 
   function modeStorageKey() {
-    return `name.pinops.mode.${location.pathname}${location.search}`;
+    const params = new URLSearchParams(location.search);
+    params.delete("q");
+    return `name.pinops.mode.${location.pathname}?${params}`;
   }
 
   function readMode(options) {
@@ -252,7 +254,7 @@ const NaMePinOps = (function () {
     if (!bar) {
       bar = document.createElement("div");
       bar.className = "pin-ops-bar";
-      bar.setAttribute("role", "toolbar");
+      bar.setAttribute("role", "group");
       bar.setAttribute("aria-label", t("pinOpsLatest"));
       bar.addEventListener("click", (e) => {
         const btn = e.target.closest("[data-pin-mode]");
@@ -267,6 +269,7 @@ const NaMePinOps = (function () {
         }
         writeMode(btn.dataset.pinMode);
         attach(board, board._pinOps);
+        findBar(board)?.querySelector(`[data-pin-mode="${btn.dataset.pinMode}"]`)?.focus({ preventScroll: true });
       });
     }
     const lead = options.leadHtml ? grid.querySelector(":scope > .meta-folder-bar") : null;
@@ -313,20 +316,17 @@ const NaMePinOps = (function () {
       markImages(grid);
       paint(grid);
       if (shown < items.length) {
-        const sentinel = document.createElement("div");
-        sentinel.className = "pin-ops-sentinel";
-        sentinel.setAttribute("aria-hidden", "true");
-        grid.appendChild(sentinel);
-        const observer = new IntersectionObserver(
-          (entries) => {
-            if (!entries.some((entry) => entry.isIntersecting)) return;
-            observer.disconnect();
-            step();
-          },
-          { rootMargin: "520px 0px" }
-        );
-        grid._pinObserver = observer;
-        observer.observe(sentinel);
+        const more = document.createElement("button");
+        more.type = "button";
+        more.className = "pin-ops-sentinel btn btn--ghost";
+        more.textContent = t("loadMore");
+        grid.appendChild(more);
+        more.addEventListener("click", () => {
+          const previous = grid.querySelectorAll(".pin-tile__link, .pin-card__open").length;
+          step();
+          const next = grid.querySelectorAll(".pin-tile__link, .pin-card__open")[previous];
+          next?.focus({ preventScroll: true });
+        });
         return;
       }
       if (items.length > BATCH) {
@@ -393,6 +393,7 @@ const NaMePinOps = (function () {
         const saved = toggle(snap);
         paint(document);
         refreshBoards(snap.kind);
+        if (!btn.isConnected) document.querySelector('[data-pin-mode="saved"]')?.focus({ preventScroll: true });
         toast(t(saved ? "pinOpsSavedToast" : "pinOpsRemovedToast"));
       },
       true

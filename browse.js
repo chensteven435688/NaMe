@@ -30,7 +30,8 @@ async function loadAllStoriesFeed(grid) {
       grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, emptyKey))}</p>`;
       return;
     }
-    mountStoryBoard(grid, posts, true, true, emptyKey);
+    initArchiveSearch(grid, posts, emptyKey);
+    storyViewReady = true;
   } catch {
     NaMePinOps.detach(grid);
     grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, emptyKey))}</p>`;
@@ -129,11 +130,13 @@ function mountStoryBoard(grid, posts, showMeta, showType, emptyKey, cardClass, l
 }
 
 let folderViewReady = false;
+let storyViewReady = false;
 
 document.addEventListener("name:languagechange", () => {
   const grid = document.getElementById("browse-grid");
   if (!grid) return;
   if (document.body.dataset.browseAll === "true") {
+    if (!storyViewReady) return;
     loadAllStoriesFeed(grid);
     return;
   }
@@ -145,4 +148,35 @@ function escapeHtml(s) {
   const d = document.createElement("div");
   d.textContent = s ?? "";
   return d.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function initArchiveSearch(grid, posts, emptyKey) {
+  let form = document.getElementById("archive-search");
+  if (!form) {
+    form = document.createElement("form");
+    form.id = "archive-search";
+    form.className = "archive-search";
+    form.setAttribute("role", "search");
+    form.innerHTML = `<label><span data-i18n="archiveSearch">Search the archive</span><input type="search" name="q" autocomplete="off" /></label><button class="btn btn--ghost" type="reset" data-i18n="clearFilters">Clear</button><span class="archive-search__count" role="status"></span>`;
+    grid.before(form);
+    form.elements.q.value = new URLSearchParams(location.search).get("q") || "";
+    let timer;
+    form.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => form.applySearch(), 150); });
+    form.addEventListener("submit", (event) => { event.preventDefault(); clearTimeout(timer); form.applySearch(); });
+    form.addEventListener("reset", () => { clearTimeout(timer); setTimeout(() => { form.applySearch(); form.elements.q.focus(); }, 0); });
+  }
+  form.applySearch = () => {
+    const q = form.elements.q.value.trim().toLocaleLowerCase();
+    const matches = posts.filter((post) => `${post.title || ""} ${post.meta || ""} ${post.type || ""}`.toLocaleLowerCase().includes(q));
+    mountStoryBoard(grid, matches, true, true, q ? "atelierEmpty" : emptyKey);
+    form.querySelector('[role="status"]').textContent = `${matches.length} / ${posts.length}`;
+    const url = new URL(location.href);
+    if (q) url.searchParams.set("q", form.elements.q.value.trim());
+    else url.searchParams.delete("q");
+    history.replaceState(history.state, "", url);
+  };
+  form.applySearch();
+  form.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = NaMeI18n.t(NaMeI18n.getLang(), el.dataset.i18n);
+  });
 }

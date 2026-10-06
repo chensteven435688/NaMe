@@ -63,10 +63,14 @@ function showPanel(panel) {
 }
 
 async function loadDashboard() {
+  const stats = document.getElementById("admin-stats");
+  const recentList = document.getElementById("dashboard-recent");
+  if (!stats || !recentList) return;
   try {
     const { posts, users, comments, members, admins, postsByType } =
       await NaMeAuth.fetchAdminStats();
-    document.getElementById("admin-stats").innerHTML = `
+    if (!stats.isConnected) return;
+    stats.innerHTML = `
       <div class="admin-stat"><span class="admin-stat__n">${posts}</span><span class="admin-stat__l">Posts</span></div>
       <div class="admin-stat"><span class="admin-stat__n">${users}</span><span class="admin-stat__l">Users</span></div>
       <div class="admin-stat"><span class="admin-stat__n">${comments}</span><span class="admin-stat__l">Comments</span></div>
@@ -81,7 +85,8 @@ async function loadDashboard() {
 
     const list = await NaMeAuth.fetchPosts();
     const recent = list.slice(0, 8);
-    document.getElementById("dashboard-recent").innerHTML = recent
+    if (!recentList.isConnected) return;
+    recentList.innerHTML = recent
       .map(
         (p) => `
       <li class="admin-table__row">
@@ -100,11 +105,15 @@ async function loadDashboard() {
 }
 
 async function loadContent() {
+  const tbody = document.getElementById("content-table-body");
+  if (!tbody) return;
   try {
-    allPosts = await NaMeAuth.fetchPosts();
-    renderContentTable(allPosts);
+    const posts = await NaMeAuth.fetchPosts();
+    if (!tbody.isConnected) return;
+    allPosts = posts;
+    applyContentFilters();
   } catch {
-    document.getElementById("content-table-body").innerHTML =
+    tbody.innerHTML =
       '<tr><td colspan="5">Could not load posts.</td></tr>';
   }
 }
@@ -112,7 +121,7 @@ async function loadContent() {
 function renderContentTable(posts) {
   const tbody = document.getElementById("content-table-body");
   if (!posts.length) {
-    tbody.innerHTML = '<tr><td colspan="5">No posts yet.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="5">${allPosts.length ? "No matching posts. Try another search or type." : "No posts yet."}</td></tr>`;
     return;
   }
   tbody.innerHTML = posts
@@ -136,9 +145,15 @@ function renderContentTable(posts) {
   tbody.querySelectorAll("[data-delete-post]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       if (!confirm("Delete this post permanently?")) return;
-      await NaMeAuth.deletePost(btn.dataset.deletePost);
-      loadContent();
-      loadDashboard();
+      btn.disabled = true;
+      try {
+        await NaMeAuth.deletePost(btn.dataset.deletePost);
+        await loadContent();
+        loadDashboard();
+      } catch (error) {
+        alert(error.message);
+        btn.disabled = false;
+      }
     });
   });
 }
@@ -150,21 +165,14 @@ function initFilters() {
   if (search?.dataset.booted) return;
   if (search) search.dataset.booted = "1";
 
-  const apply = () => {
-    let list = [...allPosts];
-    const q = search?.value.trim().toLowerCase();
-    const type = typeFilter?.value;
-    if (q) list = list.filter((p) => p.title.toLowerCase().includes(q));
-    if (type) list = list.filter((p) => p.type === type);
-    renderContentTable(list);
-  };
-  search?.addEventListener("input", apply);
-  typeFilter?.addEventListener("change", apply);
+  let filterTimer;
+  search?.addEventListener("input", () => { clearTimeout(filterTimer); filterTimer = setTimeout(applyContentFilters, 140); });
+  typeFilter?.addEventListener("change", applyContentFilters);
 }
 
 function bindEditButtons(root) {
   root?.querySelectorAll("[data-edit]").forEach((btn) => {
-    btn.addEventListener("click", () => openEditModal(btn.dataset.edit));
+    btn.addEventListener("click", () => openEditModal(btn.dataset.edit).catch((error) => alert(error.message)));
   });
 }
 
@@ -202,8 +210,12 @@ function initEditModal() {
     const fd = new FormData(form);
     if (fd.get("featured")) fd.set("featured", "1");
     else fd.delete("featured");
+    const submit = form.querySelector('[type="submit"]');
+    if (submit.disabled) return;
+    submit.disabled = true;
     try {
       const res = await NaMeAuth.updatePost(id, fd);
+      document.dispatchEvent(new CustomEvent("name:form-saved", { detail: { form } }));
       status.textContent = `Saved: ${res.post.title}`;
       allPosts = await NaMeAuth.fetchPosts();
       loadContent();
@@ -211,6 +223,8 @@ function initEditModal() {
       setTimeout(closeEditModal, 800);
     } catch (err) {
       status.textContent = err.message;
+    } finally {
+      submit.disabled = false;
     }
   });
 }
@@ -240,6 +254,7 @@ async function openEditModal(id) {
 }
 
 function closeEditModal() {
+  if (!NaMeAdmin.discardForm(document.getElementById("edit-form"))) return;
   const modal = document.getElementById("edit-modal");
   modal.classList.remove("is-open");
   modal.setAttribute("aria-hidden", "true");
@@ -250,6 +265,7 @@ async function loadUsers() {
   const tbody = document.getElementById("users-table-body");
   try {
     const { users } = await NaMeAuth.fetchAdminUsers();
+    if (!tbody?.isConnected) return;
     const me = NaMeAuth.getUser()?.id;
     tbody.innerHTML = users
       .map(
@@ -258,7 +274,7 @@ async function loadUsers() {
         <td>${esc(u.displayName)}</td>
         <td>${esc(u.email)}</td>
         <td>
-          <select data-user-role="${u.id}" ${u.id === me ? "disabled" : ""}>
+          <select aria-label="Role: ${esc(u.displayName)}" data-user-role="${u.id}" ${u.id === me ? "disabled" : ""}>
             <option value="member" ${u.role === "member" ? "selected" : ""}>member</option>
             <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
           </select>
@@ -303,3 +319,13 @@ async function loadUsers() {
 
 const esc = NaMeAdmin.esc;
 const formatDate = NaMeAdmin.formatDate;
+
+function applyContentFilters() {
+  const search = document.getElementById("content-search");
+  const type = document.getElementById("content-filter-type")?.value;
+  const q = search?.value.trim().toLocaleLowerCase() || "";
+  const posts = allPosts.filter((post) => (!type || post.type === type) && `${post.title} ${post.slug} ${post.meta || ""}`.toLocaleLowerCase().includes(q));
+  const status = document.getElementById("content-results");
+  if (status) status.textContent = `${posts.length} / ${allPosts.length}`;
+  if (document.getElementById("content-table-body")) renderContentTable(posts);
+}
