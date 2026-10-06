@@ -146,9 +146,9 @@ function renderPinCard(post) {
   });
   return `
     <article class="pin-card" data-pin-id="${esc(post.id)}">
-      <div class="pin-card__img">
-        <img class="pin-fade" src="${esc(post.imageUrl)}" alt="${esc(title)}" loading="lazy" decoding="async" />
-      </div>
+      <button type="button" class="pin-card__img pin-card__open" aria-label="${esc(title)}">
+        <img class="pin-fade" src="${esc(post.imageUrl)}" alt="" loading="lazy" decoding="async" />
+      </button>
       <button type="button" class="pin-like${post.liked ? " is-on" : ""}" data-community-like="${esc(post.id)}" aria-pressed="${post.liked ? "true" : "false"}" aria-label="${esc(NaMeI18n.t(lang, "pinOpsLike"))}">
         <span aria-hidden="true">♥</span>
         <span class="pin-like__count">${Number(post.likeCount) || 0}</span>

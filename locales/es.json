@@ -451,5 +451,18 @@
   "adminSection": "Sección",
   "adminFeatured": "Destacado en el hero de portada",
   "adminPublish": "Publicar",
-  "adminManage": "Gestionar publicaciones"
+  "adminManage": "Gestionar publicaciones",
+  "coverMagazine": "Revista independiente",
+  "coverCoordinates": "Arte · Cultura · Nuevas perspectivas",
+  "coverStatus": "Siempre en transformación",
+  "coverLoading": "Buscando nuevas perspectivas…",
+  "coverManifesto": "Un espacio para quienes aún están por descubrir. Imágenes, ideas y personas que dan forma a lo que viene.",
+  "coverArchive": "Explorar el archivo ↗",
+  "archiveSearch": "Buscar en el archivo",
+  "clearFilters": "Borrar",
+  "loadMore": "Cargar más",
+  "backToTop": "Volver arriba",
+  "readingFocus": "Modo concentración",
+  "readingTime": "min de lectura",
+  "unsavedChanges": "Tienes cambios sin guardar. ¿Quieres salir de esta página?"
 }

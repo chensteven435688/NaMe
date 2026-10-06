@@ -1,6 +1,6 @@
 # NaMe Magazine
 
-A fashion editorial magazine website inspired by [PAP Magazine](https://www.pap-magazine.com/).
+An independent art and culture magazine: a typographic editorial cover, an image-led archive, and a workspace for emerging creative voices.
 
 ## Features
 
@@ -16,6 +16,33 @@ A fashion editorial magazine website inspired by [PAP Magazine](https://www.pap-
 - Paper editorial palette, serif titles, and a system sans for UI text
 - Visible keyboard focus, 44px controls, and reduced-motion handling
 - 8 languages via `locales/*.json` (compiled into `i18n.js`)
+
+## Editorial experience
+
+- A large NaMe cover masthead, paper palette, precise rules, and restrained red accents.
+- Public homepage and story content render independently of account verification; homepage feeds load concurrently.
+- Archive search matches titles, metadata, and types. The query stays in the URL for sharing; Latest, Mixed, and Saved still work with the results.
+- Explicit **Load more** replaces automatic endless loading, keeping navigation and the footer reachable.
+- Story pages include estimated reading time, a reading progress line, and a reversible **Focus mode** that hides related stories and comments.
+- Native scrolling, reduced-motion support, measured header offsets, and a back-to-top control. No scroll interception or animation library.
+- Modal focus trapping and restoration, keyboard-operated community images, and a mobile admin drawer with Escape support.
+- Admin quick actions, content result counts, persistent filters, guarded upload/edit navigation, and persistent publishing confirmation.
+- New interface copy is included in all eight locale files.
+
+The shared enhancement layer is `experience.css` + `experience.js`; homepage art direction is in `home-design.css`. Root HTML pages load the shared files. The API, database schemas, authentication providers, and authorization rules are unchanged.
+
+## Frontend checks
+
+Use a current Node.js release supported by the locked development dependencies:
+
+```bash
+npm ci
+npm test
+```
+
+These isolated DOM tests use fabricated data and never connect to the live backend. They cover asynchronous rendering, archive search and pagination, publishing feedback, modal focus, mobile admin navigation, reading tools, and content filters, plus CSS parsing and local asset references. They do not replace browser layout or accessibility testing.
+
+See `REFRESH-NOTES.md` for validation and known limits.
 
 ## Run locally
 
@@ -107,7 +134,7 @@ Register with one of those emails (or log in again after adding your email) to g
 - **Brand**: `NaMe` in the HTML pages and `locales/`
 - **Images**: Upload via admin or use URLs
 - **Colors and type**: CSS variables at the top of `styles.css`. The refresh at the end of that file sets UI type, focus rings, buttons, and the admin workspace
-- **Homepage**: `home-design.css` loads after `styles.css` and overrides the homepage only
+- **Homepage**: `home-design.css` loads after `styles.css`; `experience.css` supplies shared tokens and controls
 - **Translations**: edit `locales/*.json`, then run `node scripts/rebuild-i18n.js` so `i18n.js` matches
 - **Static pages**: `about.html`, `business.html`, `contact.html`, `submission.html`
 

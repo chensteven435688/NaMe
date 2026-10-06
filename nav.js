@@ -21,6 +21,16 @@ const NaMeNav = (function () {
       const toggle = dropdown.querySelector(".nav-dropdown__toggle");
       if (!toggle || toggle.dataset.bound) return;
       toggle.dataset.bound = "1";
+      dropdown.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        event.stopPropagation();
+        dropdown.classList.remove("is-open");
+        toggle.setAttribute("aria-expanded", "false");
+        // Move outside the dropdown so focus-within does not keep its menu open.
+        document.getElementById("menu-btn")?.offsetParent
+          ? document.getElementById("menu-btn").focus()
+          : document.querySelector(".logo")?.focus();
+      });
 
       let path = location.pathname;
       const base = typeof NaMeBase !== "undefined" ? NaMeBase.getBase() : "";
@@ -72,6 +82,13 @@ const NaMeNav = (function () {
     const nav = document.getElementById("main-nav");
     if (!btn || !nav || btn.dataset.navBound) return;
     btn.dataset.navBound = "1";
+    btn.setAttribute("aria-controls", nav.id);
+    nav.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      nav.classList.remove("is-open");
+      btn.setAttribute("aria-expanded", "false");
+      btn.focus();
+    });
 
     btn.addEventListener("click", () => {
       const open = nav.classList.toggle("is-open");

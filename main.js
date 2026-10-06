@@ -21,63 +21,11 @@ const TYPE_I18N = {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const startedAt = performance.now();
-  try {
-    await NaMeAuth.refresh();
-    NaMeI18n.init();
-    NaMeAuth.initUI();
-    await initHomepage();
-    await loadFeeds();
-    initScrollReveal();
-    await waitForCriticalImages();
-  } finally {
-    await revealPage(startedAt);
-  }
+  NaMeI18n.init();
+  NaMeAuth.refresh().then(() => NaMeAuth.initUI()).catch(console.error);
+  initScrollReveal();
+  await Promise.allSettled([initHomepage(), loadFeeds()]);
 });
-
-const PAGE_LOADER_MIN_MS = 0;
-const CRITICAL_IMAGE_TIMEOUT_MS = 4500;
-
-function waitForCriticalImages() {
-  const imgs = [...document.querySelectorAll(".atelier-piece img, .hero__slide img")].slice(0, 3);
-  if (!imgs.length) return Promise.resolve();
-
-  return Promise.all(
-    imgs.map(
-      (img) =>
-        new Promise((resolve) => {
-          if (img.complete && img.naturalWidth > 0) {
-            resolve();
-            return;
-          }
-          const done = () => resolve();
-          img.addEventListener("load", done, { once: true });
-          img.addEventListener("error", done, { once: true });
-          setTimeout(done, CRITICAL_IMAGE_TIMEOUT_MS);
-        })
-    )
-  );
-}
-
-async function revealPage(startedAt = performance.now()) {
-  const elapsed = performance.now() - startedAt;
-  const remaining = PAGE_LOADER_MIN_MS - elapsed;
-  if (remaining > 0) {
-    await new Promise((resolve) => setTimeout(resolve, remaining));
-  }
-
-  document.body.classList.add("is-page-ready");
-  document.dispatchEvent(new CustomEvent("name:page-ready"));
-
-  const loader = document.getElementById("page-loader");
-  if (!loader) return;
-
-  loader.classList.add("is-done");
-  loader.setAttribute("aria-busy", "false");
-  const remove = () => loader.remove();
-  loader.addEventListener("transitionend", remove, { once: true });
-  setTimeout(remove, 800);
-}
 
 async function initHomepage() {
   if (document.getElementById("atelier-gallery")) {
@@ -114,15 +62,21 @@ async function initAtelier() {
     renderAtelier();
   });
   filter?.addEventListener("change", () => renderAtelier());
-  search?.addEventListener("input", () => renderAtelier());
+  let searchTimer;
+  search?.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderAtelier, 140);
+  });
   document.getElementById("atelier-chips")?.addEventListener("click", (event) => {
     const btn = event.target.closest("[data-type]");
     if (!btn || !filter) return;
     filter.value = filter.value === btn.dataset.type ? "" : btn.dataset.type;
     renderAtelier();
+    [...document.querySelectorAll("[data-type]")].find((chip) => chip.dataset.type === btn.dataset.type)?.focus({ preventScroll: true });
   });
   document.addEventListener("name:languagechange", () => renderAtelier());
   renderAtelier();
+  document.getElementById("atelier-gallery")?.setAttribute("aria-busy", "false");
 }
 
 function atelierSource() {
@@ -205,7 +159,7 @@ function renderAtelier() {
   // Browsing shows an editorial selection; searching exposes every match.
   const visible = filter || query ? matches : matches.slice(0, 3);
   gallery.innerHTML = visible
-    .map((post, index) => atelierPieceHtml(post, ["left", "center", "right"][index % 3], lang))
+    .map((post, index) => atelierPieceHtml(post, ["left", "center", "right"][index % 3], lang, index === 0))
     .join("");
 }
 
@@ -239,7 +193,7 @@ function renderAtelierExclusive(gallery, countEl, lang, query, source) {
     .join("");
 }
 
-function atelierPieceHtml(post, slot, lang) {
+function atelierPieceHtml(post, slot, lang, priority = false) {
   if (!post) return "";
   const href = post.slug
     ? postHref(post.slug)
@@ -258,7 +212,7 @@ function atelierPieceHtml(post, slot, lang) {
   return `
     <a class="atelier-piece atelier-piece--${slot}" href="${href}">
       <span class="atelier-piece__frame">
-        <img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title || "")}" decoding="async" />
+        <img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title || "")}" decoding="async" ${priority ? 'fetchpriority="high"' : 'loading="lazy"'} />
       </span>
       ${copy}
     </a>`;
@@ -406,10 +360,10 @@ async function loadFeeds() {
     counts.exclusive = await loadExclusiveHome();
     homeFoldersReady = true;
   }
-  for (const el of document.querySelectorAll("[data-feed]")) {
+  await Promise.all([...document.querySelectorAll("[data-feed]")].map(async (el) => {
     const key = el.dataset.feed;
     const cfg = FEED_CONFIG[key];
-    if (!cfg) continue;
+    if (!cfg) return;
     try {
       const posts = await NaMeAuth.fetchPosts({
         type: cfg.type,
@@ -429,7 +383,7 @@ async function loadFeeds() {
     } catch {
       el.innerHTML = "";
     }
-  }
+  }));
 
   for (const [feed, id] of Object.entries(HOME_SECTION_FOR_FEED)) {
     if (counts[feed] === 0) hideBlock(document.getElementById(id));
@@ -486,29 +440,9 @@ document.querySelectorAll("[data-carousel]").forEach((btn) => {
     const card = el.querySelector(".card");
     const gap = 16;
     const step = card ? card.offsetWidth + gap : 300;
-    el.scrollBy({ left: dir * step, behavior: "smooth" });
+    el.scrollBy({ left: dir * step, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });
 });
-
-(function initHeaderScroll() {
-  const header = document.getElementById("header");
-  if (!header) return;
-
-  let lastY = 0;
-  window.addEventListener(
-    "scroll",
-    () => {
-      const y = window.scrollY;
-      if (y > 120 && y > lastY) {
-        header.classList.add("header--hidden");
-      } else {
-        header.classList.remove("header--hidden");
-      }
-      lastY = y;
-    },
-    { passive: true }
-  );
-})();
 
 function initScrollReveal() {
   const targets = document.querySelectorAll(".home-reveal");

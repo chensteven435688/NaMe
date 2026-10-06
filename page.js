@@ -2,9 +2,9 @@
  * NaMe — static pages (About, Business, Contact, etc.)
  */
 document.addEventListener("DOMContentLoaded", async () => {
-  await NaMeAuth.refresh();
   NaMeI18n.init();
-  NaMeAuth.initUI();
+  const authReady = NaMeAuth.refresh().then(() => NaMeAuth.initUI());
+  authReady.catch(console.error);
   initContactForm();
   setPageMeta();
   if (document.getElementById("browse-grid") && typeof loadBrowseFeed === "function") {

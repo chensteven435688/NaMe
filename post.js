@@ -2,9 +2,9 @@
  * NaMe — post detail & comments
  */
 document.addEventListener("DOMContentLoaded", async () => {
-  await NaMeAuth.refresh();
   NaMeI18n.init();
-  NaMeAuth.initUI();
+  const authReady = NaMeAuth.refresh().then(() => NaMeAuth.initUI());
+  authReady.catch(console.error);
 
   const params = new URLSearchParams(location.search);
   const slug = params.get("slug");
@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   try {
+    await authReady;
     await loadComments(slug);
   } catch {
     const list = document.getElementById("comments-list");
@@ -97,6 +98,7 @@ function renderPost(post) {
   if (gallery) initPostGallery(gallery);
 
   document.title = `${post.title} — NaMe Magazine`;
+  document.dispatchEvent(new CustomEvent("name:post-ready"));
 }
 
 async function loadRelated(post) {
@@ -387,7 +389,8 @@ function renderComment(comment, slug, isReply = false) {
     setFormDisabled(form, true);
     try {
       await NaMeAuth.createPostComment(slug, { body, parentId: comment.id });
-      await loadComments(slug);
+      await authReady;
+    await loadComments(slug);
     } catch (err) {
       showCommentError(err);
       setFormDisabled(form, false);
@@ -409,7 +412,8 @@ function renderComment(comment, slug, isReply = false) {
       } else {
         await NaMeAuth.deletePostComment(comment.id);
       }
-      await loadComments(slug);
+      await authReady;
+    await loadComments(slug);
     } catch (err) {
       showCommentError(err);
       btn.disabled = false;
@@ -443,6 +447,7 @@ document.getElementById("comment-form")?.addEventListener("submit", async (e) =>
   try {
     await NaMeAuth.createPostComment(slug, { body });
     input.value = "";
+    await authReady;
     await loadComments(slug);
   } catch (err) {
     showCommentError(err);

@@ -451,5 +451,18 @@
   "adminSection": "섹션",
   "adminFeatured": "커버 히어로에 노출",
   "adminPublish": "발행",
-  "adminManage": "게시물 관리"
+  "adminManage": "게시물 관리",
+  "coverMagazine": "독립 매거진",
+  "coverCoordinates": "예술 · 문화 · 새로운 시선",
+  "coverStatus": "계속되는 변화",
+  "coverLoading": "새로운 시선을 찾는 중…",
+  "coverManifesto": "아직 알려지지 않은 이들을 위한 공간. 다음을 만들어가는 이미지, 아이디어, 그리고 사람들.",
+  "coverArchive": "아카이브 둘러보기 ↗",
+  "archiveSearch": "아카이브 검색",
+  "clearFilters": "지우기",
+  "loadMore": "더 보기",
+  "backToTop": "맨 위로",
+  "readingFocus": "집중 모드",
+  "readingTime": "분 읽기",
+  "unsavedChanges": "저장하지 않은 변경 사항이 있습니다. 이 페이지를 떠나시겠습니까?"
 }

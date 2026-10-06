@@ -451,5 +451,18 @@
   "adminSection": "Section",
   "adminFeatured": "Featured on cover hero",
   "adminPublish": "Publish",
-  "adminManage": "Manage posts"
+  "adminManage": "Manage posts",
+  "coverMagazine": "Independent magazine",
+  "coverCoordinates": "Art · Culture · New perspectives",
+  "coverStatus": "Always becoming",
+  "coverLoading": "Finding the next perspective…",
+  "coverManifesto": "A space for the not-yet-known. Images, ideas, and people shaping what comes next.",
+  "coverArchive": "Explore the archive ↗",
+  "archiveSearch": "Search the archive",
+  "clearFilters": "Clear",
+  "loadMore": "Load more",
+  "backToTop": "Back to top",
+  "readingFocus": "Focus mode",
+  "readingTime": "min read",
+  "unsavedChanges": "You have unsaved changes. Leave this page?"
 }

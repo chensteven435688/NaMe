@@ -11,43 +11,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Libre+Bodoni:opsz,wght@6..96,500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="home-design.css" />
-  <style>
-    .page-loader {
-      position: fixed;
-      inset: 0;
-      z-index: 10000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f4f0e8;
-      color: #1a1a1a;
-      transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.55s;
-    }
-    .page-loader.is-done {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-    body:not(.is-page-ready) {
-      overflow: hidden;
-    }
-  </style>
+  <link rel="stylesheet" href="experience.css" />
+  <script src="experience.js" defer></script>
 </head>
-<body class="page-home">
+<body class="page-home is-page-ready">
   <a class="skip-link" href="#main-content">Skip to content</a>
-  <div id="page-loader" class="page-loader" role="status" aria-live="polite" aria-busy="true">
-    <div class="page-loader__inner">
-      <span class="page-loader__brand">NaMe</span>
-      <span class="page-loader__line" aria-hidden="true"></span>
-      <span class="page-loader__label">Loading</span>
-    </div>
-  </div>
-  <noscript>
-    <style>
-      .page-loader { display: none !important; }
-      body { overflow: auto !important; }
-    </style>
-  </noscript>
 
   <!-- Member modal -->
   <div class="modal" id="member-modal" aria-hidden="true">
@@ -119,9 +87,10 @@
 
   <main id="main-content">
     <section class="atelier" aria-labelledby="atelier-title">
+      <div class="cover-coordinate"><span data-i18n="coverCoordinates">Art · Culture · New perspectives</span><span class="cover-coordinate__status" data-i18n="coverStatus">Always becoming</span></div>
       <div class="atelier__stage">
         <div class="atelier__mast">
-          <h1 class="atelier__title" id="atelier-title">Name Magazine</h1>
+          <h1 class="atelier__title" id="atelier-title">NaMe<span class="atelier__title-note" data-i18n="coverMagazine">Independent magazine</span></h1>
           <div class="atelier__edition">
             <span data-i18n="communityLabel">Before the Name</span>
             <span class="atelier__count" role="status"><b id="atelier-count">0</b> <span data-i18n="atelierStories">stories</span></span>
@@ -171,7 +140,8 @@
         </button>
       </form>
 
-      <div class="atelier__gallery" id="atelier-gallery" aria-label="Stories"></div>
+      <div class="atelier__gallery" id="atelier-gallery" aria-label="Stories" aria-busy="true"><p class="atelier__empty" data-i18n="coverLoading">Finding the next perspective…</p></div>
+      <div class="cover-footnote"><p data-i18n="coverManifesto">A space for the not-yet-known. Images, ideas, and people shaping what comes next.</p><a href="stories.html" class="text-link" data-i18n="coverArchive">Explore the archive ↗</a></div>
     </section>
 
     <!-- Community CTA -->
@@ -273,7 +243,7 @@
         <a href="privacy.html" data-i18n="privacy">Privacy Policy</a>
       </nav>
       <div class="footer__social">
-        <a href="#" aria-label="YouTube">YouTube</a>
+
         <a href="https://www.instagram.com/name_magazine_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>
       </div>
     </div>

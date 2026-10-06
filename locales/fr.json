@@ -451,5 +451,18 @@
   "adminSection": "Section",
   "adminFeatured": "Mis en avant sur le hero de couverture",
   "adminPublish": "Publier",
-  "adminManage": "Gérer les publications"
+  "adminManage": "Gérer les publications",
+  "coverMagazine": "Magazine indépendant",
+  "coverCoordinates": "Art · Culture · Nouveaux regards",
+  "coverStatus": "Toujours en devenir",
+  "coverLoading": "À la recherche de nouveaux regards…",
+  "coverManifesto": "Un espace pour les voix encore inconnues. Images, idées et personnes qui façonnent la suite.",
+  "coverArchive": "Explorer les archives ↗",
+  "archiveSearch": "Rechercher dans les archives",
+  "clearFilters": "Effacer",
+  "loadMore": "Afficher plus",
+  "backToTop": "Retour en haut",
+  "readingFocus": "Mode concentration",
+  "readingTime": "min de lecture",
+  "unsavedChanges": "Vous avez des modifications non enregistrées. Quitter cette page ?"
 }
