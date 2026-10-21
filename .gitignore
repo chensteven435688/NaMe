@@ -20,6 +20,8 @@ server/.env.*
 *.sqlite
 *.sqlite3
 server/.test-cookies.txt
+.test-cookies.txt
+*.test-cookies*
 *cookies*.txt
 *.log
 
