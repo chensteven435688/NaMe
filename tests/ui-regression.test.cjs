@@ -60,14 +60,27 @@ test('homepage renders public stories while account verification is pending', as
   dom.window.close();
 });
 
-test('archive query filters results without triggering a language reload loop', async () => {
+test('archive query uses server search, then pages the catalog when cleared', async () => {
   const dom = await page('stories.html', 'stories.html?q=Light'); const w = dom.window;
-  w.NaMeAuth = { isLoggedIn: () => false, fetchPosts: async () => posts };
+  const calls = [];
+  const remote = [{ id: 'remote', slug: 'remote-light', title: 'Remote light study', type: 'editorial', meta: 'Beyond cap', body: '<p>stored body</p>', imageUrl: '/images/hero/hero-1.png' }];
+  w.NaMeAuth = {
+    isLoggedIn: () => false,
+    fetchPosts: async () => { calls.push('fetch'); return posts; },
+    searchPosts: async (query) => { calls.push(query); return { posts: remote, total: remote.length, limit: query.limit, offset: query.offset }; },
+  };
   evaluate(w, 'pin-ops.js', 'NaMePinOps'); evaluate(w, 'browse.js');
   await w.loadBrowseFeed();
-  assert.equal(w.document.querySelectorAll('.pin-tile').length, 1);
-  assert.equal(w.document.querySelector('.card__title').textContent, 'Light study');
+  assert.equal(w.document.querySelector('.card__title').textContent, 'Remote light study');
+  assert.equal(calls.some((call) => call === 'fetch'), false);
+  assert.equal(calls[0].q, 'Light');
+  assert.equal(calls[0].limit, 12);
+  assert.equal(calls[0].offset, 0);
+  assert.equal(Array.from(calls[0].types).join(','), 'article,editorial,film,short,artists');
+  assert.equal(w.document.querySelector('.archive-search__count').textContent, '1 / 1');
+  calls.length = 0;
   w.document.querySelector('#archive-search').reset(); await tick();
+  assert.equal(calls.filter((call) => call === 'fetch').length, 1);
   assert.equal(w.document.querySelectorAll('.pin-tile').length, 12);
   assert.equal(new URL(w.location.href).searchParams.has('q'), false);
   w.document.querySelector('.pin-ops-sentinel').click();
@@ -81,6 +94,159 @@ test('archive query filters results without triggering a language reload loop', 
   assert.equal(w.document.querySelectorAll('#archive-search').length, 1);
   dom.window.dispatchEvent(new dom.window.Event("pagehide"));
   dom.window.close();
+});
+
+test('archive search pages server results and keeps latest, mixed, and saved', async () => {
+  const dom = await page('stories.html', 'stories.html?q=photon'); const w = dom.window;
+  const remote = Array.from({ length: 15 }, (_, i) => ({ id: `p${i}`, slug: `photon-${i}`, title: `Photon essay ${i}`, type: 'article', meta: 'Light', body: '<p>photon</p>', imageUrl: '/images/hero/hero-1.png' }));
+  const calls = [];
+  w.NaMeAuth = {
+    isLoggedIn: () => false,
+    fetchPosts: async () => { throw new Error('catalog fetch should not run while a query is active'); },
+    searchPosts: async (query) => {
+      calls.push({ q: query.q, limit: query.limit, offset: query.offset });
+      const start = query.offset || 0;
+      const limit = query.limit || 12;
+      return { posts: remote.slice(start, start + limit), total: remote.length, limit, offset: start };
+    },
+  };
+  evaluate(w, 'pin-ops.js', 'NaMePinOps'); evaluate(w, 'browse.js');
+  await w.loadBrowseFeed();
+  assert.equal(w.document.querySelectorAll('.pin-tile').length, 12);
+  assert.equal(calls[0].offset, 0);
+  assert.equal(calls[0].limit, 12);
+  const more = w.document.querySelector('.pin-ops-sentinel');
+  more.click();
+  await tick();
+  assert.equal(calls[1].offset, 12);
+  assert.equal(w.document.querySelectorAll('.pin-tile').length, 15);
+  assert.equal(w.document.activeElement, w.document.querySelectorAll('.pin-tile__link')[12]);
+  w.document.querySelector('[data-pin-mode="mixed"]').click();
+  await tick();
+  assert.equal(w.document.querySelector('[data-pin-mode="mixed"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(w.document.querySelectorAll('.pin-tile').length, 12);
+  w.document.querySelector('.pin-ops-sentinel').click();
+  assert.equal(w.document.querySelectorAll('.pin-tile').length, 15);
+  w.document.querySelector('[data-pin-save]').click();
+  w.document.querySelector('[data-pin-mode="saved"]').click();
+  await tick();
+  assert.equal(w.document.querySelectorAll('.pin-tile').length, 1);
+  assert.equal(w.document.querySelector('[data-pin-mode="saved"]').getAttribute('aria-pressed'), 'true');
+  dom.window.dispatchEvent(new dom.window.Event("pagehide"));
+  dom.window.close();
+});
+
+test('saved archive search loads later server pages before filtering', async () => {
+  const dom = await page('stories.html', 'stories.html?q=photon'); const w = dom.window;
+  w.sessionStorage.setItem('name.pinops.mode./stories.html?', 'saved');
+  w.localStorage.setItem('name.pinboard.v1', JSON.stringify([{ kind: 'story', key: 'photon-14', title: 'Photon essay 14', savedAt: 1 }]));
+  const remote = Array.from({ length: 15 }, (_, i) => ({ id: `p${i}`, slug: `photon-${i}`, title: `Photon essay ${i}`, type: 'article', meta: 'Light', body: '<p>photon</p>', imageUrl: '/images/hero/hero-1.png' }));
+  const calls = [];
+  w.NaMeAuth = {
+    isLoggedIn: () => false,
+    fetchPosts: async () => { throw new Error('catalog fetch should not run while a query is active'); },
+    searchPosts: async (query) => {
+      calls.push({ limit: query.limit, offset: query.offset });
+      const start = query.offset || 0;
+      return { posts: remote.slice(start, start + (query.limit || 12)), total: remote.length, limit: query.limit, offset: start };
+    },
+  };
+  evaluate(w, 'pin-ops.js', 'NaMePinOps'); evaluate(w, 'browse.js');
+  await w.loadBrowseFeed();
+  assert.equal(calls[0].offset, 0);
+  assert.equal(calls[0].limit, 12);
+  assert.equal(calls[1].offset, 12);
+  assert.equal(calls[1].limit, 50);
+  assert.equal(w.document.querySelectorAll('.pin-tile').length, 1);
+  assert.equal(w.document.querySelector('.card__title').textContent, 'Photon essay 14');
+  assert.equal(w.document.querySelector('[data-pin-mode="saved"]').getAttribute('aria-pressed'), 'true');
+  dom.window.dispatchEvent(new dom.window.Event("pagehide"));
+  dom.window.close();
+});
+
+test('archive search shows an error instead of the capped catalog when search fails', async () => {
+  const dom = await page('stories.html', 'stories.html?q=Light'); const w = dom.window;
+  let fetched = false;
+  w.NaMeAuth = {
+    isLoggedIn: () => false,
+    fetchPosts: async () => { fetched = true; return posts; },
+    searchPosts: async () => { throw new Error('offline'); },
+  };
+  evaluate(w, 'pin-ops.js', 'NaMePinOps'); evaluate(w, 'browse.js');
+  await w.loadBrowseFeed();
+  assert.equal(fetched, false);
+  assert.equal(w.document.querySelectorAll('.pin-tile').length, 0);
+  assert.match(w.document.querySelector('#browse-grid').textContent, /unavailable/i);
+  dom.window.dispatchEvent(new dom.window.Event("pagehide"));
+  dom.window.close();
+});
+
+test('artists page is linked from Stories and lists artist folders', async () => {
+  for (const name of ['stories.html', 'index.html', 'film.html']) {
+    const dom = new JSDOM(source(name));
+    const menu = dom.window.document.querySelector('[data-nav-dropdown="stories"]');
+    assert.ok(menu.querySelector('a[href="artists.html"]'), `${name} stories menu`);
+    dom.window.close();
+  }
+  const stories = new JSDOM(source('stories.html'));
+  assert.ok(stories.window.document.querySelector('.stories-categories a[href="artists.html"]'));
+  stories.window.close();
+  const home = new JSDOM(source('index.html'));
+  assert.ok(home.window.document.querySelector('#artists a[href="artists.html"]'));
+  assert.ok(home.window.document.querySelector('#atelier-filter option[value="artists"]'));
+  assert.ok(home.window.document.querySelector('.mobile-bar a[href="artists.html"]'));
+  home.window.close();
+
+  const dom = await page('artists.html'); const w = dom.window;
+  w.NaMeAuth = {
+    isLoggedIn: () => false,
+    fetchPosts: async (query) => {
+      assert.equal(query.type, 'artists');
+      return [{ id: '1', slug: 'ada', title: 'Ada studio', type: 'artists', meta: 'Painting', imageUrl: '/images/hero/hero-1.png', publishedAt: '2026-01-01T00:00:00.000Z' }];
+    },
+    exclusiveCollectionName: (meta) => String(meta || '').trim(),
+  };
+  evaluate(w, 'exclusive-folders.js');
+  evaluate(w, 'pin-ops.js', 'NaMePinOps');
+  evaluate(w, 'browse.js');
+  await w.loadBrowseFeed();
+  assert.equal(w.document.querySelectorAll('.meta-folder').length, 1);
+  assert.equal(w.document.querySelector('.meta-folder__name').textContent, 'Painting');
+  assert.match(w.document.querySelector('.meta-folder').getAttribute('href'), /artists\.html\?meta=Painting/);
+  dom.window.close();
+});
+
+test('empty artists index stays on the page', async () => {
+  const dom = await page('artists.html'); const w = dom.window;
+  let replaced = false;
+  w.location.replace = () => { replaced = true; };
+  w.NaMeAuth = {
+    isLoggedIn: () => false,
+    fetchPosts: async () => [],
+    exclusiveCollectionName: (meta) => String(meta || '').trim(),
+  };
+  evaluate(w, 'exclusive-folders.js');
+  evaluate(w, 'pin-ops.js', 'NaMePinOps');
+  evaluate(w, 'browse.js');
+  await w.loadBrowseFeed();
+  assert.equal(replaced, false);
+  assert.match(w.document.querySelector('#browse-grid').textContent, /No artist stories yet/);
+  dom.window.close();
+});
+
+test('searchPosts queries a page range instead of the 200-post catalog cap', () => {
+  const body = source('auth.js');
+  const start = body.indexOf('function postgrestIlikeOr');
+  const end = body.indexOf('/** type + section only');
+  assert.ok(start > 0 && end > start);
+  const fn = body.slice(start, end);
+  assert.match(fn, /\.range\(offset, offset \+ limit - 1\)/);
+  assert.match(fn, /title\.ilike/);
+  assert.match(fn, /meta\.ilike/);
+  assert.match(fn, /type\.ilike/);
+  assert.match(fn, /body\.ilike/);
+  assert.match(fn, /\/api\/posts\?/);
+  assert.doesNotMatch(fn, /\.limit\(200\)/);
 });
 
 test('publishing preserves success feedback and rejects executable preview URLs', async () => {

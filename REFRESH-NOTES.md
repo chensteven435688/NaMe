@@ -23,7 +23,7 @@ Admin content filters persist after a refresh, distinguish no matches from an em
 
 ## Existing limits and follow-up checks
 
-- The Supabase catalog currently caps public post queries at 200 items. Archive search searches that loaded set, not an unlimited server-side index.
+- Public catalog reads (`fetchPosts`) still cap Supabase queries at 200 items. Archive text search does not: with a query it uses Supabase `ilike` and `range`, or `GET /api/posts?q=` when the live catalog client is absent, 12 matches at a time. Homepage atelier search still filters the posts already loaded for that page.
 - Membership, uploads, and moderation continue to need the existing backend configuration. The frontend tests do not validate live authentication, storage policies, or delivery services.
 - This is not a complete security or WCAG conformance audit. The contact form's pre-existing handler only shows a local confirmation; real message delivery remains a separate integration.
 - Before deployment, check homepage, archive, article, community, login, and admin on a narrow phone viewport and at 200% zoom. Verify a complete real upload in an appropriate test environment, reduced-motion behavior, keyboard focus, and your selected language.

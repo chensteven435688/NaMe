@@ -17,6 +17,7 @@ const TYPE_I18N = {
   editorial: "editorial",
   film: "film",
   short: "shorts",
+  artists: "artists",
   exclusive: "exclusiveLabel",
 };
 
@@ -314,6 +315,7 @@ const FEED_CONFIG = {
   "editorial-popular": { type: "editorial", section: "popular", cardClass: "card--editorial" },
   film: { type: "film", section: "latest", cardClass: "card--film" },
   short: { type: "short", section: "latest", cardClass: "card--short" },
+  artists: { type: "artists", section: "latest", cardClass: "card--artists", showMeta: true },
 };
 
 const HOME_SECTION_FOR_FEED = {
@@ -321,6 +323,7 @@ const HOME_SECTION_FOR_FEED = {
   article: "articles",
   "editorial-latest": "editorial",
   "editorial-popular": "magazine",
+  artists: "artists",
 };
 
 function hideBlock(el) {

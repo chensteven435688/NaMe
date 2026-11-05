@@ -1196,7 +1196,8 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
   opacity: 0.85;
 }
 
-.card--article {
+.card--article,
+.card--artists {
   width: min(280px, 75vw);
 }
 
@@ -1223,7 +1224,8 @@ html.auth-optimistic-early.auth-ui-checked #auth-link::after {
   margin-bottom: 0.75rem;
 }
 
-.card--article .card__img {
+.card--article .card__img,
+.card--artists .card__img {
   aspect-ratio: 4 / 5;
 }
 
@@ -4540,6 +4542,7 @@ button.danger {
 
 .browse-grid--masonry .card__img,
 .browse-grid--masonry .card--article .card__img,
+.browse-grid--masonry .card--artists .card__img,
 .browse-grid--masonry .card--editorial .card__img,
 .browse-grid--masonry .card--film .card__img,
 .browse-grid--masonry .card--short .card__img,

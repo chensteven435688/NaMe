@@ -10,6 +10,7 @@ const NaMePinOps = (function () {
     editorial: "editorial",
     film: "film",
     short: "shorts",
+    artists: "artists",
   };
   const MODE_KEYS = {
     latest: "pinOpsLatest",
@@ -267,9 +268,18 @@ const NaMePinOps = (function () {
             /* ignore */
           }
         }
-        writeMode(btn.dataset.pinMode);
-        attach(board, board._pinOps);
-        findBar(board)?.querySelector(`[data-pin-mode="${btn.dataset.pinMode}"]`)?.focus({ preventScroll: true });
+        const nextMode = btn.dataset.pinMode;
+        const applyMode = () => {
+          writeMode(nextMode);
+          attach(board, board._pinOps);
+          findBar(board)?.querySelector(`[data-pin-mode="${nextMode}"]`)?.focus({ preventScroll: true });
+        };
+        // Mixed and Saved need every match. Latest stays on the loaded page.
+        if (nextMode !== "latest" && typeof board._pinOps.ensureAll === "function") {
+          Promise.resolve(board._pinOps.ensureAll()).then(applyMode).catch(() => {});
+          return;
+        }
+        applyMode();
       });
     }
     const lead = options.leadHtml ? grid.querySelector(":scope > .meta-folder-bar") : null;
@@ -306,9 +316,10 @@ const NaMePinOps = (function () {
 
     grid.innerHTML = lead;
     let shown = 0;
+    const batch = mode === "latest" && Number(options.batch) > 0 ? Number(options.batch) : BATCH;
 
     const step = () => {
-      const slice = items.slice(shown, shown + BATCH);
+      const slice = items.slice(shown, shown + batch);
       shown += slice.length;
       grid.querySelector(".pin-ops-sentinel")?.remove();
       grid.querySelector(".pin-ops-end")?.remove();
@@ -326,6 +337,30 @@ const NaMePinOps = (function () {
           step();
           const next = grid.querySelectorAll(".pin-tile__link, .pin-card__open")[previous];
           next?.focus({ preventScroll: true });
+        });
+        return;
+      }
+      if (mode === "latest" && options.hasMore && typeof options.onLoadMore === "function") {
+        const more = document.createElement("button");
+        more.type = "button";
+        more.className = "pin-ops-sentinel btn btn--ghost";
+        more.textContent = t("loadMore");
+        grid.appendChild(more);
+        more.addEventListener("click", () => {
+          const previous = grid.querySelectorAll(".pin-tile__link, .pin-card__open").length;
+          more.disabled = true;
+          Promise.resolve(options.onLoadMore())
+            .then((updated) => {
+              if (updated === false) {
+                if (more.isConnected) more.disabled = false;
+                return;
+              }
+              const next = grid.querySelectorAll(".pin-tile__link, .pin-card__open")[previous];
+              next?.focus({ preventScroll: true });
+            })
+            .catch(() => {
+              if (more.isConnected) more.disabled = false;
+            });
         });
         return;
       }
@@ -412,6 +447,7 @@ const NaMePinOps = (function () {
   return {
     attach,
     detach,
+    currentMode: () => readMode({ modes: ["latest", "mixed", "saved"] }),
     saveButton,
     storySnapshot,
     storyCardHtml,

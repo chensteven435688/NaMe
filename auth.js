@@ -665,6 +665,82 @@ const NaMeAuth = (function () {
     return data.posts;
   }
 
+  const SEARCH_PAGE_SIZE = 12;
+  const SEARCH_MAX_PAGE = 50;
+
+  function clampSearchLimit(limit) {
+    const n = Number(limit);
+    if (!Number.isInteger(n) || n < 1) return SEARCH_PAGE_SIZE;
+    return Math.min(n, SEARCH_MAX_PAGE);
+  }
+
+  function searchTypeList(value) {
+    if (value === undefined || value === null || value === "") return null;
+    const source = Array.isArray(value) ? value : String(value).split(",");
+    return source.map((type) => String(type).trim()).filter(Boolean);
+  }
+
+  // PostgREST splits or() on commas and treats % _ * as wildcards.
+  // Quoted values keep spaces; reserved characters are dropped so the filter stays exact.
+  function postgrestIlikeOr(term) {
+    const cleaned = String(term || "")
+      .trim()
+      .replace(/[%_*\\",().:]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!cleaned) return "";
+    const pattern = `"%${cleaned}%"`;
+    return `title.ilike.${pattern},meta.ilike.${pattern},type.ilike.${pattern},body.ilike.${pattern}`;
+  }
+
+  /**
+   * Archive search. Pages through the live Supabase catalog, or the Express
+   * list when that client is absent. This does not use the 200-row catalog cap.
+   */
+  async function searchPosts(query = {}) {
+    const q = String(query.q || "").trim();
+    const limit = clampSearchLimit(query.limit);
+    const offset = Math.max(0, Number.parseInt(query.offset, 10) || 0);
+    const types = searchTypeList(query.types);
+
+    if (useLiveCatalog()) {
+      if (q && !postgrestIlikeOr(q)) return { posts: [], total: 0, limit, offset };
+      if (types && !types.length) return { posts: [], total: 0, limit, offset };
+      const sb = supabase();
+      let catalog = sb.from("posts").select("*", { count: "exact" });
+      if (types?.length) catalog = catalog.in("type", types);
+      if (query.type) catalog = catalog.eq("type", query.type);
+      if (q) catalog = catalog.or(postgrestIlikeOr(q));
+      const { data, error, count } = await catalog
+        .order("published_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (error) throw new Error(error.message);
+      return {
+        posts: (data || []).map(mapPost),
+        total: count ?? (data || []).length,
+        limit,
+        offset,
+      };
+    }
+
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    params.set("limit", String(limit));
+    params.set("offset", String(offset));
+    if (types) {
+      if (!types.length) return { posts: [], total: 0, limit, offset };
+      params.set("types", types.join(","));
+    }
+    if (query.type) params.set("type", query.type);
+    const data = await request(`/api/posts?${params}`);
+    return {
+      posts: data.posts || [],
+      total: Number.isFinite(Number(data.total)) ? Number(data.total) : (data.posts || []).length,
+      limit: data.limit ?? limit,
+      offset: data.offset ?? offset,
+    };
+  }
+
   /** type + section only, used to hide empty public sections. */
   async function fetchPostIndex() {
     if (useLiveCatalog()) {
@@ -692,6 +768,7 @@ const NaMeAuth = (function () {
       magazine: editorialSections.has("popular"),
       film: types.has("film"),
       short: types.has("short"),
+      artists: types.has("artists"),
     };
   }
 
@@ -1072,7 +1149,7 @@ const NaMeAuth = (function () {
         throw new Error("Already published");
       }
 
-      const allowedTypes = ["article", "editorial", "film", "short"];
+      const allowedTypes = ["article", "editorial", "film", "short", "artists"];
       const postType = allowedTypes.includes(type) ? type : "article";
       const isVideo = row.file_mime?.startsWith("video/");
       const isImage = row.file_mime?.startsWith("image/");
@@ -1152,7 +1229,7 @@ const NaMeAuth = (function () {
     return request(`/api/admin/submissions/${id}`, { method: "DELETE" });
   }
 
-  const POST_TYPES = ["article", "editorial", "film", "short", "exclusive"];
+  const POST_TYPES = ["article", "editorial", "film", "short", "exclusive", "artists"];
   const POST_SECTIONS = new Set(["latest", "popular"]);
 
   function normalizePostSection(type, section) {
@@ -3132,6 +3209,7 @@ const NaMeAuth = (function () {
     memberProfilePath,
     fetchPublicProfile,
     fetchPosts,
+    searchPosts,
     exclusiveCollectionName,
     fetchExclusiveMetas,
     createExclusiveMeta,

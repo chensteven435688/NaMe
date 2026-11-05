@@ -17,7 +17,7 @@ create table if not exists public.profiles (
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
   slug text unique not null,
-  type text not null check (type in ('article', 'editorial', 'film', 'short', 'exclusive')),
+  type text not null check (type in ('article', 'editorial', 'film', 'short', 'exclusive', 'artists')),
   title text not null,
   meta text,
   image_url text,

@@ -24,6 +24,14 @@ import { seedCommunity } from "./seed-community.js";
 import { isAuthBypassEnabled } from "./middleware/auth.js";
 import { isSupabaseConfigured } from "./supabase.js";
 import { collectionName, validateMetaName } from "./lib/exclusive-meta.js";
+import {
+  DEFAULT_SEARCH_LIMIT,
+  firstQuery,
+  parseLimit,
+  parseOffset,
+  parseTypes,
+  searchClause,
+} from "./lib/post-search.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, "..");
@@ -251,27 +259,73 @@ registerSubmissionRoutes(app, { submissionUpload, uniqueSlug });
 
 // ─── Posts ───
 app.get("/api/posts", (req, res) => {
-  const { type, section, featured } = req.query;
-  let sql = "SELECT * FROM posts WHERE 1=1";
+  const type = firstQuery(req.query.type);
+  const section = firstQuery(req.query.section);
+  const featured = firstQuery(req.query.featured);
+  const q = firstQuery(req.query.q);
+  const typeList = parseTypes(req.query.types);
+  const filters = ["1=1"];
   const params = [];
+
   if (type) {
-    sql += " AND type = ?";
+    filters.push("type = ?");
     params.push(type);
   }
-  if (section) {
-    if (section === "latest") {
-      sql += " AND (section = ? OR section IS NULL)";
-    } else {
-      sql += " AND section = ?";
+  if (typeList) {
+    if (!typeList.length) {
+      const limit = parseLimit(req.query.limit) ?? DEFAULT_SEARCH_LIMIT;
+      return res.json({
+        posts: [],
+        total: 0,
+        limit,
+        offset: parseOffset(req.query.offset),
+      });
     }
+    filters.push(`type IN (${typeList.map(() => "?").join(", ")})`);
+    params.push(...typeList);
+  }
+  if (section) {
+    if (section === "latest") filters.push("(section = ? OR section IS NULL)");
+    else filters.push("section = ?");
     params.push(section);
   }
-  if (featured === "1") {
-    sql += " AND featured = 1";
+  if (featured === "1") filters.push("featured = 1");
+
+  const clause = searchClause(q);
+  if (clause) {
+    filters.push(clause.sql);
+    params.push(...clause.params);
   }
-  sql += " ORDER BY published_at DESC";
-  const rows = db.prepare(sql).all(...params);
-  res.json({ posts: rows.map(publicPost) });
+
+  const where = filters.join(" AND ");
+  const paginate =
+    req.query.limit !== undefined ||
+    req.query.offset !== undefined ||
+    String(q || "").trim() !== "";
+  let limit = null;
+  let offset = 0;
+  if (paginate) {
+    limit = parseLimit(req.query.limit) ?? DEFAULT_SEARCH_LIMIT;
+    offset = parseOffset(req.query.offset);
+  }
+
+  const total = paginate
+    ? db.prepare(`SELECT COUNT(*) AS n FROM posts WHERE ${where}`).get(...params).n
+    : null;
+  let sql = `SELECT * FROM posts WHERE ${where} ORDER BY published_at DESC`;
+  const listParams = params.slice();
+  if (paginate) {
+    sql += " LIMIT ? OFFSET ?";
+    listParams.push(limit, offset);
+  }
+  const rows = db.prepare(sql).all(...listParams);
+  const body = { posts: rows.map(publicPost) };
+  if (paginate) {
+    body.total = total;
+    body.limit = limit;
+    body.offset = offset;
+  }
+  res.json(body);
 });
 
 app.get("/api/posts/:slug", (req, res) => {
@@ -285,7 +339,7 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
   if (!type || !title) {
     return res.status(400).json({ error: "Type and title required" });
   }
-  const allowed = ["article", "editorial", "film", "short", "exclusive"];
+  const allowed = ["article", "editorial", "film", "short", "exclusive", "artists"];
   if (!allowed.includes(type)) {
     return res.status(400).json({ error: "Invalid type" });
   }
