@@ -1661,7 +1661,18 @@ const NaMeAuth = (function () {
     });
   }
 
+  function stampInstagramForm(formData) {
+    if (!formData || typeof formData.has !== "function" || !formData.has("instagramUrl")) return;
+    const url = formData.get("instagramUrl");
+    const body = formData.get("body")?.toString() || "";
+    if (typeof NaMeInstagram !== "undefined") {
+      formData.set("body", NaMeInstagram.applyMarker(body, url));
+    }
+    formData.delete("instagramUrl");
+  }
+
   async function createPost(formData) {
+    stampInstagramForm(formData);
     const type = formData.get("type")?.toString() || "";
     const title = formData.get("title")?.toString().trim() || "";
     const rawMeta = formData.get("meta")?.toString().trim() || "";
@@ -2138,6 +2149,7 @@ const NaMeAuth = (function () {
 
   async function updatePost(id, formData) {
     if (!isAdmin()) throw new Error("Admin access required");
+    stampInstagramForm(formData);
 
     const type = formData.get("type")?.toString() || "";
     const title = formData.get("title")?.toString().trim() || "";

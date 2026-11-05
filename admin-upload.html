@@ -101,6 +101,12 @@
             </div>
 
             <label>
+              <span data-i18n="adminInstagramUrl">Instagram post</span>
+              <input type="url" name="instagramUrl" id="upload-instagram" inputmode="url" placeholder="https://www.instagram.com/p/…" autocomplete="off" />
+              <span class="admin-field-hint" data-i18n="adminInstagramHint">Optional. The original post: instagram.com/p/… or /reel/…. Leave blank if the story has no post.</span>
+            </label>
+
+            <label>
               <span data-i18n="adminBody">Body (HTML allowed)</span>
               <textarea name="body" id="upload-body" rows="10" placeholder="<p>Your story…</p>"></textarea>
             </label>
@@ -143,6 +149,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="supabase.js"></script>
   <script src="i18n.js?v=2"></script>
+  <script src="instagram.js?v=2"></script>
   <script src="auth.js?v=2"></script>
   <script src="admin-common.js?v=2"></script>
   <script src="admin-body-images.js?v=2"></script>

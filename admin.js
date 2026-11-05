@@ -243,7 +243,12 @@ async function openEditModal(id) {
   refreshEditMetaNames(post.type);
   f.elements.contentDate.value = post.contentDate ? post.contentDate.slice(0, 10) : "";
   f.elements.imageUrl.value = post.imageUrl || "";
-  f.elements.body.value = post.body || "";
+  f.elements.body.value =
+    typeof NaMeInstagram !== "undefined" ? NaMeInstagram.stripMarker(post.body || "") : post.body || "";
+  if (f.elements.instagramUrl) {
+    f.elements.instagramUrl.value =
+      typeof NaMeInstagram !== "undefined" ? NaMeInstagram.permalink(post) : "";
+  }
   f.elements.videoUrl.value = post.videoUrl || "";
   f.elements.featured.checked = post.featured;
   f.elements.image.value = "";

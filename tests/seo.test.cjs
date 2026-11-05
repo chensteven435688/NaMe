@@ -13,6 +13,7 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 10));
 const PUBLIC_PAGES = [
   "index.html",
   "stories.html",
+  "archive.html",
   "magazine.html",
   "editorial.html",
   "articles.html",

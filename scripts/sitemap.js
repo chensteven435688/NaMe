@@ -8,6 +8,7 @@ const SITE_ORIGIN = "https://name-magazine.vercel.app";
 const STATIC_PATHS = [
   "/",
   "/stories",
+  "/archive",
   "/magazine",
   "/editorial",
   "/articles",
