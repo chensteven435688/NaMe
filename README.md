@@ -129,6 +129,24 @@ Register with one of those emails (or log in again after adding your email) to g
 - `GET /api/admin/stats` · `GET /api/admin/users` · `PATCH /api/admin/users/:id` · `DELETE /api/admin/users/:id`
 - `GET /api/admin/comments` · `DELETE /api/admin/comments/:id`
 - `GET /api/community/posts` · `POST /api/community/posts` · `POST /api/community/posts/:id/like` · `DELETE /api/community/posts/:id`
+- `GET /sitemap.xml` — static public pages plus posts in the local SQLite catalog. The Vercel site serves the committed `sitemap.xml` instead of this route.
+
+## Search and sharing
+
+Public pages ship Open Graph and Twitter card tags, a canonical URL, and a shared image (`/images/hero/hero-1.png`). Absolute share URLs use `https://name-magazine.vercel.app` (`SITE_ORIGIN` in `seo.js`), including when the page is opened locally or on GitHub Pages.
+
+Story pages (`post.html?slug=…`) replace the title, description, image, canonical URL, and Twitter tags after the post loads, and add Article JSON-LD (`headline`, `image`, `datePublished`, publisher). The description is the story text, clipped. The homepage also emits Organization and WebSite JSON-LD. Changing language updates the share title and description to match the visible page text; a loaded story keeps its own title, excerpt, and image. Clients that do not run JavaScript still see the brand card in the story page's HTML.
+
+`robots.txt` points at the sitemap. Regenerate the committed files (what Vercel serves) with:
+
+```bash
+npm run sitemap
+npm run sitemap -- --posts posts.json
+npm run sitemap -- --from-api http://127.0.0.1:8080
+npm run sitemap -- --from-catalog
+```
+
+`--posts` is a JSON array, or `{ "posts": [...] }`, of `{ "slug", "publishedAt" }`. `--from-api` pages through `GET /api/posts`. `--from-catalog` reads `slug` and `published_at` from the public Supabase `posts` table (`SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`, or the public values in `supabase.js`). No schema change is required. The Express route stays current with local SQLite without rewriting the file.
 
 ## Customize
 

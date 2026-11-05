@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
+import { createRequire } from "module";
 import db from "./db.js";
 import {
   signToken,
@@ -54,6 +55,19 @@ app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use("/uploads", express.static(uploadsDir));
 app.use(["/server", "/supabase", "/scripts"], (_req, res) => res.status(404).end());
+
+const requireSitemap = createRequire(import.meta.url);
+const { buildSitemap } = requireSitemap("../scripts/sitemap.js");
+
+app.get("/sitemap.xml", (_req, res) => {
+  const posts = db
+    .prepare(
+      "SELECT slug, published_at AS publishedAt FROM posts ORDER BY published_at DESC"
+    )
+    .all();
+  res.type("application/xml").send(buildSitemap({ posts }));
+});
+
 app.use(express.static(rootDir, { dotfiles: "deny" }));
 
 const storage = multer.diskStorage({

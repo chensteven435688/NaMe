@@ -4,7 +4,8 @@
   "private": true,
   "description": "Frontend interaction regression checks; the API remains in server/.",
   "scripts": {
-    "test": "node --test tests/*.test.cjs"
+    "test": "node --test tests/*.test.cjs",
+    "sitemap": "node scripts/generate-sitemap.js"
   },
   "devDependencies": {
     "css-tree": "^3.2.1",

@@ -3,8 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="NaMe Magazine — Before the Name" />
+  <meta name="description" content="NaMe Magazine is a platform for artists before the world knows their names — photography, design, film, writing, and visual art." />
   <title>NaMe Magazine — Before the Name</title>
+  <link rel="canonical" href="https://name-magazine.vercel.app/" />
+  <meta property="og:site_name" content="NaMe Magazine" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content="NaMe Magazine — Before the Name" />
+  <meta property="og:description" content="NaMe Magazine is a platform for artists before the world knows their names — photography, design, film, writing, and visual art." />
+  <meta property="og:url" content="https://name-magazine.vercel.app/" />
+  <meta property="og:image" content="https://name-magazine.vercel.app/images/hero/hero-1.png" />
+  <meta property="og:image:alt" content="NaMe Magazine" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="NaMe Magazine — Before the Name" />
+  <meta name="twitter:description" content="NaMe Magazine is a platform for artists before the world knows their names — photography, design, film, writing, and visual art." />
+  <meta name="twitter:image" content="https://name-magazine.vercel.app/images/hero/hero-1.png" />
   <script src="auth-boot.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,6 +26,29 @@
   <link rel="stylesheet" href="home-design.css" />
   <link rel="stylesheet" href="experience.css" />
   <script src="experience.js" defer></script>
+  <script type="application/ld+json" id="name-seo-jsonld">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://name-magazine.vercel.app/#organization",
+          "name": "NaMe Magazine",
+          "url": "https://name-magazine.vercel.app/",
+          "logo": "https://name-magazine.vercel.app/images/favicon.png"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://name-magazine.vercel.app/#website",
+          "name": "NaMe Magazine",
+          "url": "https://name-magazine.vercel.app/",
+          "description": "NaMe Magazine is a platform for artists before the world knows their names — photography, design, film, writing, and visual art.",
+          "inLanguage": "en",
+          "publisher": { "@id": "https://name-magazine.vercel.app/#organization" }
+        }
+      ]
+    }
+  </script>
 </head>
 <body class="page-home is-page-ready">
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -304,6 +340,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="supabase.js"></script>
   <script src="i18n.js"></script>
+  <script src="seo.js"></script>
   <script src="auth.js"></script>
   <script src="nav.js"></script>
   <script src="exclusive-folders.js"></script>
