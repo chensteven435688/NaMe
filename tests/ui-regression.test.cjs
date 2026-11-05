@@ -230,7 +230,10 @@ test('empty artists index stays on the page', async () => {
   evaluate(w, 'browse.js');
   await w.loadBrowseFeed();
   assert.equal(replaced, false);
-  assert.match(w.document.querySelector('#browse-grid').textContent, /No artist stories yet/);
+  const grid = w.document.querySelector('#browse-grid');
+  assert.match(grid.textContent, /No artist stories yet/);
+  assert.equal(grid.querySelector('a[href="/stories.html"]').textContent, 'Stories');
+  assert.equal(grid.querySelector('a[href="/submission.html"]').textContent, 'Submission');
   dom.window.close();
 });
 

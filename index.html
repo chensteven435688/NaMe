@@ -130,32 +130,14 @@
           <h1 class="atelier__title" id="atelier-title">NaMe<span class="atelier__title-note" data-i18n="coverMagazine">Independent magazine</span></h1>
           <div class="atelier__edition">
             <span data-i18n="communityLabel">Before the Name</span>
-            <span class="atelier__count" role="status"><b id="atelier-count">0</b> <span data-i18n="atelierStories">stories</span></span>
+            <span class="atelier__count" id="atelier-count-wrap" role="status" hidden><b id="atelier-count"></b> <span data-i18n="atelierStories">stories</span></span>
           </div>
         </div>
-        <nav class="atelier__side" aria-label="Explore">
-          <a href="stories.html">
-            <strong data-i18n="navStories">Stories</strong>
-            <span data-i18n="atelierSideStories">Magazine, editorial, film, and artists</span>
-          </a>
-          <a href="community.html">
-            <strong data-i18n="community">Community</strong>
-            <span data-i18n="atelierSideCommunity">Open calls and conversation</span>
-          </a>
-          <a href="about.html">
-            <strong data-i18n="about">About</strong>
-            <span data-i18n="atelierSideAbout">Before the name</span>
-          </a>
-          <a href="exclusive.html">
-            <strong data-i18n="editorsExclusive">Editor's Exclusive</strong>
-            <span data-i18n="atelierSideExclusive">Notes from the desk</span>
-          </a>
-        </nav>
       </div>
 
       <form class="atelier__tools" id="atelier-tools" role="search">
         <label class="atelier__field">
-          <span class="visually-hidden" data-i18n="atelierSection">Section</span>
+          <span class="atelier__field-label" data-i18n="atelierSection">Section</span>
           <select id="atelier-filter" name="section">
             <option value="" data-i18n="atelierAll">All</option>
             <option value="editorial" data-i18n="editorial">Editorial</option>
@@ -166,7 +148,7 @@
           </select>
         </label>
         <label class="atelier__search">
-          <span class="visually-hidden" data-i18n="atelierSearch">Search</span>
+          <span class="atelier__search-label" data-i18n="atelierSearch">Search</span>
           <input id="atelier-search" type="search" name="q" data-i18n-placeholder="atelierSearch" placeholder="Search" autocomplete="off" />
         </label>
         <div class="atelier__chips" id="atelier-chips"></div>
@@ -178,7 +160,26 @@
         </button>
       </form>
 
-      <div class="atelier__gallery" id="atelier-gallery" aria-label="Stories" aria-busy="true"><p class="atelier__empty" data-i18n="coverLoading">Finding the next perspective…</p></div>
+      <div class="atelier__gallery" id="atelier-gallery" aria-label="Stories" aria-busy="true">
+        <article class="atelier-piece atelier-piece--lead" aria-hidden="true">
+          <span class="atelier-piece__frame atelier-skeleton__frame"></span>
+          <span class="atelier-piece__copy">
+            <span class="atelier-skeleton__line"></span>
+            <span class="atelier-skeleton__line atelier-skeleton__line--title"></span>
+          </span>
+        </article>
+        <div class="atelier__rail" aria-hidden="true">
+          <article class="atelier-piece atelier-piece--support" aria-hidden="true">
+            <span class="atelier-piece__frame atelier-skeleton__frame"></span>
+            <span class="atelier-piece__copy"><span class="atelier-skeleton__line atelier-skeleton__line--title"></span></span>
+          </article>
+          <article class="atelier-piece atelier-piece--support" aria-hidden="true">
+            <span class="atelier-piece__frame atelier-skeleton__frame"></span>
+            <span class="atelier-piece__copy"><span class="atelier-skeleton__line atelier-skeleton__line--title"></span></span>
+          </article>
+        </div>
+        <p class="visually-hidden" data-i18n="coverLoading">Finding the next perspective…</p>
+      </div>
       <div class="cover-footnote"><p data-i18n="coverManifesto">A space for the not-yet-known. Images, ideas, and people shaping what comes next.</p><a href="stories.html" class="text-link" data-i18n="coverArchive">Explore the archive ↗</a></div>
     </section>
 

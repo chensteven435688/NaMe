@@ -11,6 +11,7 @@ const NaMePinOps = (function () {
     film: "film",
     short: "shorts",
     artists: "artists",
+    exclusive: "exclusiveLabel",
   };
   const MODE_KEYS = {
     latest: "pinOpsLatest",

@@ -79,12 +79,26 @@ function renderExclusiveFolderCard(folder, lang, pagePath) {
   );
   const count = folder.posts.length;
   const countWord = NaMeI18n.t(lang, count === 1 ? "exclusivePiece" : "exclusivePieces");
-  const cover = folder.posts[0]?.imageUrl
-    ? `<img src="${exclusiveFolderEscape(folder.posts[0].imageUrl)}" alt="" />`
+  const images = [];
+  for (const post of folder.posts || []) {
+    const url = String(post?.imageUrl || "").trim();
+    if (!url || images.includes(url)) continue;
+    images.push(url);
+    if (images.length === 3) break;
+  }
+  const cover = images[0]
+    ? `<img src="${exclusiveFolderEscape(images[0])}" alt="" />`
     : `<span class="meta-folder__mark">${exclusiveFolderEscape(label.slice(0, 1) || "—")}</span>`;
+  const extras = images.slice(1);
+  const thumbs = extras.length
+    ? `<div class="meta-folder__thumbs">${extras
+        .map((url) => `<img src="${exclusiveFolderEscape(url)}" alt="" />`)
+        .join("")}</div>`
+    : "";
   return `
     <a class="meta-folder" href="${exclusiveFolderEscape(href)}">
       <div class="meta-folder__cover">${cover}</div>
+      ${thumbs}
       <h2 class="meta-folder__name">${exclusiveFolderEscape(label)}</h2>
       <p class="meta-folder__count">${exclusiveFolderEscape(`${count} ${countWord}`)}</p>
     </a>`;

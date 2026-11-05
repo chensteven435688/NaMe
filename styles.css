@@ -2456,22 +2456,36 @@ img.user-avatar {
 }
 
 .post-page {
-  max-width: 900px;
+  max-width: none;
+  width: 100%;
   margin: 0 auto;
-  padding: 2rem clamp(1.5rem, 5vw, 3rem) 4rem;
+  padding: 0.65rem 0 4rem;
+}
+
+.post-page__back,
+.page-post .post__body,
+.page-post .comments {
+  width: min(42rem, calc(100% - 2rem));
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .post-page__back {
-  display: inline-block;
+  display: block;
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 2rem;
+  color: #3c3933;
+  margin-bottom: 0.65rem;
 }
 
 .post-page__back:hover {
   color: var(--text);
+}
+
+.post__media {
+  width: min(1280px, calc(100% - 1rem));
+  margin: 0 auto 1rem;
 }
 
 .post__hero-img,
@@ -2480,21 +2494,21 @@ img.user-avatar {
   width: auto;
   max-width: 100%;
   height: auto;
-  max-height: 85vh;
+  max-height: 92vh;
   object-fit: contain;
-  margin: 0 auto 2rem;
+  margin: 0 auto;
 }
 
 .post-gallery {
   position: relative;
-  margin-bottom: 2rem;
+  margin-bottom: 0;
   outline: none;
 }
 
 .post-gallery__viewport {
   position: relative;
   overflow: hidden;
-  background: var(--bg-elevated, #111);
+  background: transparent;
   cursor: pointer;
   user-select: none;
 }
@@ -2519,9 +2533,10 @@ img.user-avatar {
   width: auto;
   max-width: 100%;
   height: auto;
-  max-height: 85vh;
+  max-height: 92vh;
   object-fit: contain;
-  background: var(--bg-elevated, #111);
+  background: transparent;
+  margin: 0 auto;
 }
 
 .post-gallery__nav {
@@ -2628,7 +2643,8 @@ img.user-avatar {
 }
 
 .post-related {
-  margin-top: 3rem;
+  width: min(1100px, calc(100% - 2rem));
+  margin: 3rem auto 0;
   padding-top: 2rem;
   border-top: 1px solid var(--border);
 }
@@ -2642,17 +2658,72 @@ img.user-avatar {
 
 .post-related .browse-grid,
 .post-related .browse-grid--masonry {
+  display: grid;
+  grid-template-columns: 1fr;
+  column-count: unset;
   max-width: none;
+  width: 100%;
   margin: 0;
   padding: 0;
-  column-count: 1;
+  gap: 1.5rem 1.25rem;
 }
 
 @media (min-width: 640px) {
   .post-related .browse-grid,
   .post-related .browse-grid--masonry {
-    column-count: 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+.post-related .browse-grid--masonry .pin-tile {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+}
+
+.post-related .card__img,
+.post-related .browse-grid--masonry .card__img,
+.post-related .browse-grid--masonry .card--article .card__img,
+.post-related .browse-grid--masonry .card--artists .card__img,
+.post-related .browse-grid--masonry .card--editorial .card__img,
+.post-related .browse-grid--masonry .card--film .card__img,
+.post-related .browse-grid--masonry .card--short .card__img,
+.post-related .browse-grid--masonry .card--exclusive .card__img {
+  aspect-ratio: 4 / 5;
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+  margin-bottom: 0.7rem;
+}
+
+.post-related .browse-grid--masonry .card__img img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+  object-position: center 22%;
+}
+
+.post-related .card__type {
+  font-family: var(--mono, ui-monospace, monospace);
+  color: var(--accent);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+}
+
+.post-related .card__title {
+  color: var(--text);
+  font-size: 1.35rem;
+  line-height: 1.2;
+  margin-top: 0.15rem;
+}
+
+.post-related .card__meta {
+  color: #3c3933;
+  font-size: 0.8125rem;
+  letter-spacing: 0.03em;
+  text-transform: none;
 }
 
 .post__title {
@@ -2701,6 +2772,43 @@ img.user-avatar {
 
 .post__content p {
   margin-bottom: 1rem;
+}
+
+.post-credits {
+  display: grid;
+  gap: 0;
+  margin: 1.75rem 0 0.5rem;
+}
+
+.post-credits__row {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 13.5rem) minmax(0, 1fr);
+  gap: 0.25rem 1.25rem;
+  align-items: baseline;
+  border-top: 1px solid var(--border);
+  padding: 0.6rem 0;
+}
+
+.post-credits__row dt {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.post-credits__row dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 600px) {
+  .post-credits__row {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
 }
 
 .post__content .post__figure,
@@ -4239,10 +4347,28 @@ button.danger {
   align-items: flex-end;
 }
 
-.meta-folder__cover img {
+.meta-folder__cover img,
+.meta-folder__thumbs img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 22%;
+}
+
+.meta-folder__cover:has(+ .meta-folder__thumbs) {
+  margin-bottom: 0.35rem;
+}
+
+.meta-folder__thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 0.7rem;
+}
+
+.meta-folder__thumbs img {
+  aspect-ratio: 1;
+  display: block;
 }
 
 .meta-folder__mark {
@@ -4260,11 +4386,12 @@ button.danger {
 }
 
 .meta-folder__count {
-  margin-top: 0.3rem;
-  font-size: 11px;
+  margin-top: 0.35rem;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-dim);
+  color: #3c3933;
 }
 
 .browse-grid > .meta-folder-bar {
@@ -4461,8 +4588,57 @@ button.danger {
 .browse-grid__empty {
   grid-column: 1 / -1;
   text-align: center;
-  color: var(--text-muted);
+  color: #3c3933;
   padding: 3rem 1rem;
+}
+
+.browse-empty {
+  grid-column: 1 / -1;
+  max-width: 36rem;
+  margin: 0 auto;
+  text-align: center;
+  padding: 1.5rem 1rem 2.5rem;
+}
+
+.browse-empty__title {
+  font-family: var(--serif);
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.browse-empty__next {
+  margin-top: 0.75rem;
+  color: #3c3933;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.browse-empty__routes {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.browse-empty__routes a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.4rem 0.95rem;
+  border: 1px solid var(--text);
+  color: var(--text);
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.browse-empty__routes a:hover {
+  background: var(--text);
+  color: var(--text-inverse);
 }
 
 .browse-grid--masonry > .meta-folder-bar,
