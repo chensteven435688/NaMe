@@ -143,7 +143,7 @@ function publicMember(row) {
 }
 
 function publicPost(row) {
-  return {
+  const post = {
     id: row.id,
     slug: row.slug,
     type: row.type,
@@ -157,6 +157,8 @@ function publicPost(row) {
     publishedAt: row.published_at,
     contentDate: row.content_date,
   };
+  if (row.tags != null && row.tags !== "") post.tags = row.tags;
+  return post;
 }
 
 // ─── Auth ───

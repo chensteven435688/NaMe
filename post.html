@@ -54,8 +54,8 @@
     <a href="./" class="post-page__back" data-i18n="backHome">← Back to NaMe</a>
     <div id="post-root"></div>
 
-    <section class="post-related" id="post-related" hidden>
-      <h2 class="post-related__title" data-i18n="pinOpsMore">More to explore</h2>
+    <section class="post-related" id="post-related" hidden aria-labelledby="post-related-title">
+      <h2 class="post-related__title" id="post-related-title" data-i18n="relatedReading">Related Reading</h2>
       <div class="browse-grid" id="post-related-grid"></div>
     </section>
 
@@ -69,6 +69,21 @@
       <div class="comments__list" id="comments-list"></div>
     </section>
   </main>
+
+  <footer class="footer">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <p class="footer__logo" data-i18n="footerMagazine">NaMe Magazine</p>
+        <p class="footer__address" data-i18n-html="footerAddress"></p>
+      </div>
+      <nav class="footer__links">
+        <a href="about.html" data-i18n="about">About</a>
+        <a href="business.html" data-i18n="business">Business</a>
+        <a href="contact.html" data-i18n="contact">Contact</a>
+      </nav>
+    </div>
+    <p class="footer__copy" data-i18n="footerCopy"></p>
+  </footer>
 
   <!-- Auth modal -->
   <div class="modal" id="auth-modal" aria-hidden="true">
