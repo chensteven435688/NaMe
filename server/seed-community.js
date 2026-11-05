@@ -6,7 +6,9 @@ export function seedCommunity() {
   if (count > 0) return 0;
 
   const user = db.prepare("SELECT id FROM users LIMIT 1").get();
-  const userId = user?.id || null;
+  const userId = user?.id;
+  // community_posts.user_id is NOT NULL. A fresh database has posts but no member yet.
+  if (!userId) return 0;
   const now = new Date().toISOString();
 
   const samples = [
