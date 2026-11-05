@@ -2645,12 +2645,13 @@ img.user-avatar {
   max-width: none;
   margin: 0;
   padding: 0;
-  column-count: 2;
+  column-count: 1;
 }
 
-@media (min-width: 800px) {
+@media (min-width: 640px) {
+  .post-related .browse-grid,
   .post-related .browse-grid--masonry {
-    column-count: 3;
+    column-count: 2;
   }
 }
 

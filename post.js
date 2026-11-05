@@ -9,8 +9,11 @@ function applyLoadedPostMeta(post) {
   else document.title = `${post.title} — NaMe Magazine`;
 }
 
+let relatedForPost = null;
+
 document.addEventListener("name:languagechange", () => {
   if (loadedPost) applyLoadedPostMeta(loadedPost);
+  if (relatedForPost?.length) renderRelated(relatedForPost);
 });
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -118,30 +121,133 @@ function renderPost(post) {
   document.dispatchEvent(new CustomEvent("name:post-ready"));
 }
 
+const RELATED_LIMIT = 4;
+
+// Same category rule as exclusiveCollectionName: "Fashion, Art — 02 Mar 2026" → "Fashion, Art".
+function categoryLabel(meta) {
+  const raw = String(meta ?? "").replace(/\s+/g, " ").trim();
+  if (!raw) return "";
+  const parts = raw.split(/\s+[—–-]\s+/);
+  if (parts.length >= 2) {
+    const tail = parts.slice(1).join(" — ").trim();
+    if (/^\d/.test(tail) && /\d{4}/.test(tail)) return parts[0].trim();
+  }
+  return raw;
+}
+
+function categoryTokens(meta) {
+  return categoryLabel(meta)
+    .split(",")
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function tagTokens(post) {
+  const raw = post?.tags ?? post?.tag;
+  if (raw == null || raw === "") return [];
+  const list = Array.isArray(raw) ? raw : String(raw).split(",");
+  return list
+    .map((item) => {
+      if (item && typeof item === "object") return item.name || item.tag || item.label || "";
+      return item;
+    })
+    .map((item) => String(item ?? "").trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function sharedCount(left, right) {
+  if (!left.length || !right.length) return 0;
+  const have = new Set(right);
+  let count = 0;
+  for (const token of new Set(left)) {
+    if (have.has(token)) count += 1;
+  }
+  return count;
+}
+
+// Category and tags outrank type alone, so a fashion editorial beats an unrelated article.
+function relatedScore(current, candidate) {
+  let score = 0;
+  if (current?.type && candidate?.type && current.type === candidate.type) score += 2;
+  score += sharedCount(categoryTokens(current?.meta), categoryTokens(candidate?.meta)) * 3;
+  score += sharedCount(tagTokens(current), tagTokens(candidate)) * 3;
+  return score;
+}
+
+function publishedTime(post) {
+  const value = Date.parse(post?.publishedAt || post?.published_at || "");
+  return Number.isNaN(value) ? 0 : value;
+}
+
+function sameStory(a, b) {
+  if (!a || !b) return false;
+  const slugA = String(a.slug || "").trim();
+  const slugB = String(b.slug || "").trim();
+  if (slugA && slugB && slugA === slugB) return true;
+  if (a.id != null && b.id != null && String(a.id) !== "" && String(a.id) === String(b.id)) return true;
+  return false;
+}
+
+function selectRelatedPosts(current, catalog, limit = RELATED_LIMIT) {
+  const requested = Number(limit);
+  const cap = Number.isInteger(requested) && requested > 0 ? Math.min(requested, RELATED_LIMIT) : RELATED_LIMIT;
+  const seen = new Set();
+  const candidates = [];
+  for (const item of Array.isArray(catalog) ? catalog : []) {
+    if (!item || typeof item !== "object") continue;
+    const slug = String(item.slug || "").trim();
+    if (!slug || sameStory(item, current)) continue;
+    if (seen.has(slug)) continue;
+    seen.add(slug);
+    candidates.push(item);
+  }
+  return candidates
+    .map((item, index) => ({
+      item,
+      index,
+      score: relatedScore(current, item),
+      time: publishedTime(item),
+    }))
+    .sort((a, b) => b.score - a.score || b.time - a.time || a.index - b.index)
+    .slice(0, cap)
+    .map((row) => row.item);
+}
+
+function renderRelated(items) {
+  const section = document.getElementById("post-related");
+  const grid = document.getElementById("post-related-grid");
+  if (!section || !grid) return;
+  if (!items?.length || typeof NaMePinOps === "undefined") {
+    section.hidden = true;
+    grid.replaceChildren();
+    return;
+  }
+  section.hidden = false;
+  NaMePinOps.attach(grid, {
+    kind: "story",
+    toolbar: false,
+    items,
+    renderItem: (item) =>
+      NaMePinOps.storyCardHtml(item, {
+        cardClass: `card--${item.type || "article"}`,
+        showMeta: true,
+        showType: true,
+      }),
+  });
+}
+
 async function loadRelated(post) {
   const section = document.getElementById("post-related");
   const grid = document.getElementById("post-related-grid");
-  if (!section || !grid || !post?.type) return;
+  if (!section || !grid) return;
   try {
-    const posts = (await NaMeAuth.fetchPosts({ type: post.type })).filter((item) => item.slug !== post.slug);
-    if (!posts.length) {
-      section.hidden = true;
-      return;
-    }
-    section.hidden = false;
-    NaMePinOps.attach(grid, {
-      kind: "story",
-      toolbar: false,
-      items: posts,
-      renderItem: (item) =>
-        NaMePinOps.storyCardHtml(item, {
-          cardClass: `card--${item.type || "article"}`,
-          showMeta: false,
-          showType: false,
-        }),
-    });
+    const posts = await NaMeAuth.fetchPosts({});
+    relatedForPost = selectRelatedPosts(post, posts);
+    renderRelated(relatedForPost);
   } catch {
+    relatedForPost = null;
     section.hidden = true;
+    grid.replaceChildren();
   }
 }
 
@@ -535,4 +641,8 @@ function formatTime(iso) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
   return d.toLocaleDateString();
+}
+
+if (typeof window !== "undefined") {
+  window.NaMeRelated = { selectRelatedPosts };
 }

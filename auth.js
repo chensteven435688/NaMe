@@ -236,7 +236,7 @@ const NaMeAuth = (function () {
 
   function mapPost(row) {
     if (!row) return null;
-    return {
+    const post = {
       id: row.id,
       slug: row.slug,
       type: row.type,
@@ -250,6 +250,8 @@ const NaMeAuth = (function () {
       publishedAt: row.published_at,
       contentDate: row.content_date,
     };
+    if (row.tags != null && row.tags !== "") post.tags = row.tags;
+    return post;
   }
 
   async function loadProfile(userId, email = "") {
