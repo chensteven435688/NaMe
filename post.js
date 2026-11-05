@@ -1,6 +1,18 @@
 /**
  * NaMe — post detail & comments
  */
+let loadedPost = null;
+
+function applyLoadedPostMeta(post) {
+  loadedPost = post;
+  if (window.NaMeSeo) window.NaMeSeo.applyPost(post);
+  else document.title = `${post.title} — NaMe Magazine`;
+}
+
+document.addEventListener("name:languagechange", () => {
+  if (loadedPost) applyLoadedPostMeta(loadedPost);
+});
+
 document.addEventListener("DOMContentLoaded", async () => {
   NaMeI18n.init();
   const authReady = NaMeAuth.refresh().then(() => NaMeAuth.initUI());
@@ -102,7 +114,7 @@ function renderPost(post) {
   const gallery = root.querySelector(".post-gallery");
   if (gallery) initPostGallery(gallery);
 
-  document.title = `${post.title} — NaMe Magazine`;
+  applyLoadedPostMeta(post);
   document.dispatchEvent(new CustomEvent("name:post-ready"));
 }
 

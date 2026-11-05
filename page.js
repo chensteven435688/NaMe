@@ -19,6 +19,7 @@ function setPageMeta() {
   if (titleKey) document.title = NaMeI18n.t(lang, titleKey);
   const meta = document.querySelector('meta[name="description"]');
   if (meta && descKey) meta.setAttribute("content", NaMeI18n.t(lang, descKey));
+  if (window.NaMeSeo) window.NaMeSeo.syncFromDocument();
 }
 
 function initContactForm() {
