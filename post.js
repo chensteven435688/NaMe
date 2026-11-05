@@ -84,10 +84,15 @@ function renderPost(post) {
     backEl.textContent = backLabel;
   }
 
-  const bodyImages = extractImagesFromBody(post.body);
+  const storyBody =
+    typeof NaMeInstagram !== "undefined" ? NaMeInstagram.stripMarker(post.body) : post.body || "";
+  const permalink = typeof NaMeInstagram !== "undefined" ? NaMeInstagram.permalink(post) : "";
+  const bodyImages = extractImagesFromBody(storyBody);
   const galleryImages = collectGalleryImages(post.imageUrl, bodyImages);
-  const stripped = bodyImages.length ? stripGalleryImagesFromBody(post.body) : post.body || "";
+  const stripped = bodyImages.length ? stripGalleryImagesFromBody(storyBody) : storyBody || "";
   const contentHtml = formatStoryCopy(stripped);
+  const igSource = permalink ? NaMeInstagram.sourceHtml(permalink) : "";
+  const igPlacement = permalink ? NaMeInstagram.placementHtml(post, permalink) : "";
 
   let media;
   if (post.videoUrl) {
@@ -110,13 +115,16 @@ function renderPost(post) {
         <h1 class="post__title">${escapeHtml(post.title)}</h1>
         <p class="post__type${isExclusive ? " post__type--exclusive" : ""}">${escapeHtml(typeLabel)}</p>
         ${datesHtml}
+        ${igSource}
         <div class="post__content">${contentHtml}</div>
+        ${igPlacement}
       </div>
     </article>
   `;
 
   const gallery = root.querySelector(".post-gallery");
   if (gallery) initPostGallery(gallery);
+  if (permalink) NaMeInstagram.mountEmbed(document);
 
   applyLoadedPostMeta(post);
   document.dispatchEvent(new CustomEvent("name:post-ready"));
