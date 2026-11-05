@@ -103,11 +103,35 @@ function clipText(value, max) {
   return `${text.slice(0, max).replace(/\s+\S*$/, "")}…`;
 }
 
+function storyLines(html) {
+  const node = document.createElement("div");
+  node.innerHTML = html || "";
+  return (node.textContent || "")
+    .split(/\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+function isCreditLine(line) {
+  if (!line || line.length > 140) return false;
+  if (/^[^@]{2,60}\s@\S/.test(line)) return true;
+  if (/^(?:IG|Instagram)\s*:/i.test(line)) return true;
+  return /^[^:：]{2,40}\s*[:：]\s+\S/.test(line) && line.length < 90 && !/[.?!]/.test(line.slice(0, -1));
+}
+
 function storyBlurb(post) {
-  const fromBody = stripHtml(post.body);
-  if (fromBody.length > 36) return clipText(fromBody, 148);
-  if (post.meta) return clipText(stripHtml(post.meta), 148);
+  const prose = storyLines(post.body).find((line) => line.length > 36 && !isCreditLine(line));
+  if (prose) return clipText(prose, 148);
+  const meta = clipText(stripHtml(post.meta), 80);
+  if (meta && !isCreditLine(meta)) return meta;
   return "";
+}
+
+function setAtelierCount(countEl, value) {
+  if (!countEl) return;
+  countEl.textContent = String(value);
+  const wrap = document.getElementById("atelier-count-wrap");
+  if (wrap) wrap.hidden = false;
 }
 
 function renderAtelier() {
@@ -119,6 +143,7 @@ function renderAtelier() {
   const lang = typeof NaMeI18n !== "undefined" ? NaMeI18n.getLang() : "en";
   const filter = document.getElementById("atelier-filter")?.value || "";
   const query = (document.getElementById("atelier-search")?.value || "").trim().toLowerCase();
+  document.querySelector(".atelier__field")?.classList.toggle("is-set", Boolean(filter));
   const source = atelierSource();
 
   const types = [...new Set(source.map((post) => post.type).filter(Boolean))].slice(0, 4);
@@ -148,7 +173,7 @@ function renderAtelier() {
     return haystack.includes(query);
   });
 
-  if (countEl) countEl.textContent = String(matches.length);
+  setAtelierCount(countEl, matches.length);
 
   if (!matches.length) {
     const emptyText =
@@ -159,9 +184,16 @@ function renderAtelier() {
 
   // Browsing shows an editorial selection; searching exposes every match.
   const visible = filter || query ? matches : matches.slice(0, 3);
-  gallery.innerHTML = visible
-    .map((post, index) => atelierPieceHtml(post, ["left", "center", "right"][index % 3], lang, index === 0))
-    .join("");
+  gallery.innerHTML =
+    filter || query
+      ? visible.map((post, index) => atelierPieceHtml(post, "", lang, index === 0)).join("")
+      : renderAtelierFeature(visible, lang);
+}
+
+function renderAtelierFeature(posts, lang) {
+  const [lead, ...rest] = posts;
+  const rail = rest.map((post) => atelierPieceHtml(post, "support", lang, false)).join("");
+  return `${atelierPieceHtml(lead, "lead", lang, true)}${rail ? `<div class="atelier__rail">${rail}</div>` : ""}`;
 }
 
 function renderAtelierExclusive(gallery, countEl, lang, query, source) {
@@ -181,7 +213,7 @@ function renderAtelierExclusive(gallery, countEl, lang, query, source) {
     });
   }
 
-  if (countEl) countEl.textContent = String(folders.length);
+  setAtelierCount(countEl, folders.length);
   gallery.classList.add("is-filtered", "is-folders");
   if (!folders.length) {
     const emptyText =
@@ -210,8 +242,9 @@ function atelierPieceHtml(post, slot, lang, priority = false) {
           ${blurb ? `<span class="atelier-piece__text">${escapeHtml(blurb)}</span>` : ""}
         </span>`;
 
+  const slotClass = slot ? ` atelier-piece--${slot}` : "";
   return `
-    <a class="atelier-piece atelier-piece--${slot}" href="${href}">
+    <a class="atelier-piece${slotClass}" href="${href}">
       <span class="atelier-piece__frame">
         <img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title || "")}" decoding="async" ${priority ? 'fetchpriority="high"' : 'loading="lazy"'} />
       </span>

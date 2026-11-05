@@ -56,7 +56,7 @@ async function loadSectionFolders(grid) {
         NaMePinOps.detach(grid);
         grid.classList.remove("browse-grid--folders");
         const emptyKey = document.body.dataset.browseEmpty || "storiesEmpty";
-        grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, emptyKey))}</p>`;
+        grid.innerHTML = emptyKey === "artistsEmpty" ? artistsEmptyHtml(lang) : emptyParagraph(emptyKey);
         folderViewReady = true;
         return;
       }
@@ -163,6 +163,22 @@ let searchSeq = 0;
 
 function emptyParagraph(key) {
   return `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(NaMeI18n.getLang(), key))}</p>`;
+}
+
+function siteHref(path) {
+  return typeof NaMeBase !== "undefined" ? NaMeBase.path(path) : path;
+}
+
+function artistsEmptyHtml(lang) {
+  const t = (key) => NaMeI18n.t(lang, key);
+  return `<div class="browse-empty">
+    <p class="browse-empty__title">${escapeHtml(t("artistsEmpty"))}</p>
+    <p class="browse-empty__next">${escapeHtml(t("artistsEmptyNext"))}</p>
+    <p class="browse-empty__routes">
+      <a href="${escapeHtml(siteHref("/stories.html"))}">${escapeHtml(t("navStories"))}</a>
+      <a href="${escapeHtml(siteHref("/submission.html"))}">${escapeHtml(t("submission"))}</a>
+    </p>
+  </div>`;
 }
 
 function setArchiveCount(form, text) {

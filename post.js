@@ -86,7 +86,8 @@ function renderPost(post) {
 
   const bodyImages = extractImagesFromBody(post.body);
   const galleryImages = collectGalleryImages(post.imageUrl, bodyImages);
-  const contentHtml = bodyImages.length ? stripGalleryImagesFromBody(post.body) : post.body || "";
+  const stripped = bodyImages.length ? stripGalleryImagesFromBody(post.body) : post.body || "";
+  const contentHtml = formatStoryCopy(stripped);
 
   let media;
   if (post.videoUrl) {
@@ -280,6 +281,96 @@ function stripGalleryImagesFromBody(html) {
     if (node.querySelector("img")) node.remove();
   });
   return doc.body.innerHTML.trim();
+}
+
+function tidyRole(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/[\s/|]+$/g, "")
+    .trim();
+}
+
+function tidyHandles(value) {
+  return String(value || "")
+    .replace(/(@[A-Za-z0-9._]+)(?=@)/g, "$1 ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseCreditLine(line) {
+  const text = String(line || "").replace(/\s+/g, " ").trim();
+  if (!text || text.length > 160) return null;
+  if (/https?:/i.test(text)) return null;
+  if (/[.?!]/.test(text.slice(0, -1)) && !text.includes("@")) return null;
+
+  const ig = text.match(/^(?:IG|Instagram)\s*[:：]\s*(.+)$/i);
+  if (ig && ig[1].trim().length < 80) return { role: "IG", names: ig[1].trim(), attach: true };
+
+  const at = text.match(/^([^@]{2,48}?)\s+((?:@\S+\s*)+)$/);
+  if (at && !/[.?!]/.test(at[1])) {
+    return { role: tidyRole(at[1]), names: tidyHandles(at[2]) };
+  }
+
+  const colon = text.match(/^([^:：]{2,42})\s*[:：]\s*(\S.{0,80})$/);
+  if (colon && !/[.?!]$/.test(colon[1]) && tidyRole(colon[1]).split(/\s+/).length <= 6) {
+    return { role: tidyRole(colon[1]), names: tidyHandles(colon[2]) };
+  }
+  return null;
+}
+
+function storyLines(root) {
+  const lines = [];
+  const walk = (node) => {
+    if (node.nodeType === 3) {
+      for (const line of node.textContent.split(/\n/)) {
+        const trimmed = line.trim();
+        if (trimmed) lines.push(trimmed);
+      }
+      return;
+    }
+    if (node.nodeType !== 1 || node.tagName === "BR") return;
+    for (const child of node.childNodes) walk(child);
+  };
+  walk(root);
+  return lines;
+}
+
+function formatStoryCopy(html) {
+  const source = String(html || "");
+  if (!source.trim()) return "";
+  const doc = new DOMParser().parseFromString(source, "text/html");
+  doc.querySelectorAll("script, style, iframe, object, embed").forEach((node) => node.remove());
+  const lines = storyLines(doc.body);
+  if (!lines.some((line) => parseCreditLine(line))) return doc.body.innerHTML.trim();
+
+  const parts = [];
+  let credits = [];
+  const flush = () => {
+    if (!credits.length) return;
+    const rows = credits
+      .map(
+        (row) =>
+          `<div class="post-credits__row"><dt>${escapeHtml(row.role)}</dt><dd>${escapeHtml(row.names)}</dd></div>`
+      )
+      .join("");
+    parts.push(`<dl class="post-credits">${rows}</dl>`);
+    credits = [];
+  };
+  for (const line of lines) {
+    const credit = parseCreditLine(line);
+    if (credit) {
+      if (credit.attach && credits.length) {
+        credits[credits.length - 1].names = `${credits[credits.length - 1].names} · ${credit.names}`;
+        continue;
+      }
+      credits.push({ role: credit.role, names: credit.names });
+      continue;
+    }
+    flush();
+    parts.push(`<p>${escapeHtml(line)}</p>`);
+  }
+  flush();
+  return parts.join("");
 }
 
 function buildPostGallery(images, title, lang) {
@@ -645,4 +736,5 @@ function formatTime(iso) {
 
 if (typeof window !== "undefined") {
   window.NaMeRelated = { selectRelatedPosts };
+  window.NaMeStoryCopy = { formatStoryCopy };
 }
