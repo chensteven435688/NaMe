@@ -98,7 +98,7 @@ Register with one of those emails (or log in again after adding your email) to g
 |------|---------|
 | `/` | Homepage |
 | `/stories.html` | All stories |
-| `/magazine.html` · `/editorial.html` · `/articles.html` · `/film.html` | Section indexes |
+| `/magazine.html` · `/editorial.html` · `/articles.html` · `/film.html` · `/artists.html` | Section indexes. Artists uses post type `artists` and the same meta folders as the other story indexes. |
 | `/exclusive.html` | Editor's Exclusive |
 | `/about.html` · `/business.html` · `/contact.html` | About, partnerships, contact |
 | `/submission.html` | Creator submissions |

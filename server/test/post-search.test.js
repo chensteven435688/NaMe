@@ -178,6 +178,21 @@ test("search treats % and _ as literals and ignores injection", async () => {
   assert.equal(stillThere.total, 1);
 });
 
+test("artists is a stored story type", async () => {
+  wipe();
+  insertPost({
+    slug: `${PREFIX}artist`,
+    type: "artists",
+    title: "Zzsearch artist page",
+    meta: "Painting",
+    body: "<p>studio</p>",
+  });
+  const data = await getPosts("type=artists&q=zzsearch%20artist");
+  assert.equal(data.posts.length, 1);
+  assert.equal(data.posts[0].type, "artists");
+  assert.equal(data.posts[0].slug, `${PREFIX}artist`);
+});
+
 test("paging clamps the page size and empty type lists match nothing", async () => {
   const huge = await getPosts("q=zzsearch-does-not-exist&limit=500&offset=-4");
   assert.equal(huge.limit, 50);

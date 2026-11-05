@@ -1,7 +1,7 @@
 export const DEFAULT_SEARCH_LIMIT = 12;
 export const MAX_SEARCH_LIMIT = 50;
 
-const POST_TYPES = new Set(["article", "editorial", "film", "short", "exclusive"]);
+const POST_TYPES = new Set(["article", "editorial", "film", "short", "exclusive", "artists"]);
 
 export function firstQuery(value) {
   if (Array.isArray(value)) return value[0] ?? "";

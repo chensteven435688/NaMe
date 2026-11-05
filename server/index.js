@@ -339,7 +339,7 @@ app.post("/api/posts", requireAdmin, upload.single("image"), (req, res) => {
   if (!type || !title) {
     return res.status(400).json({ error: "Type and title required" });
   }
-  const allowed = ["article", "editorial", "film", "short", "exclusive"];
+  const allowed = ["article", "editorial", "film", "short", "exclusive", "artists"];
   if (!allowed.includes(type)) {
     return res.status(400).json({ error: "Invalid type" });
   }

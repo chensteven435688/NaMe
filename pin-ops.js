@@ -10,6 +10,7 @@ const NaMePinOps = (function () {
     editorial: "editorial",
     film: "film",
     short: "shorts",
+    artists: "artists",
   };
   const MODE_KEYS = {
     latest: "pinOpsLatest",

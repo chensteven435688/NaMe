@@ -29,7 +29,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS posts (
     id TEXT PRIMARY KEY,
     slug TEXT UNIQUE NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('article', 'editorial', 'film', 'short', 'exclusive')),
+    type TEXT NOT NULL CHECK (type IN ('article', 'editorial', 'film', 'short', 'exclusive', 'artists')),
     title TEXT NOT NULL,
     meta TEXT,
     image_url TEXT,
@@ -135,7 +135,7 @@ function migratePostsForExclusive() {
     CREATE TABLE posts_new (
       id TEXT PRIMARY KEY,
       slug TEXT UNIQUE NOT NULL,
-      type TEXT NOT NULL CHECK (type IN ('article', 'editorial', 'film', 'short', 'exclusive')),
+      type TEXT NOT NULL CHECK (type IN ('article', 'editorial', 'film', 'short', 'exclusive', 'artists')),
       title TEXT NOT NULL,
       meta TEXT,
       image_url TEXT,
@@ -168,6 +168,49 @@ function migratePostsContentDate() {
 }
 
 migratePostsContentDate();
+
+function migratePostsForArtists() {
+  const info = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'posts'")
+    .get();
+  if (!info?.sql || info.sql.includes("'artists'")) return;
+
+  const names = new Set(db.prepare("PRAGMA table_info(posts)").all().map((col) => col.name));
+  const contentDate = names.has("content_date");
+  db.exec(`
+    PRAGMA foreign_keys = OFF;
+    BEGIN;
+    CREATE TABLE posts_new (
+      id TEXT PRIMARY KEY,
+      slug TEXT UNIQUE NOT NULL,
+      type TEXT NOT NULL CHECK (type IN ('article', 'editorial', 'film', 'short', 'exclusive', 'artists')),
+      title TEXT NOT NULL,
+      meta TEXT,
+      image_url TEXT,
+      body TEXT,
+      video_url TEXT,
+      section TEXT CHECK (section IN ('latest', 'popular') OR section IS NULL),
+      featured INTEGER NOT NULL DEFAULT 0,
+      author_id TEXT,
+      published_at TEXT NOT NULL,
+      created_at TEXT NOT NULL${contentDate ? ",\n      content_date TEXT" : ""},
+      FOREIGN KEY (author_id) REFERENCES users(id)
+    );
+    INSERT INTO posts_new (
+      id, slug, type, title, meta, image_url, body, video_url, section, featured, author_id, published_at, created_at${contentDate ? ", content_date" : ""}
+    )
+    SELECT id, slug, type, title, meta, image_url, body, video_url, section, featured, author_id, published_at, created_at${contentDate ? ", content_date" : ""}
+    FROM posts;
+    DROP TABLE posts;
+    ALTER TABLE posts_new RENAME TO posts;
+    CREATE INDEX IF NOT EXISTS idx_posts_type ON posts(type);
+    CREATE INDEX IF NOT EXISTS idx_posts_section ON posts(section);
+    COMMIT;
+    PRAGMA foreign_keys = ON;
+  `);
+}
+
+migratePostsForArtists();
 
 function migrateUsersProfile() {
   const cols = db.prepare("PRAGMA table_info(users)").all();

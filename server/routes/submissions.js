@@ -261,7 +261,7 @@ export function registerSubmissionRoutes(app, { submissionUpload, uniqueSlug }) 
     }
 
     const { type, section, meta } = req.body;
-    const allowedTypes = ["article", "editorial", "film", "short"];
+    const allowedTypes = ["article", "editorial", "film", "short", "artists"];
     const postType = allowedTypes.includes(type) ? type : "article";
 
     const isVideo = row.file_mime?.startsWith("video/");

@@ -1,7 +1,8 @@
 /**
  * NaMe — Magazine / Editorial / Articles browse pages
  */
-const STORY_TYPES = new Set(["article", "editorial", "film", "short"]);
+const STORY_TYPES = new Set(["article", "editorial", "film", "short", "artists"]);
+const STORY_TYPE_LIST = ["article", "editorial", "film", "short", "artists"];
 
 async function loadBrowseFeed() {
   const grid = document.getElementById("browse-grid");
@@ -51,6 +52,14 @@ async function loadSectionFolders(grid) {
       type === "exclusive" ? NaMeAuth.fetchExclusiveMetas().catch(() => []) : Promise.resolve([]),
     ]);
     if (!posts.length && !declared.length && !query.get("meta")) {
+      if (document.body.dataset.browseKeepEmpty === "true") {
+        NaMePinOps.detach(grid);
+        grid.classList.remove("browse-grid--folders");
+        const emptyKey = document.body.dataset.browseEmpty || "storiesEmpty";
+        grid.innerHTML = `<p class="browse-grid__empty">${escapeHtml(NaMeI18n.t(lang, emptyKey))}</p>`;
+        folderViewReady = true;
+        return;
+      }
       const home = typeof NaMeBase !== "undefined" ? NaMeBase.path("/") : "/";
       window.location.replace(home);
       return;
@@ -176,7 +185,7 @@ async function fetchSearchPage(q, offset, limit) {
     q,
     limit,
     offset,
-    types: ["article", "editorial", "film", "short"],
+    types: STORY_TYPE_LIST,
   });
   const posts = Array.isArray(page?.posts) ? page.posts : [];
   const total = Number.isFinite(Number(page?.total)) ? Number(page.total) : posts.length;

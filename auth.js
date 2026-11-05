@@ -768,6 +768,7 @@ const NaMeAuth = (function () {
       magazine: editorialSections.has("popular"),
       film: types.has("film"),
       short: types.has("short"),
+      artists: types.has("artists"),
     };
   }
 
@@ -1148,7 +1149,7 @@ const NaMeAuth = (function () {
         throw new Error("Already published");
       }
 
-      const allowedTypes = ["article", "editorial", "film", "short"];
+      const allowedTypes = ["article", "editorial", "film", "short", "artists"];
       const postType = allowedTypes.includes(type) ? type : "article";
       const isVideo = row.file_mime?.startsWith("video/");
       const isImage = row.file_mime?.startsWith("image/");
@@ -1228,7 +1229,7 @@ const NaMeAuth = (function () {
     return request(`/api/admin/submissions/${id}`, { method: "DELETE" });
   }
 
-  const POST_TYPES = ["article", "editorial", "film", "short", "exclusive"];
+  const POST_TYPES = ["article", "editorial", "film", "short", "exclusive", "artists"];
   const POST_SECTIONS = new Set(["latest", "popular"]);
 
   function normalizePostSection(type, section) {

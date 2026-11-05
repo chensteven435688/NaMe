@@ -39,6 +39,7 @@ function renderPost(post) {
   const lang = NaMeI18n.getLang();
   const isExclusive = post.type === "exclusive";
   const isFilm = post.type === "film";
+  const isArtists = post.type === "artists";
   const typeLabel = isExclusive
     ? NaMeI18n.t(lang, "exclusiveBadge")
     : post.type + (isFilm ? " · Film" : "");
@@ -47,17 +48,21 @@ function renderPost(post) {
     ? collection
       ? `/exclusive.html?meta=${encodeURIComponent(collection)}`
       : "/exclusive.html"
-    : isFilm
-      ? "/film.html"
-      : "/";
+    : isArtists
+      ? "/artists.html"
+      : isFilm
+        ? "/film.html"
+        : "/";
   const backHref =
     typeof NaMeBase !== "undefined" ? NaMeBase.path(backPath) : backPath;
   // "backHome" already ships with its own arrow; the section labels do not.
   const backLabel = isExclusive
     ? `← ${collection || NaMeI18n.t(lang, "editorsExclusive")}`
-    : isFilm
-      ? `← ${NaMeI18n.t(lang, "film")}`
-      : NaMeI18n.t(lang, "backHome");
+    : isArtists
+      ? `← ${NaMeI18n.t(lang, "artists")}`
+      : isFilm
+        ? `← ${NaMeI18n.t(lang, "film")}`
+        : NaMeI18n.t(lang, "backHome");
   const backEl = document.querySelector(".post-page__back");
   if (backEl) {
     backEl.href = backHref;

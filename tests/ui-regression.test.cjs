@@ -76,7 +76,7 @@ test('archive query uses server search, then pages the catalog when cleared', as
   assert.equal(calls[0].q, 'Light');
   assert.equal(calls[0].limit, 12);
   assert.equal(calls[0].offset, 0);
-  assert.equal(Array.from(calls[0].types).join(','), 'article,editorial,film,short');
+  assert.equal(Array.from(calls[0].types).join(','), 'article,editorial,film,short,artists');
   assert.equal(w.document.querySelector('.archive-search__count').textContent, '1 / 1');
   calls.length = 0;
   w.document.querySelector('#archive-search').reset(); await tick();
@@ -178,6 +178,59 @@ test('archive search shows an error instead of the capped catalog when search fa
   assert.equal(w.document.querySelectorAll('.pin-tile').length, 0);
   assert.match(w.document.querySelector('#browse-grid').textContent, /unavailable/i);
   dom.window.dispatchEvent(new dom.window.Event("pagehide"));
+  dom.window.close();
+});
+
+test('artists page is linked from Stories and lists artist folders', async () => {
+  for (const name of ['stories.html', 'index.html', 'film.html']) {
+    const dom = new JSDOM(source(name));
+    const menu = dom.window.document.querySelector('[data-nav-dropdown="stories"]');
+    assert.ok(menu.querySelector('a[href="artists.html"]'), `${name} stories menu`);
+    dom.window.close();
+  }
+  const stories = new JSDOM(source('stories.html'));
+  assert.ok(stories.window.document.querySelector('.stories-categories a[href="artists.html"]'));
+  stories.window.close();
+  const home = new JSDOM(source('index.html'));
+  assert.ok(home.window.document.querySelector('#artists a[href="artists.html"]'));
+  assert.ok(home.window.document.querySelector('#atelier-filter option[value="artists"]'));
+  assert.ok(home.window.document.querySelector('.mobile-bar a[href="artists.html"]'));
+  home.window.close();
+
+  const dom = await page('artists.html'); const w = dom.window;
+  w.NaMeAuth = {
+    isLoggedIn: () => false,
+    fetchPosts: async (query) => {
+      assert.equal(query.type, 'artists');
+      return [{ id: '1', slug: 'ada', title: 'Ada studio', type: 'artists', meta: 'Painting', imageUrl: '/images/hero/hero-1.png', publishedAt: '2026-01-01T00:00:00.000Z' }];
+    },
+    exclusiveCollectionName: (meta) => String(meta || '').trim(),
+  };
+  evaluate(w, 'exclusive-folders.js');
+  evaluate(w, 'pin-ops.js', 'NaMePinOps');
+  evaluate(w, 'browse.js');
+  await w.loadBrowseFeed();
+  assert.equal(w.document.querySelectorAll('.meta-folder').length, 1);
+  assert.equal(w.document.querySelector('.meta-folder__name').textContent, 'Painting');
+  assert.match(w.document.querySelector('.meta-folder').getAttribute('href'), /artists\.html\?meta=Painting/);
+  dom.window.close();
+});
+
+test('empty artists index stays on the page', async () => {
+  const dom = await page('artists.html'); const w = dom.window;
+  let replaced = false;
+  w.location.replace = () => { replaced = true; };
+  w.NaMeAuth = {
+    isLoggedIn: () => false,
+    fetchPosts: async () => [],
+    exclusiveCollectionName: (meta) => String(meta || '').trim(),
+  };
+  evaluate(w, 'exclusive-folders.js');
+  evaluate(w, 'pin-ops.js', 'NaMePinOps');
+  evaluate(w, 'browse.js');
+  await w.loadBrowseFeed();
+  assert.equal(replaced, false);
+  assert.match(w.document.querySelector('#browse-grid').textContent, /No artist stories yet/);
   dom.window.close();
 });
 
