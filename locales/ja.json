@@ -464,5 +464,6 @@
   "backToTop": "トップへ戻る",
   "readingFocus": "集中モード",
   "readingTime": "分で読めます",
-  "unsavedChanges": "保存されていない変更があります。このページを離れますか？"
+  "unsavedChanges": "保存されていない変更があります。このページを離れますか？",
+  "archiveSearchError": "ただいま検索を利用できません。"
 }

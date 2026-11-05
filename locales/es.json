@@ -464,5 +464,6 @@
   "backToTop": "Volver arriba",
   "readingFocus": "Modo concentración",
   "readingTime": "min de lectura",
-  "unsavedChanges": "Tienes cambios sin guardar. ¿Quieres salir de esta página?"
+  "unsavedChanges": "Tienes cambios sin guardar. ¿Quieres salir de esta página?",
+  "archiveSearchError": "La búsqueda no está disponible en este momento."
 }

@@ -21,7 +21,7 @@ An independent art and culture magazine: a typographic editorial cover, an image
 
 - A large NaMe cover masthead, paper palette, precise rules, and restrained red accents.
 - Public homepage and story content render independently of account verification; homepage feeds load concurrently.
-- Archive search matches titles, metadata, and types. The query stays in the URL for sharing; Latest, Mixed, and Saved still work with the results.
+- Archive search queries the server for titles, metadata, content types, and story text, twelve matches at a time. The query stays in the URL for sharing; Latest, Mixed, and Saved still work with the results.
 - Explicit **Load more** replaces automatic endless loading, keeping navigation and the footer reachable.
 - Story pages include estimated reading time, a reading progress line, and a reversible **Focus mode** that hides related stories and comments.
 - Native scrolling, reduced-motion support, measured header offsets, and a back-to-top control. No scroll interception or animation library.
@@ -123,7 +123,8 @@ Register with one of those emails (or log in again after adding your email) to g
 ## API (summary)
 
 - `POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me` · `PATCH /api/auth/profile`
-- `GET /api/posts` · `GET /api/posts/:slug` · `POST /api/posts` (admin) · `PATCH /api/admin/posts/:id` (admin) · `DELETE /api/posts/:id` (admin)
+- `GET /api/posts` — optional `type`, `section`, `featured=1`, `q` (title, meta, type, and body), `types` (comma-separated), `limit` (default 12, max 50), and `offset`. A text query or page params return `{ posts, total, limit, offset }`. Without them, `{ posts }` is the full list, newest first.
+- `GET /api/posts/:slug` · `POST /api/posts` (admin) · `PATCH /api/admin/posts/:id` (admin) · `DELETE /api/posts/:id` (admin)
 - `GET /api/posts/:slug/comments` · `POST /api/posts/:slug/comments` · `POST /api/comments/:id/like` · `DELETE /api/comments/:id`
 - `GET /api/admin/stats` · `GET /api/admin/users` · `PATCH /api/admin/users/:id` · `DELETE /api/admin/users/:id`
 - `GET /api/admin/comments` · `DELETE /api/admin/comments/:id`

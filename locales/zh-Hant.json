@@ -464,5 +464,6 @@
   "backToTop": "返回頂部",
   "readingFocus": "專注閱讀",
   "readingTime": "分鐘閱讀",
-  "unsavedChanges": "你有尚未儲存的變更。確定離開此頁面嗎？"
+  "unsavedChanges": "你有尚未儲存的變更。確定離開此頁面嗎？",
+  "archiveSearchError": "搜尋暫時無法使用。"
 }

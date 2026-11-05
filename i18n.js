@@ -472,7 +472,8 @@ const NaMeI18n = (function () {
       "backToTop": "Back to top",
       "readingFocus": "Focus mode",
       "readingTime": "min read",
-      "unsavedChanges": "You have unsaved changes. Leave this page?"
+      "unsavedChanges": "You have unsaved changes. Leave this page?",
+      "archiveSearchError": "Search is unavailable right now."
     },
     "ko": {
       "pageTitle": "NaMe Magazine — Before the Name",
@@ -940,7 +941,8 @@ const NaMeI18n = (function () {
       "backToTop": "맨 위로",
       "readingFocus": "집중 모드",
       "readingTime": "분 읽기",
-      "unsavedChanges": "저장하지 않은 변경 사항이 있습니다. 이 페이지를 떠나시겠습니까?"
+      "unsavedChanges": "저장하지 않은 변경 사항이 있습니다. 이 페이지를 떠나시겠습니까?",
+      "archiveSearchError": "지금은 검색을 사용할 수 없습니다."
     },
     "it": {
       "pageTitle": "NaMe Magazine — Moda, Editoriale & Film",
@@ -1408,7 +1410,8 @@ const NaMeI18n = (function () {
       "backToTop": "Torna in alto",
       "readingFocus": "Modalità lettura",
       "readingTime": "min di lettura",
-      "unsavedChanges": "Hai modifiche non salvate. Vuoi lasciare questa pagina?"
+      "unsavedChanges": "Hai modifiche non salvate. Vuoi lasciare questa pagina?",
+      "archiveSearchError": "La ricerca non è disponibile in questo momento."
     },
     "fr": {
       "pageTitle": "NaMe Magazine — Mode, Éditorial & Film",
@@ -1876,7 +1879,8 @@ const NaMeI18n = (function () {
       "backToTop": "Retour en haut",
       "readingFocus": "Mode concentration",
       "readingTime": "min de lecture",
-      "unsavedChanges": "Vous avez des modifications non enregistrées. Quitter cette page ?"
+      "unsavedChanges": "Vous avez des modifications non enregistrées. Quitter cette page ?",
+      "archiveSearchError": "La recherche est indisponible pour le moment."
     },
     "es": {
       "pageTitle": "NaMe Magazine — Moda, Editorial y Cine",
@@ -2344,7 +2348,8 @@ const NaMeI18n = (function () {
       "backToTop": "Volver arriba",
       "readingFocus": "Modo concentración",
       "readingTime": "min de lectura",
-      "unsavedChanges": "Tienes cambios sin guardar. ¿Quieres salir de esta página?"
+      "unsavedChanges": "Tienes cambios sin guardar. ¿Quieres salir de esta página?",
+      "archiveSearchError": "La búsqueda no está disponible en este momento."
     },
     "ja": {
       "pageTitle": "NaMe Magazine — Before the Name",
@@ -2812,7 +2817,8 @@ const NaMeI18n = (function () {
       "backToTop": "トップへ戻る",
       "readingFocus": "集中モード",
       "readingTime": "分で読めます",
-      "unsavedChanges": "保存されていない変更があります。このページを離れますか？"
+      "unsavedChanges": "保存されていない変更があります。このページを離れますか？",
+      "archiveSearchError": "ただいま検索を利用できません。"
     },
     "zh-Hans": {
       "pageTitle": "NaMe Magazine — Before the Name",
@@ -3280,7 +3286,8 @@ const NaMeI18n = (function () {
       "backToTop": "返回顶部",
       "readingFocus": "专注阅读",
       "readingTime": "分钟阅读",
-      "unsavedChanges": "你有尚未保存的更改。确定离开此页面吗？"
+      "unsavedChanges": "你有尚未保存的更改。确定离开此页面吗？",
+      "archiveSearchError": "搜索暂时不可用。"
     },
     "zh-Hant": {
       "pageTitle": "NaMe Magazine — Before the Name",
@@ -3748,7 +3755,8 @@ const NaMeI18n = (function () {
       "backToTop": "返回頂部",
       "readingFocus": "專注閱讀",
       "readingTime": "分鐘閱讀",
-      "unsavedChanges": "你有尚未儲存的變更。確定離開此頁面嗎？"
+      "unsavedChanges": "你有尚未儲存的變更。確定離開此頁面嗎？",
+      "archiveSearchError": "搜尋暫時無法使用。"
     }
   };
 

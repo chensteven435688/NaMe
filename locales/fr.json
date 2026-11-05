@@ -464,5 +464,6 @@
   "backToTop": "Retour en haut",
   "readingFocus": "Mode concentration",
   "readingTime": "min de lecture",
-  "unsavedChanges": "Vous avez des modifications non enregistrées. Quitter cette page ?"
+  "unsavedChanges": "Vous avez des modifications non enregistrées. Quitter cette page ?",
+  "archiveSearchError": "La recherche est indisponible pour le moment."
 }
