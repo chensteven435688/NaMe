@@ -11,6 +11,24 @@ function applyLoadedPostMeta(post) {
 
 let relatedForPost = null;
 
+function plateTransitionName(slug) {
+  const safe = String(slug || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 48);
+  return safe ? `plate-${safe}` : "";
+}
+
+function motionReduced() {
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function settlePlate() {
+  const pending = window.__namePlate;
+  if (!pending || typeof pending.then !== "function") return Promise.resolve();
+  return Promise.race([
+    pending.catch(() => {}),
+    new Promise((resolve) => setTimeout(resolve, 800)),
+  ]);
+}
+
 document.addEventListener("name:languagechange", () => {
   if (loadedPost) applyLoadedPostMeta(loadedPost);
   if (relatedForPost?.length) renderRelated(relatedForPost);
@@ -30,6 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     const post = await NaMeAuth.fetchPost(slug);
+    await settlePlate();
     renderPost(post);
     loadRelated(post);
   } catch {
@@ -124,6 +143,12 @@ function renderPost(post) {
 
   const gallery = root.querySelector(".post-gallery");
   if (gallery) initPostGallery(gallery);
+  const plate = root.querySelector(".post__hero-img, .post-gallery__slide img");
+  const reduced = motionReduced();
+  if (plate && !reduced) {
+    const name = plateTransitionName(post.slug);
+    if (name) plate.style.viewTransitionName = name;
+  }
   if (permalink) NaMeInstagram.mountEmbed(document);
 
   applyLoadedPostMeta(post);
