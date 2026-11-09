@@ -1,5 +1,63 @@
 /** Shared progressive enhancements. No scroll hijacking or animation framework. */
 (() => {
+  const PLATE_KEY = "name.plate";
+  const plateReduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function plateSlug(href) {
+    try {
+      const url = new URL(href, location.href);
+      if (!/(^|\/)post\.html$/.test(url.pathname) && !/\/post$/.test(url.pathname)) return "";
+      return url.searchParams.get("slug") || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function plateName(slug) {
+    const safe = String(slug).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 48);
+    return safe ? `plate-${safe}` : "";
+  }
+
+  function clearPlateNames() {
+    document.querySelectorAll("[data-plate-name]").forEach((img) => {
+      img.style.viewTransitionName = "";
+      img.removeAttribute("data-plate-name");
+    });
+  }
+
+  document.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!link) return;
+    const slug = plateSlug(link.getAttribute("href"));
+    if (!slug) return;
+    clearPlateNames();
+    const img = link.querySelector("img");
+    if (!img || plateReduced()) {
+      try { sessionStorage.removeItem(PLATE_KEY); } catch { /* private mode */ }
+      return;
+    }
+    const name = plateName(slug);
+    const src = img.currentSrc || img.getAttribute("src") || "";
+    if (!name || !src) return;
+    img.style.viewTransitionName = name;
+    img.setAttribute("data-plate-name", name);
+    try {
+      sessionStorage.setItem(PLATE_KEY, JSON.stringify({
+        slug,
+        name,
+        src,
+        alt: img.getAttribute("alt") || "",
+      }));
+    } catch { /* private mode */ }
+  }, true);
+
+  window.addEventListener("pageswap", (event) => {
+    if (event.viewTransition && plateReduced() && typeof event.viewTransition.skipTransition === "function") {
+      event.viewTransition.skipTransition();
+    }
+  });
+
   const t = (key) => typeof NaMeI18n === 'undefined' ? key : NaMeI18n.t(NaMeI18n.getLang(), key);
   const focusables = (root) => [...root.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')]
     .filter((el) => !el.disabled && !el.closest('[inert]') && el.getClientRects().length);

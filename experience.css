@@ -13,8 +13,6 @@ body { text-rendering: optimizeLegibility; }
 .btn { border-radius: 3px; }
 .text-link { min-height: 44px; display: inline-flex; align-items: center; text-decoration: underline; text-underline-offset: .3em; font-size: .875rem; }
 :where(.card, .meta-folder-card, .atelier-piece) { min-width: 0; }
-:where(.card, .atelier-piece) img { transition: transform 450ms var(--ease); }
-:where(.card, .atelier-piece):hover img { transform: scale(1.025); }
 .browse-hero { border-bottom: 1px solid var(--border); }
 .browse-hero__title { letter-spacing: -.035em; font-size: clamp(2.7rem, 6vw, 6rem); }
 .archive-search { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem 1rem; margin-bottom: 1.5rem; }
@@ -38,7 +36,7 @@ body { text-rendering: optimizeLegibility; }
 .reading-focus .post__media { position: static; max-height: none; }
 .reading-focus .post__body { max-width: 76ch; margin-inline: auto; padding-inline: clamp(1rem, 4vw, 3rem); }
 .reading-focus :is(#post-related, #comments) { display: none; }
-.back-to-top { position: fixed; right: 1.25rem; bottom: calc(1.25rem + env(safe-area-inset-bottom)); z-index: 90; width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--control-border); background: var(--bg-elevated); color: var(--text); font-size: 1.25rem; box-shadow: 0 4px 20px #24251f12; }
+.back-to-top { position: fixed; right: 1.25rem; bottom: calc(1.25rem + env(safe-area-inset-bottom)); z-index: 90; width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--control-border); background: var(--bg-elevated); color: var(--text); font-size: 1.25rem; box-shadow: 0 8px 24px rgb(90 74 52 / 10%); }
 .admin-quick-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.5rem; }
 .admin-results { font-family: var(--mono); font-size: .8125rem; margin-bottom: .75rem; color: var(--text-muted); }
 .admin-topbar { position: relative; }
@@ -54,7 +52,9 @@ body { text-rendering: optimizeLegibility; }
 .admin-sidebar-close { display: none; }
 @media (max-width: 900px) { .admin-sidebar-close { display: block; align-self: end; min-height: 44px; padding: .6rem; color: #fff; border: 1px solid #777; } }
 @media (max-width: 767px) { body:has(.mobile-bar) .back-to-top { bottom: calc(6.5rem + env(safe-area-inset-bottom)); } .admin-table__row { flex-wrap: wrap; } }
-@media (prefers-reduced-motion: reduce) { :where(.card, .atelier-piece):hover img { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  body:not(.page-admin) :is(.card, .atelier-piece, .pin-tile, .pin-card):active img { transform: none; }
+}
 @media print { .header, .mobile-bar, .back-to-top, .reading-progress, .reading-tools, .post__toolbar, #post-related, #comments { display: none !important; } .post-page { padding-top: 0; } .post { display: block; } }
 
 /* Community images can be opened with a keyboard, independently of like/save. */
@@ -65,3 +65,227 @@ body { text-rendering: optimizeLegibility; }
 .pin-save, .pin-like { min-height: 44px; }
 .admin-quick-actions .btn, .archive-search .btn { margin-top: 0; }
 @media (hover: none) { .pin-card__overlay { opacity: 1; } }
+
+/* Public pages: one quiet chrome, the photograph does the talking.
+   Photographs are square plates. A frame with a radius has no padding,
+   so the clipped image's inner radius equals the outer radius.
+   The one motion is a plate setting down on press. The shared-element
+   open lives in the view transition below. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  ::view-transition-group(*) {
+    animation-duration: 420ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 220ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+body:not(.page-admin) :is(.card, .atelier-piece, .pin-tile, .pin-card):hover img {
+  transform: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  body:not(.page-admin) :is(.card, .atelier-piece, .pin-tile, .pin-card) img {
+    transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  body:not(.page-admin) :is(.card, .atelier-piece, .pin-tile, .pin-card):active img {
+    transform: translateY(2px) scale(0.985);
+  }
+}
+
+body:not(.page-admin) :is(
+  .section__label,
+  .section__view-all,
+  .browse-hero__label,
+  .browse-hero__back,
+  .subscribe-hero__label,
+  .subscribe-hero__back,
+  .submission-hero__label,
+  .submission-hero__back,
+  .post-page__back,
+  .post__meta,
+  .post__type,
+  .post__dates,
+  .post-gallery__counter,
+  .mobile-bar,
+  .footer__links,
+  .footer__social,
+  .pin-ops-bar__btn,
+  .pin-save,
+  .pin-like,
+  .community-banner__link,
+  .auth-field > span,
+  .auth-tabs__btn,
+  .auth-resend__btn,
+  .auth-form__note,
+  .lang-select select,
+  .card__meta,
+  .card__type,
+  .subscribe-signup__title,
+  .subscribe-perk__n,
+  .stories-categories__link
+) {
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+}
+
+body:not(.page-admin) .mobile-bar {
+  font-size: 12px;
+  line-height: 16px;
+}
+body:not(.page-admin) .btn {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+body:not(.page-admin) .btn--primary {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+body:not(.page-admin) .btn--primary:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body:not(.page-admin) .modal .btn--ghost,
+.page-submission .submission-gate .btn--ghost {
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  font-weight: 400;
+  padding-inline: 8px;
+}
+
+.page-browse .browse-hero,
+.page-subscribe .subscribe-hero,
+.page-submission .submission-hero,
+.page-submission .submission-gate,
+.page-subscribe .subscribe-signup {
+  text-align: left;
+}
+.page-browse .browse-hero,
+.page-submission .submission-hero {
+  padding: 48px 4vw 32px;
+  background: var(--bg);
+}
+.page-browse .browse-hero__title,
+.page-submission .submission-hero__title,
+.page-subscribe .subscribe-hero__title {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin-left: 0;
+  max-width: 18ch;
+}
+.page-browse .browse-hero__text,
+.page-submission .submission-hero__text,
+.page-subscribe .subscribe-hero__text {
+  margin-left: 0;
+  max-width: 42rem;
+}
+
+.page-subscribe .subscribe-hero {
+  background: var(--bg);
+  color: var(--text);
+  padding: 48px 4vw 24px;
+}
+.page-subscribe .subscribe-hero__back,
+.page-subscribe .subscribe-hero__label,
+.page-subscribe .subscribe-hero__text {
+  color: #3a3832;
+}
+.page-subscribe .subscribe-perks {
+  display: block;
+  max-width: 40rem;
+  margin: 0 4vw;
+  border: 0;
+}
+.page-subscribe .subscribe-perk {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  padding: 16px 0;
+}
+.page-subscribe .subscribe-signup {
+  padding: 32px 4vw 64px;
+}
+.page-subscribe .subscribe-signup__inner {
+  margin: 0;
+  max-width: 36rem;
+}
+.page-subscribe .subscribe-signup__title {
+  font-family: var(--sans);
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+.page-subscribe .subscribe-form {
+  justify-content: flex-start;
+  gap: 12px;
+}
+.page-submission .submission-gate,
+.page-submission .submission-app {
+  margin-left: 4vw;
+  margin-right: 4vw;
+}
+
+.page-account .header--minimal {
+  position: relative;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.page-account .header--minimal .brand-mark,
+.page-account .auth-page__back {
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+.page-account .auth-page__back:hover { color: var(--text); }
+.page-account .auth-page {
+  display: block;
+  min-height: auto;
+}
+.page-account .auth-page__panel {
+  display: block;
+  padding: 48px 24px 80px;
+}
+.page-account .auth-page__panel-inner {
+  width: min(100%, 28rem);
+  margin: 0 auto;
+}
+.page-account .auth-page__title {
+  font-weight: 400;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+}
+.page-account .auth-page__subtitle {
+  margin: 12px 0 32px;
+  max-width: 36ch;
+}
+.page-account .auth-tabs--luxury .auth-tabs__btn {
+  letter-spacing: 0.01em;
+  font-size: 16px;
+  font-weight: 400;
+}
+.page-account .auth-tabs--luxury .auth-tabs__btn.is-active {
+  font-weight: 500;
+}
+.page-account .btn--luxury {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 20px;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.page-post .post__hero-img {
+  background: var(--bg);
+}
+.page-post .post__title { font-weight: 400; }
+
+body:not(.page-admin) .card:hover { opacity: 1; }

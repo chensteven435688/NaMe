@@ -82,7 +82,44 @@
 
   <main class="post-page">
     <a href="./" class="post-page__back" data-i18n="backHome">← Back to NaMe</a>
-    <div id="post-root"></div>
+    <div id="post-root">
+      <article class="post post--opening">
+        <div class="post__media">
+          <img class="post__hero-img" id="post-hero-img" alt="" hidden />
+        </div>
+      </article>
+    </div>
+    <script>
+      (function () {
+        function reduced() {
+          return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        }
+        window.addEventListener("pagereveal", function (event) {
+          if (!event.viewTransition) return;
+          if (reduced() && typeof event.viewTransition.skipTransition === "function") {
+            event.viewTransition.skipTransition();
+            return;
+          }
+          window.__namePlate = event.viewTransition.finished.catch(function () {});
+        });
+        var img = document.getElementById("post-hero-img");
+        if (!img || reduced()) return;
+        var slug = "";
+        try { slug = new URLSearchParams(location.search).get("slug") || ""; } catch (e) { return; }
+        var raw = "";
+        try { raw = sessionStorage.getItem("name.plate") || ""; } catch (e) { return; }
+        if (!raw || !slug) return;
+        var data;
+        try { data = JSON.parse(raw); } catch (e) { return; }
+        if (!data || data.slug !== slug || !data.src || !data.name) return;
+        img.src = data.src;
+        img.alt = data.alt || "";
+        img.hidden = false;
+        img.decoding = "sync";
+        img.style.viewTransitionName = data.name;
+        try { sessionStorage.removeItem("name.plate"); } catch (e) {}
+      })();
+    </script>
 
     <section class="post-related" id="post-related" hidden aria-labelledby="post-related-title">
       <h2 class="post-related__title" id="post-related-title" data-i18n="relatedReading">Related Reading</h2>
