@@ -489,5 +489,6 @@
   "readingFocus": "Focus mode",
   "readingTime": "min read",
   "unsavedChanges": "You have unsaved changes. Leave this page?",
-  "archiveSearchError": "Search is unavailable right now."
+  "archiveSearchError": "Search is unavailable right now.",
+  "introTagline": "Before the Name"
 }

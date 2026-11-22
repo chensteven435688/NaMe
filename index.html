@@ -18,6 +18,24 @@
   <meta name="twitter:title" content="NaMe Magazine — Before the Name" />
   <meta name="twitter:description" content="NaMe Magazine is a platform for artists before the world knows their names — photography, design, film, writing, and visual art." />
   <meta name="twitter:image" content="https://name-magazine.vercel.app/images/hero/hero-1.png" />
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var skip = false;
+      try { skip = sessionStorage.getItem("name-intro-seen") === "1"; } catch (e) {}
+      try { skip = skip || matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+      if (skip) { root.setAttribute("data-intro", "skip"); return; }
+      root.classList.add("intro-lock");
+      /* Fallback if intro.js never runs: never leave the page covered or locked. */
+      window.__nameIntroFallback = setTimeout(function () {
+        var layer = document.querySelector(".intro");
+        if (layer) layer.remove();
+        root.setAttribute("data-intro", "skip");
+        root.classList.remove("intro-lock");
+      }, 9000);
+    })();
+  </script>
+  <noscript><style>.intro{display:none}</style></noscript>
   <script src="auth-boot.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,6 +44,7 @@
   <link rel="stylesheet" href="home-design.css" />
   <link rel="stylesheet" href="experience.css" />
   <script src="experience.js" defer></script>
+  <script src="intro.js" defer></script>
   <script type="application/ld+json" id="name-seo-jsonld">
     {
       "@context": "https://schema.org",
@@ -51,6 +70,27 @@
   </script>
 </head>
 <body class="page-home is-page-ready">
+  <div class="intro" aria-hidden="true">
+    <div class="intro__stage">
+      <p class="intro__mark"><span class="intro__mask"><span class="intro__letter" style="--i:0">N</span></span><span class="intro__mask"><span class="intro__letter" style="--i:1">a</span></span><span class="intro__mask"><span class="intro__letter" style="--i:2">M</span></span><span class="intro__mask"><span class="intro__letter" style="--i:3">e</span></span></p>
+    </div>
+    <div class="intro__meta">
+      <span class="intro__count">000</span>
+    </div>
+    <span class="intro__rule"></span>
+    <div class="intro__band">
+      <div class="intro__track">
+        <span class="intro__phrase">NaMe — <span data-i18n="introTagline">Before the Name</span></span>
+        <span class="intro__phrase">NaMe — <span data-i18n="introTagline">Before the Name</span></span>
+        <span class="intro__phrase">NaMe — <span data-i18n="introTagline">Before the Name</span></span>
+        <span class="intro__phrase">NaMe — <span data-i18n="introTagline">Before the Name</span></span>
+        <span class="intro__phrase">NaMe — <span data-i18n="introTagline">Before the Name</span></span>
+        <span class="intro__phrase">NaMe — <span data-i18n="introTagline">Before the Name</span></span>
+        <span class="intro__phrase">NaMe — <span data-i18n="introTagline">Before the Name</span></span>
+        <span class="intro__phrase">NaMe — <span data-i18n="introTagline">Before the Name</span></span>
+      </div>
+    </div>
+  </div>
   <a class="skip-link" href="#main-content">Skip to content</a>
 
   <!-- Member modal -->

@@ -489,5 +489,6 @@
   "readingFocus": "专注阅读",
   "readingTime": "分钟阅读",
   "unsavedChanges": "你有尚未保存的更改。确定离开此页面吗？",
-  "archiveSearchError": "搜索暂时不可用。"
+  "archiveSearchError": "搜索暂时不可用。",
+  "introTagline": "成名之前"
 }

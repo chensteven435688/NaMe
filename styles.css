@@ -65,90 +65,138 @@ body {
   font-synthesis: none;
 }
 
-/* Homepage page loader */
-.page-loader {
+/* Homepage intro (first visit per session; driven by intro.js) */
+html[data-intro="skip"] .intro {
+  display: none;
+}
+
+html.intro-lock,
+html.intro-lock body {
+  overflow: hidden;
+}
+
+/* The layer's transform is owned by intro.js (slide-up). */
+.intro {
   position: fixed;
   inset: 0;
   z-index: 10000;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  pointer-events: auto;
+}
+
+.intro__stage {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
-  color: var(--text);
-  transition: opacity 0.55s var(--ease), visibility 0.55s var(--ease);
 }
 
-.page-loader.is-done {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.page-loader__inner {
+.intro__mark {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(4.5rem, 19vw, 15rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--accent);
 }
 
-.page-loader__brand {
-  font-family: var(--serif);
-  font-size: clamp(2.5rem, 8vw, 4rem);
-  font-weight: 300;
+/* Each letter rises out of its own mask; CSS owns these transforms. */
+.intro__mask {
+  display: block;
+  overflow: hidden;
+  padding: 0.04em 0.01em 0.12em;
+}
+
+.intro__letter {
+  display: block;
+  transform: translateY(110%);
+  animation: intro-rise 0.9s cubic-bezier(0.2, 0.7, 0.1, 1) forwards;
+  animation-delay: calc(0.12s + var(--i, 0) * 0.08s);
+}
+
+@keyframes intro-rise {
+  to {
+    transform: translateY(0);
+  }
+}
+
+.intro__meta {
+  position: absolute;
+  right: clamp(1.25rem, 4vw, 3rem);
+  bottom: clamp(1.25rem, 4vw, 2.5rem);
+  left: clamp(1.25rem, 4vw, 3rem);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.intro__count {
+  font-family: var(--display);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
   letter-spacing: 0.02em;
   line-height: 1;
-  animation: page-loader-pulse 1.6s var(--ease) infinite;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
-.page-loader__line {
-  display: block;
-  width: 4.5rem;
-  height: 1px;
-  background: var(--text);
-  transform-origin: left center;
-  animation: page-loader-line 1.4s var(--ease) infinite;
+/* Progress rule: width is set by intro.js (no transform). */
+.intro__rule {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
 }
 
-.page-loader__label {
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+/* Red band: intro.js animates clip-path from a middle strip to full screen. */
+.intro__band {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: var(--accent);
+  color: var(--text-inverse);
+  clip-path: inset(50% 0% 50% 0%);
 }
 
-@keyframes page-loader-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
+.intro__track {
+  display: flex;
+  flex: none;
+  white-space: nowrap;
+  animation: intro-marquee 9s linear infinite;
 }
 
-@keyframes page-loader-line {
-  0% {
-    transform: scaleX(0.15);
-    opacity: 0.35;
+.intro__phrase {
+  flex: none;
+  padding-right: 0.9em;
+  font-family: var(--display);
+  font-size: clamp(1.6rem, 5vw, 3.75rem);
+  line-height: 1;
+}
+
+.intro__phrase::after {
+  content: "·";
+  padding-left: 0.9em;
+}
+
+@keyframes intro-marquee {
+  from {
+    transform: translateX(0);
   }
-  50% {
-    transform: scaleX(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scaleX(0.15);
-    opacity: 0.35;
+  to {
+    transform: translateX(-50%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .page-loader__brand,
-  .page-loader__line {
-    animation: none;
-  }
-
-  .page-loader {
-    transition-duration: 0.01ms;
+  .intro {
+    display: none;
   }
 }
 

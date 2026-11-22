@@ -489,5 +489,6 @@
   "readingFocus": "Mode concentration",
   "readingTime": "min de lecture",
   "unsavedChanges": "Vous avez des modifications non enregistrées. Quitter cette page ?",
-  "archiveSearchError": "La recherche est indisponible pour le moment."
+  "archiveSearchError": "La recherche est indisponible pour le moment.",
+  "introTagline": "Before the Name"
 }
