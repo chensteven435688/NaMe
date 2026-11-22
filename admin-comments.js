@@ -1,101 +1,111 @@
+/**
+ * NaMe — comments inbox (admin.html#comments)
+ * "New" means posted in the last 24 hours.
+ */
 let allComments = [];
-
-document.addEventListener("DOMContentLoaded", async () => {
-  const ok = await NaMeAdmin.init("comments");
-  if (!ok) return;
-  bootComments();
-});
+let commentsFilter = "all";
+const NEW_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 document.addEventListener("name:adminpage", (e) => {
-  if (e.detail?.page === "comments") bootComments();
+  if (e.detail?.page === "comments") loadComments();
+});
+document.addEventListener("name:adminrefresh", (e) => {
+  if (e.detail?.page === "comments") loadComments();
+});
+document.addEventListener("name:adminsearch", (e) => {
+  if (e.detail?.page === "comments") renderComments();
 });
 
-function bootComments() {
-  const tbody = document.getElementById("comments-table-body");
-  if (!tbody) return;
-
-  if (!tbody.dataset.booted) {
-    tbody.dataset.booted = "1";
-    document.getElementById("comments-refresh")?.addEventListener("click", loadComments);
-    document.getElementById("comments-search")?.addEventListener("input", renderComments);
-  }
-
-  loadComments();
-}
-
 async function loadComments() {
-  const tbody = document.getElementById("comments-table-body");
-  const status = document.getElementById("comments-status");
-  status.textContent = "";
-
+  const list = document.getElementById("comments-list");
+  if (!list) return;
+  if (!allComments.length) list.innerHTML = NaMeAdmin.emptyState(NaMeAdmin.t("adminLoading"));
   try {
     const { comments } = await NaMeAuth.fetchAdminComments();
     allComments = comments;
+    NaMeAdmin.setCount("comments", comments.length);
     renderComments();
-    if (!comments.length) {
-      status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "adminNoComments");
-    }
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="4">${NaMeAdmin.esc(err.message)}</td></tr>`;
+    list.innerHTML = NaMeAdmin.emptyState(err.message);
   }
 }
 
-function renderComments() {
-  const tbody = document.getElementById("comments-table-body");
-  const q = document.getElementById("comments-search")?.value.trim().toLowerCase() || "";
-  let list = allComments;
-  if (q) {
-    list = list.filter(
-      (c) =>
-        c.body.toLowerCase().includes(q) ||
-        c.author.displayName.toLowerCase().includes(q) ||
-        c.author.email.toLowerCase().includes(q) ||
-        c.postTitle.toLowerCase().includes(q)
-    );
-  }
+function isNewComment(c) {
+  return Date.now() - new Date(c.createdAt).getTime() < NEW_WINDOW_MS;
+}
 
-  if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="4">${NaMeI18n.t(NaMeI18n.getLang(), "adminNoComments")}</td></tr>`;
+function renderComments() {
+  const list = document.getElementById("comments-list");
+  if (!list) return;
+  const t = NaMeAdmin.t;
+  const esc = NaMeAdmin.esc;
+  const searched = allComments.filter((c) =>
+    NaMeAdmin.matches(`${c.body} ${c.author.displayName} ${c.author.email} ${c.postTitle}`)
+  );
+  NaMeAdmin.renderSegment(
+    document.getElementById("comments-filters"),
+    [
+      { value: "all", label: t("naAll"), count: searched.length },
+      { value: "new", label: t("naNew"), count: searched.filter(isNewComment).length },
+      { value: "comment", label: t("adminColComment"), count: searched.filter((c) => !c.parentId).length },
+      { value: "reply", label: t("adminReplyBadge"), count: searched.filter((c) => c.parentId).length },
+    ],
+    commentsFilter,
+    (value) => {
+      commentsFilter = value;
+      renderComments();
+    }
+  );
+
+  const shown = searched.filter((c) => {
+    if (commentsFilter === "new") return isNewComment(c);
+    if (commentsFilter === "comment") return !c.parentId;
+    if (commentsFilter === "reply") return !!c.parentId;
+    return true;
+  });
+  if (!shown.length) {
+    list.innerHTML = NaMeAdmin.emptyState(allComments.length ? t("naNoMatches") : t("adminNoComments"));
     return;
   }
 
-  const lang = NaMeI18n.getLang();
-  const removeLabel = NaMeI18n.t(lang, "adminRemoveComment");
-  const replyLabel = NaMeI18n.t(lang, "adminReplyBadge");
-
-  tbody.innerHTML = list
-    .map(
-      (c) => `
-    <tr class="admin-moderation-row" data-comment-id="${c.id}">
-      <td class="admin-moderation-comment">
-        <p class="admin-moderation-body">${NaMeAdmin.esc(c.body)}</p>
-        ${c.parentId ? `<span class="admin-badge">${replyLabel}</span>` : ""}
-        <small>♥ ${c.likeCount} · ${NaMeAdmin.formatDate(c.createdAt)}</small>
-      </td>
-      <td>
-        <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(c.postSlug)}" target="_blank" rel="noopener">${NaMeAdmin.esc(c.postTitle)}</a>
-      </td>
-      <td>
-        <strong>${NaMeAdmin.esc(c.author.displayName)}</strong><br>
-        <small>${NaMeAdmin.esc(c.author.email)}</small>
-      </td>
-      <td class="admin-actions">
-        <button type="button" class="btn btn--danger btn--sm" data-remove-comment="${c.id}">${removeLabel}</button>
-      </td>
-    </tr>`
-    )
+  list.innerHTML = shown
+    .map((c) => {
+      const kind = c.parentId ? "reply" : "comment";
+      const fresh = isNewComment(c);
+      return `
+      <article class="na-msg${fresh ? " is-new" : ""}" data-comment-id="${esc(c.id)}">
+        <span class="na-avatar" aria-hidden="true">${esc(NaMeAdmin.initials(c.author.displayName))}</span>
+        <div class="na-msg__main">
+          <div class="na-msg__head">
+            <strong>${esc(c.author.displayName)}</strong>
+            ${c.author.email ? `<small class="na-dim">${esc(c.author.email)}</small>` : ""}
+            ${NaMeAdmin.pill(kind, t(kind === "reply" ? "adminReplyBadge" : "adminColComment"))}
+            ${fresh ? NaMeAdmin.pill("new", t("naNew")) : ""}
+            <time class="na-msg__time" datetime="${esc(c.createdAt)}" title="${esc(NaMeAdmin.formatDate(c.createdAt))}">${esc(NaMeAdmin.timeAgo(c.createdAt))}</time>
+          </div>
+          <p class="na-msg__body">${esc(c.body)}</p>
+          <div class="na-msg__foot">
+            <span class="na-dim">${esc(t("naOnStory"))} <a class="na-link" href="${esc(NaMeAdmin.postUrl(c.postSlug))}" target="_blank" rel="noopener">${esc(c.postTitle || "—")}</a> · ♥ ${Number(c.likeCount) || 0}</span>
+            <span class="na-msg__actions">
+              <a class="na-btn na-btn--light na-btn--sm" href="${esc(NaMeAdmin.postUrl(c.postSlug))}#comments" target="_blank" rel="noopener">${NaMeAdmin.icon("chat")}<span>${esc(t("naReplyOnStory"))}</span></a>
+              <button type="button" class="na-btn na-btn--danger na-btn--sm" data-remove-comment="${esc(c.id)}">${NaMeAdmin.icon("trash")}<span>${esc(t("adminRemoveComment"))}</span></button>
+            </span>
+          </div>
+        </div>
+      </article>`;
+    })
     .join("");
 
-  tbody.querySelectorAll("[data-remove-comment]").forEach((btn) => {
+  list.querySelectorAll("[data-remove-comment]").forEach((btn) => {
     btn.addEventListener("click", async () => {
+      const status = document.getElementById("comments-status");
       try {
         await NaMeAdmin.deleteComment(btn.dataset.removeComment, async () => {
-          const status = document.getElementById("comments-status");
-          status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "adminCommentRemoved");
+          status.textContent = t("adminCommentRemoved");
           await loadComments();
         });
       } catch (err) {
-        document.getElementById("comments-status").textContent = err.message;
+        status.textContent = err.message;
       }
     });
   });

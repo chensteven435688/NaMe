@@ -1,81 +1,89 @@
 /**
- * NaMe — admin community mood board
+ * NaMe — community mood board section (admin.html#community)
  */
 let communityPosts = [];
-
-document.addEventListener("DOMContentLoaded", async () => {
-  const ok = await NaMeAdmin.init("community");
-  if (!ok) return;
-  bootCommunityAdmin();
-});
+let communityFilter = "all";
 
 document.addEventListener("name:adminpage", (e) => {
-  if (e.detail?.page === "community") bootCommunityAdmin();
+  if (e.detail?.page === "community") loadCommunityPosts();
 });
-
-function bootCommunityAdmin() {
-  const grid = document.getElementById("admin-community-grid");
-  if (!grid) return;
-
-  if (!grid.dataset.booted) {
-    grid.dataset.booted = "1";
-    document.getElementById("community-refresh")?.addEventListener("click", loadCommunityPosts);
-  }
-
-  loadCommunityPosts();
-}
+document.addEventListener("name:adminrefresh", (e) => {
+  if (e.detail?.page === "community") loadCommunityPosts();
+});
+document.addEventListener("name:adminsearch", (e) => {
+  if (e.detail?.page === "community") renderCommunityPosts();
+});
 
 async function loadCommunityPosts() {
   const grid = document.getElementById("admin-community-grid");
   const status = document.getElementById("community-status");
+  if (!grid) return;
   status.textContent = "";
-
+  if (!communityPosts.length) grid.innerHTML = NaMeAdmin.emptyState(NaMeAdmin.t("adminLoading"));
   try {
     const { posts } = await NaMeAuth.fetchAdminCommunityPosts();
     communityPosts = posts;
+    NaMeAdmin.setCount("community", posts.length);
     renderCommunityPosts();
-    if (!posts.length) {
-      status.textContent = NaMeI18n.t(NaMeI18n.getLang(), "adminCommunityEmpty");
-    }
   } catch (err) {
-    grid.innerHTML = `<p>${NaMeAdmin.esc(err.message)}</p>`;
+    grid.innerHTML = NaMeAdmin.emptyState(err.message);
   }
 }
 
 function renderCommunityPosts() {
   const grid = document.getElementById("admin-community-grid");
-  const lang = NaMeI18n.getLang();
+  if (!grid) return;
+  const t = NaMeAdmin.t;
+  const esc = NaMeAdmin.esc;
+  const searched = communityPosts.filter((p) =>
+    NaMeAdmin.matches(`${p.title || ""} ${p.caption || ""} ${p.author?.displayName || ""}`)
+  );
+  NaMeAdmin.renderSegment(
+    document.getElementById("community-filters"),
+    [
+      { value: "all", label: t("naAll"), count: searched.length },
+      { value: "live", label: t("naStatusLive"), count: searched.filter((p) => !p.isHidden).length },
+      { value: "hidden", label: t("adminCommunityHiddenBadge"), count: searched.filter((p) => p.isHidden).length },
+    ],
+    communityFilter,
+    (value) => {
+      communityFilter = value;
+      renderCommunityPosts();
+    }
+  );
 
-  if (!communityPosts.length) {
-    grid.innerHTML = `<p>${NaMeI18n.t(lang, "adminCommunityEmpty")}</p>`;
+  const list = searched.filter((p) => communityFilter === "all" || (communityFilter === "hidden") === !!p.isHidden);
+  if (!list.length) {
+    grid.innerHTML = NaMeAdmin.emptyState(communityPosts.length ? t("naNoMatches") : t("adminCommunityEmpty"));
     return;
   }
+  // Reordering only makes sense on the full, unfiltered board.
+  const canReorder = communityFilter === "all" && !NaMeAdmin.query();
 
-  grid.innerHTML = communityPosts
-    .map(
-      (post, index) => `
-    <article class="admin-community-card${post.isHidden ? " is-hidden" : ""}" data-post-id="${post.id}">
-      <div class="admin-community-card__img">
-        <img src="${NaMeAdmin.esc(post.imageUrl)}" alt="${NaMeAdmin.esc(post.title || "Community pin")}" loading="lazy" />
-      </div>
-      <div class="admin-community-card__body">
-        <strong>${NaMeAdmin.esc(post.title || post.caption?.slice(0, 48) || "Untitled pin")}</strong>
-        <p>${NaMeAdmin.esc(post.author?.displayName || "Member")}</p>
-        <p class="admin-community-card__meta">♥ ${post.likeCount} · 💬 ${post.commentCount}</p>
-        ${post.isHidden ? `<span class="admin-badge">${NaMeI18n.t(lang, "adminCommunityHiddenBadge")}</span>` : ""}
-      </div>
-      <div class="admin-community-card__actions">
-        <button type="button" class="btn btn--ghost btn--sm" data-move-up="${post.id}" ${index === 0 ? "disabled" : ""} aria-label="Move up">↑</button>
-        <button type="button" class="btn btn--ghost btn--sm" data-move-down="${post.id}" ${index === communityPosts.length - 1 ? "disabled" : ""} aria-label="Move down">↓</button>
-        <button type="button" class="btn btn--ghost btn--sm" data-toggle-hidden="${post.id}">
-          ${NaMeI18n.t(lang, post.isHidden ? "adminCommunityShow" : "adminCommunityHide")}
-        </button>
-        <button type="button" class="btn btn--ghost btn--sm admin-community-card__delete" data-delete="${post.id}">
-          ${NaMeI18n.t(lang, "adminDelete")}
-        </button>
-      </div>
-    </article>`
-    )
+  grid.innerHTML = list
+    .map((post) => {
+      const index = communityPosts.indexOf(post);
+      const title = post.title || post.caption?.slice(0, 48) || t("naUntitledPin");
+      const order = canReorder
+        ? `<div class="na-item__order">
+            <button type="button" class="na-icon-btn na-icon-btn--sm" data-move-up="${esc(post.id)}" ${index === 0 ? "disabled" : ""} aria-label="${esc(t("naMoveUp"))}: ${esc(title)}">${NaMeAdmin.icon("up")}</button>
+            <button type="button" class="na-icon-btn na-icon-btn--sm" data-move-down="${esc(post.id)}" ${index === communityPosts.length - 1 ? "disabled" : ""} aria-label="${esc(t("naMoveDown"))}: ${esc(title)}">${NaMeAdmin.icon("down")}</button>
+          </div>`
+        : "";
+      return NaMeAdmin.card({
+        image: post.imageUrl,
+        status: post.isHidden ? "hidden" : "live",
+        statusLabel: t(post.isHidden ? "adminCommunityHiddenBadge" : "naStatusLive"),
+        tag: `No. ${index + 1}`,
+        title,
+        meta: `${post.author?.displayName || t("naMember")} · ♥ ${Number(post.likeCount) || 0} · ${Number(post.commentCount) || 0} ${t("naCommentsShort")}`,
+        className: post.isHidden ? "is-muted" : "",
+        extra: order,
+        actions: `
+          <button type="button" class="na-btn na-btn--light na-btn--sm" data-toggle-hidden="${esc(post.id)}">${NaMeAdmin.icon(post.isHidden ? "eye" : "eye-off")}<span>${esc(t(post.isHidden ? "adminCommunityShow" : "adminCommunityHide"))}</span></button>
+          <button type="button" class="na-btn na-btn--danger na-btn--sm" data-delete="${esc(post.id)}">${NaMeAdmin.icon("trash")}<span>${esc(t("adminDelete"))}</span></button>`,
+      });
+    })
     .join("");
 
   grid.querySelectorAll("[data-move-up]").forEach((btn) => {
@@ -106,6 +114,7 @@ async function movePost(id, direction) {
   try {
     await NaMeAuth.reorderAdminCommunityPosts(reordered.map((p) => p.id));
     renderCommunityPosts();
+    document.querySelector(`[data-move-${direction < 0 ? "up" : "down"}="${CSS.escape(id)}"]:not([disabled])`)?.focus();
   } catch (err) {
     document.getElementById("community-status").textContent = err.message;
     loadCommunityPosts();
@@ -115,7 +124,6 @@ async function movePost(id, direction) {
 async function toggleHidden(id) {
   const post = communityPosts.find((p) => p.id === id);
   if (!post) return;
-
   try {
     await NaMeAuth.updateAdminCommunityPost(id, { isHidden: !post.isHidden });
     await loadCommunityPosts();
@@ -125,9 +133,7 @@ async function toggleHidden(id) {
 }
 
 async function deletePost(id) {
-  const lang = NaMeI18n.getLang();
-  if (!confirm(NaMeI18n.t(lang, "adminCommunityDeleteConfirm"))) return;
-
+  if (!confirm(NaMeAdmin.t("adminCommunityDeleteConfirm"))) return;
   try {
     await NaMeAuth.deleteCommunityPost(id);
     await loadCommunityPosts();

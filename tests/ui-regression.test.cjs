@@ -30,7 +30,7 @@ const boot = (w) => w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
 const posts = Array.from({ length: 15 }, (_, i) => ({ id: String(i), slug: `story-${i}`, title: i ? `Future study ${i}` : 'Light study', type: 'article', meta: 'Studio', body: '<p>A study in light.</p>', imageUrl: '/images/hero/hero-1.png' }));
 
 test('new styles parse; page assets exist; HTML IDs remain unique', () => {
-  for (const file of ['home-design.css', 'experience.css']) {
+  for (const file of ['home-design.css', 'experience.css', 'admin-glass.css']) {
     const errors = [];
     csstree.parse(source(file), { onParseError: (error) => errors.push(error.message) });
     assert.deepEqual(errors, [], file);
@@ -253,11 +253,14 @@ test('searchPosts queries a page range instead of the 200-post catalog cap', () 
 });
 
 test('publishing preserves success feedback and rejects executable preview URLs', async () => {
-  const dom = await page('admin-upload.html'); const w = dom.window;
-  w.NaMeAdmin = { init: async () => true, esc: (value) => value };
+  const dom = await page('admin.html'); const w = dom.window;
   w.NaMeAdminBodyImages = { init() {} };
   w.NaMeAuth = { createPost: async () => ({ post: { title: 'Fixture title', slug: 'fixture' } }) };
-  evaluate(w, 'admin-upload.js'); boot(w); await tick();
+  evaluate(w, 'admin-common.js', 'NaMeAdmin');
+  evaluate(w, 'admin-upload.js');
+  w.document.querySelector('[data-open-upload]').click(); await tick();
+  assert.equal(w.document.querySelector('#upload-modal').classList.contains('is-open'), true);
+  assert.equal(w.document.activeElement, w.document.querySelector('#upload-title'));
   const form = w.document.querySelector('#upload-form');
   const url = w.document.querySelector('#upload-image-url');
   url.value = 'javascript:alert(1)'; url.dispatchEvent(new w.Event('input'));
@@ -298,20 +301,48 @@ test('admin mobile drawer closes on Escape and canceled navigation preserves edi
   const dom = await page('admin.html'); const w = dom.window;
   w.NaMeAuth = { isLoggedIn: () => false, refresh: async () => {}, initAuthModal() {}, initUI() {}, getUser: () => ({ displayName: 'Test editor' }), isAdmin: () => true, onChange() {} };
   evaluate(w, 'admin-common.js', 'NaMeAdmin');
-  await w.NaMeAdmin.init('dashboard');
+  assert.equal(await w.NaMeAdmin.init(), true);
+  w.NaMeAdmin.start();
+  assert.equal(w.document.querySelector('#na-user-initials').textContent, 'TE');
   const menu = w.document.querySelector('[data-admin-menu]'); menu.click();
-  assert.equal(w.document.querySelector('.admin-main').inert, true);
-  w.document.querySelector('.admin-sidebar').dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.equal(w.document.querySelector('.na-workspace').inert, true);
+  w.document.querySelector('.na-sidebar').dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   assert.equal(menu.getAttribute('aria-expanded'), 'false');
-  assert.equal(w.document.querySelector('.admin-main').hasAttribute('inert'), false);
+  assert.equal(w.document.querySelector('.na-workspace').hasAttribute('inert'), false);
+  assert.equal(w.document.activeElement, menu);
   const form = w.document.querySelector('#edit-form');
   form.elements.title.dispatchEvent(new w.Event('input', { bubbles: true }));
   w.confirm = () => false;
-  await w.NaMeAdmin.navigateTo('/admin.html#content');
+  w.NaMeAdmin.navigateTo('/admin.html#posts');
   assert.equal(w.location.hash, '');
+  assert.equal(w.document.querySelector('[data-section="posts"]').hidden, true);
   form.reset();
-  await w.NaMeAdmin.navigateTo('/admin.html#content');
-  assert.equal(w.location.hash, '#content');
+  w.NaMeAdmin.navigateTo('/admin.html#posts');
+  assert.equal(w.location.hash, '#posts');
+  assert.equal(w.document.querySelector('[data-section="posts"]').hidden, false);
+  assert.equal(w.document.querySelector('[data-section="overview"]').hidden, true);
+  assert.equal(w.document.querySelector('[data-nav="posts"]').getAttribute('aria-current'), 'page');
+  w.NaMeAdmin.navigateTo('/admin.html#content');
+  assert.equal(w.document.querySelector('[data-section="posts"]').hidden, false);
+  dom.window.dispatchEvent(new dom.window.Event("pagehide"));
+  dom.window.close();
+});
+
+test('admin drawers close from the scrim and keep unsaved edits when the editor cancels', async () => {
+  const dom = await page('admin.html'); const w = dom.window;
+  evaluate(w, 'admin-common.js', 'NaMeAdmin');
+  const drawer = w.document.querySelector('#edit-modal');
+  w.NaMeAdmin.openDrawer('edit-modal'); await tick();
+  assert.equal(drawer.getAttribute('aria-hidden'), 'false');
+  assert.equal(w.document.activeElement, drawer.querySelector('select[name="type"]'));
+  drawer.querySelector('[name="title"]').dispatchEvent(new w.Event('input', { bubbles: true }));
+  w.confirm = () => false;
+  drawer.querySelector('.na-drawer__scrim').click();
+  assert.equal(drawer.classList.contains('is-open'), true);
+  w.confirm = () => true;
+  drawer.querySelector('.na-drawer__scrim').click();
+  assert.equal(drawer.classList.contains('is-open'), false);
+  assert.equal(drawer.getAttribute('aria-hidden'), 'true');
   dom.window.dispatchEvent(new dom.window.Event("pagehide"));
   dom.window.close();
 });
@@ -335,17 +366,38 @@ test('reading tools toggle focus mode and update reading labels on language chan
 
 test('admin content filters survive content reload and show an honest empty state', async () => {
   const dom = await page('admin.html'); const w = dom.window;
-  w.NaMeAdmin = { esc: (value) => value, formatDate: (value) => value };
-  w.NaMeAuth = { fetchPosts: async () => posts };
+  w.NaMeAuth = { fetchPosts: async () => posts, refresh: async () => {}, initAuthModal() {}, initUI() {}, getUser: () => ({ displayName: 'Test editor' }), isAdmin: () => true, onChange() {} };
+  evaluate(w, 'admin-common.js', 'NaMeAdmin');
+  evaluate(w, 'admin.js');
+  await w.NaMeAdmin.init();
+  await w.loadContent();
+  assert.equal(w.document.querySelectorAll('#posts-grid .na-item').length, 15);
+  const search = w.document.querySelector('#na-search');
+  search.value = 'Light'; search.dispatchEvent(new w.Event('input'));
+  await new Promise((resolve) => setTimeout(resolve, 160));
+  w.applyContentFilters();
+  assert.equal(w.document.querySelectorAll('#posts-grid .na-item').length, 1);
+  assert.equal(w.document.querySelector('#content-results').textContent, '1 / 15');
+  await w.loadContent();
+  assert.equal(w.document.querySelectorAll('#posts-grid .na-item').length, 1);
+  search.value = 'not-in-the-archive'; search.dispatchEvent(new w.Event('input'));
+  await new Promise((resolve) => setTimeout(resolve, 160));
+  w.applyContentFilters();
+  assert.match(w.document.querySelector('#posts-grid').textContent, /Nothing matches/);
+  w.dispatchEvent(new w.Event('pagehide')); dom.window.close();
+});
+
+test('admin cards escape stored text and refuse script image URLs', async () => {
+  const dom = await page('admin.html'); const w = dom.window;
+  const hostile = [{ id: '1" onclick="x', slug: 'a"b', title: '<img src=x onerror=alert(1)>', type: 'article', meta: '<b>m</b>', imageUrl: 'javascript:alert(1)' }];
+  w.NaMeAuth = { fetchPosts: async () => hostile };
+  evaluate(w, 'admin-common.js', 'NaMeAdmin');
   evaluate(w, 'admin.js');
   await w.loadContent();
-  w.document.querySelector('#content-search').value = 'Light';
-  w.applyContentFilters();
-  assert.equal(w.document.querySelectorAll('#content-table-body tr').length, 1);
-  await w.loadContent();
-  assert.equal(w.document.querySelectorAll('#content-table-body tr').length, 1);
-  w.document.querySelector('#content-search').value = 'not-in-the-archive';
-  w.applyContentFilters();
-  assert.match(w.document.querySelector('#content-table-body').textContent, /No matching posts/);
+  const grid = w.document.querySelector('#posts-grid');
+  assert.equal(grid.querySelector('.na-item__title').textContent, '<img src=x onerror=alert(1)>');
+  assert.equal(grid.querySelector('[onerror], [onclick], b'), null);
+  assert.equal(grid.querySelector('.na-item__media img'), null);
+  assert.equal(grid.querySelector('[data-edit]').dataset.edit, '1" onclick="x');
   w.dispatchEvent(new w.Event('pagehide')); dom.window.close();
 });

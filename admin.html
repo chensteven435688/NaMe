@@ -3,136 +3,268 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
   <title>NaMe — Admin</title>
   <script src="admin-boot.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Bodoni:opsz,wght@6..96,500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="experience.css" />
+  <link rel="stylesheet" href="admin-glass.css" />
   <script src="experience.js" defer></script>
 </head>
-<body class="page-admin">
-  <div id="admin-gate" class="admin-gate">
-    <div class="admin-gate__shell">
-      <div class="admin-gate__brand">
-        <a href="./" class="logo"><span class="brand-mark">NaMe</span></a>
-        <p class="admin-gate__eyebrow" data-i18n="adminGateLabel">Editorial desk</p>
-      </div>
-      <div class="admin-gate__panel">
-        <h1 data-i18n="adminGateTitle">Admin access</h1>
-        <p class="admin-gate__text" data-i18n="adminDeniedPanel">You need an admin account to use this panel.</p>
-        <p class="admin-gate__hint" data-i18n="adminGateHint">Sign in with your editor account to continue.</p>
-        <p id="admin-gate-status" class="admin-gate__status" hidden></p>
-        <div class="admin-gate__actions">
-          <button type="button" class="btn btn--primary" data-open-auth="login" data-i18n="authLoginBtn">Login</button>
-          <a href="./" class="admin-gate__back" data-i18n="backHome">← Back to NaMe</a>
-        </div>
+<body class="page-admin na-body">
+  <!-- Icon sprite: 24px line icons, stroke drawn by CSS -->
+  <svg width="0" height="0" class="na-sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-5-5L5 21" /></symbol>
+      <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1" /></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18" /></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" /></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9" /></symbol>
+      <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4z" /></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12" /><circle cx="12" cy="12" r="3" /></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18" /><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-2.6 3.4M6.6 6.6A16.6 16.6 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6" /></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10" /></symbol>
+      <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8" /></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></symbol>
+    </defs>
+  </svg>
+
+  <div class="na-backdrop" aria-hidden="true">
+    <span class="na-blob na-blob--1"></span>
+    <span class="na-blob na-blob--2"></span>
+    <span class="na-blob na-blob--3"></span>
+  </div>
+
+  <div id="admin-gate" class="admin-gate na-gate">
+    <div class="na-gate__card na-glass">
+      <a href="./" class="na-brand na-brand--gate"><span class="na-brand__mark" aria-hidden="true">N</span><span class="na-brand__text"><strong>NaMe</strong><small data-i18n="adminGateLabel">Editorial desk</small></span></a>
+      <h1 class="na-title" data-i18n="adminGateTitle">Admin access</h1>
+      <p class="na-gate__text" data-i18n="adminDeniedPanel">You need an admin account to use this panel.</p>
+      <p class="na-gate__hint" data-i18n="adminGateHint">Sign in with your editor account to continue.</p>
+      <p id="admin-gate-status" class="na-gate__status" hidden></p>
+      <div class="na-actions">
+        <button type="button" class="na-btn na-btn--dark" data-open-auth="login" data-i18n="authLoginBtn">Login</button>
+        <a href="./" class="na-btn na-btn--light" data-i18n="backHome">← Back to NaMe</a>
       </div>
     </div>
   </div>
 
-  <div id="admin-app" class="admin-app is-hidden">
-    <aside class="admin-sidebar">
-      <a href="./" class="logo admin-sidebar__logo"><span class="brand-mark">NaMe</span></a>
-      <p class="admin-sidebar__label" data-i18n="adminPanel">Admin</p>
-      <nav class="admin-nav" id="admin-sidebar-nav"></nav>
-      <div class="admin-sidebar__foot">
-        <a href="./" target="_blank" rel="noopener" data-i18n="adminViewSite">View site →</a>
-        <button type="button" id="admin-logout" data-i18n="adminLogout">Log out</button>
+  <div id="admin-app" class="na-shell is-hidden">
+    <aside class="na-sidebar na-glass" id="na-sidebar" aria-label="Admin">
+      <div class="na-sidebar__top">
+        <a href="./" class="na-brand"><span class="na-brand__mark" aria-hidden="true">N</span><span class="na-brand__text"><strong>NaMe</strong><small data-i18n="adminGateLabel">Editorial desk</small></span></a>
+        <button type="button" class="na-icon-btn na-sidebar-close" data-sidebar-close data-i18n-aria="close" aria-label="Close"><svg aria-hidden="true"><use href="#i-x" /></svg></button>
+      </div>
+      <nav class="na-nav" id="admin-sidebar-nav" data-i18n-aria="adminPanel" aria-label="Admin panel"></nav>
+      <div class="na-sidebar__foot">
+        <div class="na-plan" id="na-plan" hidden>
+          <div class="na-plan__head"><span data-i18n="naPlanLabel">Submissions reviewed</span><small id="na-plan-label"></small></div>
+          <div class="na-meter"><span id="na-plan-meter"></span></div>
+        </div>
+        <a class="na-nav__item" href="./" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-globe" /></svg><span data-i18n="naViewSite">View site</span></a>
+        <button type="button" class="na-nav__item" id="admin-logout"><svg aria-hidden="true"><use href="#i-logout" /></svg><span data-i18n="adminLogout">Log out</span></button>
       </div>
     </aside>
+    <div class="na-scrim" data-sidebar-scrim hidden></div>
 
-    <div class="admin-main">
-      <header class="admin-topbar">
-        <h1 class="admin-topbar__title" id="admin-page-title" data-i18n="adminNavDashboard">Dashboard</h1>
-        <span class="admin-topbar__user" id="admin-user-label"></span>
+    <div class="na-workspace">
+      <header class="na-topbar na-glass">
+        <button type="button" class="na-icon-btn na-menu-btn" data-admin-menu aria-controls="na-sidebar" aria-expanded="false" data-i18n-aria="openMenu" aria-label="Open menu"><svg aria-hidden="true"><use href="#i-menu" /></svg></button>
+        <label class="na-search">
+          <svg aria-hidden="true"><use href="#i-search" /></svg>
+          <span class="visually-hidden" data-i18n="naSearchLabel">Search this section</span>
+          <input type="search" id="na-search" autocomplete="off" placeholder="Search…" />
+          <kbd aria-hidden="true" id="na-search-kbd">⌘K</kbd>
+        </label>
+        <div class="na-topbar__right">
+          <button type="button" class="na-icon-btn" id="na-refresh" data-i18n-aria="adminRefresh" aria-label="Refresh"><svg aria-hidden="true"><use href="#i-refresh" /></svg></button>
+          <div class="na-user">
+            <span class="na-avatar" id="na-user-initials" aria-hidden="true">N</span>
+            <span class="na-user__text"><strong id="admin-user-label"></strong><small data-i18n="admin">Admin</small></span>
+          </div>
+        </div>
       </header>
 
-      <!-- Dashboard -->
-      <section class="admin-panel is-active" data-panel-view="dashboard">
-        <div class="admin-quick-actions"><a class="btn btn--primary" href="admin-upload.html" data-admin-nav data-i18n="adminNavUpload">Upload post</a><a class="btn btn--ghost" href="admin-submissions.html" data-admin-nav data-i18n="adminNavSubmissions">Submissions</a></div>
-        <div class="admin-stats" id="admin-stats"></div>
-        <div class="admin-card">
-          <h2 data-i18n="adminRecentPosts">Recent posts</h2>
-          <ul class="admin-table" id="dashboard-recent"></ul>
-        </div>
-      </section>
+      <main class="na-main" id="main-content">
+        <p class="visually-hidden" role="status" id="na-live"></p>
 
-      <!-- Content list -->
-      <section class="admin-panel" data-panel-view="content">
-        <p id="content-results" role="status" class="admin-results"></p>
-        <div class="admin-toolbar">
-          <input type="search" id="content-search" aria-label="Search content" placeholder="Search title…" data-i18n-placeholder="adminSearch" />
-          <select id="content-filter-type" aria-label="Content type">
-            <option value="" data-i18n="adminAllTypes">All types</option>
-            <option value="article">Article</option>
-            <option value="editorial">Editorial</option>
-            <option value="film">Film</option>
-            <option value="short">Short</option>
-            <option value="artists">Artists</option>
-            <option value="exclusive">Editor's Exclusive</option>
-          </select>
-        </div>
-        <div class="admin-card admin-card--flush admin-table-wrap" tabindex="0" role="region" aria-label="Admin records">
-          <table class="admin-data-table">
-            <thead>
-              <tr>
-                <th scope="col" data-i18n="adminColTitle">Title</th>
-                <th scope="col" data-i18n="adminType">Type</th>
-                <th scope="col" data-i18n="adminSection">Section</th>
-                <th scope="col" data-i18n="adminFeatured">Featured</th>
-                <th scope="col">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="content-table-body"></tbody>
-          </table>
-        </div>
-      </section>
+        <!-- Overview -->
+        <section class="na-panel na-glass" data-section="overview" aria-labelledby="overview-title">
+          <div class="na-panel__head">
+            <div>
+              <h1 class="na-title" id="overview-title" tabindex="-1" data-i18n="naNavOverview">Overview</h1>
+              <p class="na-lede" data-i18n="naOverviewLede">What is live on NaMe and what is waiting for you.</p>
+            </div>
+            <div class="na-actions">
+              <button type="button" class="na-btn na-btn--dark" data-open-upload><svg aria-hidden="true"><use href="#i-plus" /></svg><span data-i18n="adminNavCreate">New post</span></button>
+              <a class="na-btn na-btn--light" href="#submissions" data-i18n="adminNavSubmissions">Review submissions</a>
+            </div>
+          </div>
+          <div class="na-stats" id="admin-stats"></div>
+          <div class="na-overview-grid">
+            <div class="na-card">
+              <div class="na-card__head"><h2 data-i18n="adminRecentPosts">Recent posts</h2><a class="na-link" href="#posts" data-i18n="naViewAll">View all</a></div>
+              <ul class="na-recent" id="dashboard-recent"></ul>
+            </div>
+            <div class="na-card">
+              <div class="na-card__head"><h2 data-i18n="naPipeline">Submissions pipeline</h2><a class="na-link" href="#submissions" data-i18n="naViewAll">View all</a></div>
+              <div class="na-pipeline" id="na-pipeline"></div>
+            </div>
+          </div>
+          <div class="na-card">
+            <div class="na-card__head"><h2 data-i18n="naByFormat">Posts by format</h2></div>
+            <div class="na-strip" id="na-format-strip"></div>
+          </div>
+        </section>
 
-      <!-- Users -->
-      <section class="admin-panel" data-panel-view="users">
-        <div class="admin-card admin-card--flush admin-table-wrap" tabindex="0" role="region" aria-label="Admin records">
-          <table class="admin-data-table">
-            <thead>
-              <tr>
-                <th scope="col" data-i18n="adminColName">Name</th>
-                <th scope="col">Email</th>
-                <th scope="col" data-i18n="adminColRole">Role</th>
-                <th scope="col" data-i18n="adminColJoined">Joined</th>
-                <th scope="col">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="users-table-body"></tbody>
-          </table>
-        </div>
-      </section>
+        <!-- Posts -->
+        <section class="na-panel na-glass" data-section="posts" aria-labelledby="posts-title" hidden>
+          <div class="na-panel__head">
+            <div>
+              <h1 class="na-title" id="posts-title" tabindex="-1" data-i18n="naNavPosts">Posts</h1>
+              <p class="na-lede" data-i18n="naPostsLede">Every article, editorial, film and short live on the site.</p>
+            </div>
+            <div class="na-actions">
+              <button type="button" class="na-btn na-btn--dark" data-open-upload><svg aria-hidden="true"><use href="#i-plus" /></svg><span data-i18n="adminNavCreate">New post</span></button>
+              <a class="na-btn na-btn--light" href="./" target="_blank" rel="noopener" data-i18n="naViewSite">View site</a>
+            </div>
+          </div>
+          <div class="na-filterbar"><div class="na-segment" id="posts-filters" role="group" data-i18n-aria="adminType" aria-label="Type"></div><p class="na-results" id="content-results" role="status"></p></div>
+          <div class="na-grid" id="posts-grid"></div>
+        </section>
+
+        <!-- Editor's Exclusive -->
+        <section class="na-panel na-glass" data-section="exclusive" aria-labelledby="exclusive-heading" hidden>
+          <div class="na-panel__head">
+            <div>
+              <h1 class="na-title" id="exclusive-heading" tabindex="-1" data-i18n="adminExclusivePageTitle">Editor's Exclusive</h1>
+              <p class="na-lede" data-i18n="naExclusiveLede">Personal editor picks, filed into collections.</p>
+            </div>
+            <div class="na-actions">
+              <button type="button" class="na-btn na-btn--dark" data-open-exclusive><svg aria-hidden="true"><use href="#i-plus" /></svg><span data-i18n="naNewExclusive">New pick</span></button>
+              <a class="na-btn na-btn--light" href="exclusive.html" target="_blank" rel="noopener" data-i18n="naViewPage">View page</a>
+            </div>
+          </div>
+          <h2 class="na-subhead" data-i18n="adminExclusiveMetas">Meta collections</h2>
+          <div class="na-strip" id="exclusive-meta-manage"></div>
+          <p id="exclusive-meta-status" class="na-status" role="status"></p>
+          <div class="na-grid" id="exclusive-grid"></div>
+        </section>
+
+        <!-- Community -->
+        <section class="na-panel na-glass" data-section="community" aria-labelledby="community-title" hidden>
+          <div class="na-panel__head">
+            <div>
+              <h1 class="na-title" id="community-title" tabindex="-1" data-i18n="adminCommunityTitle">Community mood board</h1>
+              <p class="na-lede" data-i18n="naCommunityLede">Reorder pins, hide duplicates, or remove posts from the public board.</p>
+            </div>
+            <div class="na-actions">
+              <a class="na-btn na-btn--light" href="community.html" target="_blank" rel="noopener" data-i18n="naViewPage">View page</a>
+            </div>
+          </div>
+          <div class="na-filterbar"><div class="na-segment" id="community-filters" role="group" data-i18n-aria="naFilter" aria-label="Filter"></div></div>
+          <p id="community-status" class="na-status" role="status"></p>
+          <div class="na-grid" id="admin-community-grid"></div>
+        </section>
+
+        <!-- Submissions -->
+        <section class="na-panel na-glass" data-section="submissions" aria-labelledby="submissions-title" hidden>
+          <div class="na-panel__head">
+            <div>
+              <h1 class="na-title" id="submissions-title" tabindex="-1" data-i18n="adminSubmissionsTitle">Review submissions</h1>
+              <p class="na-lede" data-i18n="naSubmissionsLede">Work sent in by members. Publish it to the site or let the artist know it was not selected.</p>
+            </div>
+          </div>
+          <div class="na-filterbar"><div class="na-segment" id="submissions-filters" role="group" data-i18n-aria="naFilter" aria-label="Filter"></div></div>
+          <p id="submissions-status" class="na-status" role="status"></p>
+          <div class="na-grid" id="submissions-grid"></div>
+        </section>
+
+        <!-- Comments -->
+        <section class="na-panel na-glass" data-section="comments" aria-labelledby="comments-title" hidden>
+          <div class="na-panel__head">
+            <div>
+              <h1 class="na-title" id="comments-title" tabindex="-1" data-i18n="adminNavComments">Comments</h1>
+              <p class="na-lede" data-i18n="naCommentsLede">Member comments on stories. Removing one deletes it, and its replies, for everyone.</p>
+            </div>
+          </div>
+          <div class="na-filterbar"><div class="na-segment" id="comments-filters" role="group" data-i18n-aria="naFilter" aria-label="Filter"></div></div>
+          <p id="comments-status" class="na-status" role="status"></p>
+          <div class="na-inbox" id="comments-list"></div>
+        </section>
+
+        <!-- Users -->
+        <section class="na-panel na-glass" data-section="users" aria-labelledby="users-title" hidden>
+          <div class="na-panel__head">
+            <div>
+              <h1 class="na-title" id="users-title" tabindex="-1" data-i18n="adminNavUsers">Users</h1>
+              <p class="na-lede" data-i18n="naUsersLede">Everyone with a NaMe account. Admin rights are still granted by the server.</p>
+            </div>
+          </div>
+          <div class="na-filterbar"><div class="na-segment" id="users-filters" role="group" data-i18n-aria="adminColRole" aria-label="Role"></div></div>
+          <div class="na-table-wrap" tabindex="0" role="region" data-i18n-aria="adminNavUsers" aria-label="Users">
+            <table class="na-table">
+              <thead>
+                <tr>
+                  <th scope="col" data-i18n="adminColName">Name</th>
+                  <th scope="col" data-i18n="adminColRole">Role</th>
+                  <th scope="col" class="na-num" data-i18n="naRecentComments">Recent comments</th>
+                  <th scope="col" data-i18n="adminColJoined">Joined</th>
+                  <th scope="col"><span class="visually-hidden" data-i18n="adminColActions">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
-  <!-- Edit post modal -->
-  <div class="modal" id="edit-modal" aria-hidden="true">
-    <div class="modal__backdrop" data-close-edit></div>
-    <div class="modal__panel modal__panel--admin" role="dialog">
-      <button class="modal__close" type="button" data-i18n-aria="close" aria-label="Close" data-close-edit>&times;</button>
-      <h2 class="modal__title" data-i18n="adminEditPost">Edit post</h2>
-      <form class="admin-form" id="edit-form">
+  <!-- Drawer: edit post -->
+  <div class="modal na-drawer" id="edit-modal" aria-hidden="true">
+    <div class="modal__backdrop na-drawer__scrim" data-drawer-close></div>
+    <div class="modal__panel na-drawer__panel" role="dialog" aria-labelledby="edit-modal-title">
+      <div class="na-drawer__head">
+        <h2 class="na-drawer__title" id="edit-modal-title" data-i18n="adminEditPost">Edit post</h2>
+        <button class="modal__close na-icon-btn" type="button" data-i18n-aria="close" aria-label="Close" data-drawer-close><svg aria-hidden="true"><use href="#i-x" /></svg></button>
+      </div>
+      <form class="na-form" id="edit-form">
         <input type="hidden" name="id" id="edit-id" />
-        <div class="admin-form__grid">
+        <div class="na-form__row">
           <label>
             <span data-i18n="adminType">Type</span>
             <select name="type" required>
-              <option value="article">Article</option>
-              <option value="editorial">Editorial</option>
-              <option value="film">Film</option>
-              <option value="short">Short</option>
-              <option value="artists">Artists</option>
-              <option value="exclusive">Editor's Exclusive</option>
+              <option value="article" data-i18n="naType_article">Article</option>
+              <option value="editorial" data-i18n="naType_editorial">Editorial</option>
+              <option value="film" data-i18n="naType_film">Film</option>
+              <option value="short" data-i18n="naType_short">Short</option>
+              <option value="artists" data-i18n="naType_artists">Artists</option>
+              <option value="exclusive" data-i18n="naType_exclusive">Editor's Exclusive</option>
             </select>
           </label>
           <label>
             <span data-i18n="adminSection">Section</span>
             <select name="section">
               <option value="">—</option>
-              <option value="latest">Latest</option>
-              <option value="popular">Popular</option>
+              <option value="latest" data-i18n="naSection_latest">Latest</option>
+              <option value="popular" data-i18n="naSection_popular">Popular</option>
             </select>
           </label>
         </div>
@@ -153,7 +285,7 @@
           <input type="date" name="contentDate" id="edit-content-date" />
         </label>
         <label>
-          <span data-i18n="adminImage">New cover image</span>
+          <span data-i18n="naNewCover">New cover image</span>
           <input type="file" name="image" accept="image/*" />
         </label>
         <label>
@@ -163,7 +295,7 @@
         <label>
           <span data-i18n="adminInstagramUrl">Instagram post</span>
           <input type="url" name="instagramUrl" id="edit-instagram" inputmode="url" placeholder="https://www.instagram.com/p/…" autocomplete="off" />
-          <span class="admin-field-hint" data-i18n="adminInstagramHint">Optional. The original post: instagram.com/p/… or /reel/…. Leave blank if the story has no post.</span>
+          <span class="na-hint" data-i18n="adminInstagramHint">Optional. The original post: instagram.com/p/… or /reel/…. Leave blank if the story has no post.</span>
         </label>
         <label>
           <span data-i18n="adminBody">Body</span>
@@ -173,16 +305,228 @@
           <span data-i18n="adminVideo">Video URL</span>
           <input type="url" name="videoUrl" />
         </label>
-        <label class="admin__check">
+        <label class="na-check">
           <input type="checkbox" name="featured" value="1" />
           <span data-i18n="adminFeatured">Featured on cover hero</span>
         </label>
-        <div class="admin-form__actions">
-          <button type="submit" class="btn btn--primary" data-i18n="adminSave">Save changes</button>
-          <button type="button" class="btn btn--ghost" data-close-edit data-i18n="close">Close</button>
+        <p id="edit-status" class="na-status" role="status"></p>
+        <div class="na-drawer__foot">
+          <button type="button" class="na-btn na-btn--danger" id="edit-delete"><svg aria-hidden="true"><use href="#i-trash" /></svg><span data-i18n="adminDelete">Delete</span></button>
+          <span class="na-spacer"></span>
+          <button type="button" class="na-btn na-btn--light" data-drawer-close data-i18n="close">Close</button>
+          <button type="submit" class="na-btn na-btn--dark" data-i18n="adminSave">Save changes</button>
         </div>
-        <p id="edit-status" class="admin__status"></p>
       </form>
+    </div>
+  </div>
+
+  <!-- Drawer: new post -->
+  <div class="modal na-drawer" id="upload-modal" aria-hidden="true">
+    <div class="modal__backdrop na-drawer__scrim" data-drawer-close></div>
+    <div class="modal__panel na-drawer__panel" role="dialog" aria-labelledby="upload-modal-title">
+      <div class="na-drawer__head">
+        <h2 class="na-drawer__title" id="upload-modal-title" data-i18n="adminNavCreate">New post</h2>
+        <button class="modal__close na-icon-btn" type="button" data-i18n-aria="close" aria-label="Close" data-drawer-close><svg aria-hidden="true"><use href="#i-x" /></svg></button>
+      </div>
+      <div class="na-preview" id="upload-preview">
+        <div class="na-preview__img" id="preview-img"><span data-i18n="adminPreviewEmpty">Image preview</span></div>
+        <div class="na-preview__text">
+          <p class="na-preview__meta" id="preview-meta">—</p>
+          <h3 class="na-preview__title" id="preview-title" data-i18n="adminPreviewTitle">Title</h3>
+          <p class="na-preview__type" id="preview-type">article</p>
+        </div>
+      </div>
+      <form class="na-form" id="upload-form">
+        <div class="na-form__row">
+          <label>
+            <span data-i18n="adminType">Type</span>
+            <select name="type" id="upload-type" required>
+              <option value="article" data-i18n="naType_article">Article</option>
+              <option value="editorial" data-i18n="naType_editorial">Editorial</option>
+              <option value="film" data-i18n="naType_film">Film</option>
+              <option value="short" data-i18n="naType_short">Short</option>
+              <option value="artists" data-i18n="naType_artists">Artists</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="adminSection">Section</span>
+            <select name="section" id="upload-section">
+              <option value="latest" selected data-i18n="naSection_latest">Latest</option>
+              <option value="popular" data-i18n="naSection_popular">Popular</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          <span data-i18n="adminTitleField">Title</span>
+          <input type="text" name="title" id="upload-title" required />
+        </label>
+        <label>
+          <span data-i18n="adminMeta">Meta (category — date)</span>
+          <input type="text" name="meta" id="upload-meta" maxlength="80" autocomplete="off" placeholder="Fashion — 02 Mar 2026" />
+        </label>
+        <label>
+          <span data-content-date-label data-i18n="adminCreatedDate">Date created / filmed</span>
+          <input type="date" name="contentDate" id="upload-content-date" />
+        </label>
+        <label class="na-drop">
+          <span data-i18n="adminImage">Cover image</span>
+          <input type="file" name="image" id="upload-image" accept="image/*" />
+          <span class="na-hint" data-i18n="adminImageHint">Click to choose or drag an image</span>
+        </label>
+        <label>
+          <span data-i18n="adminImageUrl">Or image URL</span>
+          <input type="url" name="imageUrl" id="upload-image-url" placeholder="https://…" />
+        </label>
+        <label>
+          <span data-i18n="adminInstagramUrl">Instagram post</span>
+          <input type="url" name="instagramUrl" id="upload-instagram" inputmode="url" placeholder="https://www.instagram.com/p/…" autocomplete="off" />
+          <span class="na-hint" data-i18n="adminInstagramHint">Optional. The original post: instagram.com/p/… or /reel/…. Leave blank if the story has no post.</span>
+        </label>
+        <label>
+          <span data-i18n="adminBody">Body (HTML allowed)</span>
+          <textarea name="body" id="upload-body" rows="8" placeholder="<p>Your story…</p>"></textarea>
+        </label>
+        <label id="upload-video-wrap">
+          <span data-i18n="adminVideo">Video URL (films)</span>
+          <input type="url" name="videoUrl" id="upload-video" placeholder="https://…" />
+        </label>
+        <label class="na-check">
+          <input type="checkbox" name="featured" id="upload-featured" value="1" />
+          <span data-i18n="adminFeatured">Featured on cover hero</span>
+        </label>
+        <p id="upload-status" class="na-status" role="status"></p>
+        <div id="upload-success" class="na-success is-hidden"></div>
+        <div class="na-drawer__foot">
+          <button type="reset" class="na-btn na-btn--light" data-i18n="adminClearForm">Clear form</button>
+          <span class="na-spacer"></span>
+          <button type="submit" class="na-btn na-btn--dark" data-i18n="adminPublish">Publish</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Drawer: new Editor's Exclusive pick -->
+  <div class="modal na-drawer" id="exclusive-modal" aria-hidden="true">
+    <div class="modal__backdrop na-drawer__scrim" data-drawer-close></div>
+    <div class="modal__panel na-drawer__panel" role="dialog" aria-labelledby="exclusive-modal-title">
+      <div class="na-drawer__head">
+        <h2 class="na-drawer__title" id="exclusive-modal-title" data-i18n="naNewExclusive">New pick</h2>
+        <button class="modal__close na-icon-btn" type="button" data-i18n-aria="close" aria-label="Close" data-drawer-close><svg aria-hidden="true"><use href="#i-x" /></svg></button>
+      </div>
+      <div class="na-preview" id="exclusive-preview">
+        <div class="na-preview__img" id="exclusive-preview-img"><span data-i18n="adminPreviewEmpty">Image preview</span></div>
+        <div class="na-preview__text">
+          <p class="na-preview__meta" id="exclusive-preview-meta">—</p>
+          <h3 class="na-preview__title" id="exclusive-preview-title" data-i18n="adminPreviewTitle">Title</h3>
+          <p class="na-preview__type" data-i18n="adminExclusivePageTitle">Editor's Exclusive</p>
+        </div>
+      </div>
+      <form class="na-form" id="exclusive-form">
+        <input type="hidden" name="type" value="exclusive" />
+        <label>
+          <span data-i18n="adminTitleField">Title</span>
+          <input type="text" name="title" id="exclusive-title" required />
+        </label>
+        <div class="na-field">
+          <label for="exclusive-meta" data-i18n="exclusiveMetaLabel">Meta</label>
+          <p class="na-hint" data-i18n="exclusiveMetaHint">Each meta is a folder on this page. Choose one already declared, or add a new name.</p>
+          <div class="na-field__row">
+            <input type="text" name="meta" id="exclusive-meta" maxlength="80" autocomplete="off" data-i18n-placeholder="exclusiveMetaPlaceholder" placeholder="New collection name" />
+            <button type="button" class="na-btn na-btn--light na-btn--sm" id="exclusive-meta-add" data-i18n="exclusiveMetaAdd">Add meta</button>
+          </div>
+        </div>
+        <label>
+          <span data-content-date-label data-i18n="adminCreatedDate">Date created / filmed</span>
+          <input type="date" name="contentDate" id="exclusive-content-date" />
+        </label>
+        <label class="na-drop">
+          <span data-i18n="adminImage">Cover image</span>
+          <input type="file" name="image" id="exclusive-image" accept="image/*" />
+          <span class="na-hint" data-i18n="adminImageHint">Click to choose or drag an image</span>
+        </label>
+        <label>
+          <span data-i18n="adminImageUrl">Or image URL</span>
+          <input type="url" name="imageUrl" id="exclusive-image-url" placeholder="https://…" />
+        </label>
+        <label>
+          <span data-i18n="adminInstagramUrl">Instagram post</span>
+          <input type="url" name="instagramUrl" id="exclusive-instagram" inputmode="url" placeholder="https://www.instagram.com/p/…" autocomplete="off" />
+          <span class="na-hint" data-i18n="adminInstagramHint">Optional. The original post: instagram.com/p/… or /reel/…. Leave blank if the story has no post.</span>
+        </label>
+        <label>
+          <span data-i18n="adminBody">Body (HTML allowed)</span>
+          <textarea name="body" id="exclusive-body" rows="8" placeholder="<p>Your story…</p>"></textarea>
+        </label>
+        <label>
+          <span data-i18n="adminVideo">Video URL (optional)</span>
+          <input type="url" name="videoUrl" id="exclusive-video" placeholder="https://…" />
+        </label>
+        <p id="exclusive-status" class="na-status" role="status"></p>
+        <div id="exclusive-success" class="na-success is-hidden"></div>
+        <div class="na-drawer__foot">
+          <button type="reset" class="na-btn na-btn--light" data-i18n="adminClearForm">Clear form</button>
+          <span class="na-spacer"></span>
+          <button type="submit" class="na-btn na-btn--dark" data-i18n="adminExclusivePublish">Publish to Editor's Exclusive</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Drawer: review a submission -->
+  <div class="modal na-drawer" id="publish-modal" aria-hidden="true">
+    <div class="modal__backdrop na-drawer__scrim" data-drawer-close></div>
+    <div class="modal__panel na-drawer__panel" role="dialog" aria-labelledby="publish-modal-title">
+      <div class="na-drawer__head">
+        <h2 class="na-drawer__title" id="publish-modal-title" data-i18n="naReviewSubmission">Review submission</h2>
+        <button class="modal__close na-icon-btn" type="button" data-i18n-aria="close" aria-label="Close" data-drawer-close><svg aria-hidden="true"><use href="#i-x" /></svg></button>
+      </div>
+      <div class="na-review" id="publish-modal-summary"></div>
+      <form id="publish-form" class="na-form">
+        <h3 class="na-subhead" data-i18n="adminPublishSubmissionTitle">Publish to site</h3>
+        <input type="hidden" name="submissionId" id="publish-submission-id" />
+        <div class="na-form__row">
+          <label>
+            <span data-i18n="adminType">Type</span>
+            <select name="type" required>
+              <option value="article" data-i18n="naType_article">Article</option>
+              <option value="editorial" data-i18n="naType_editorial">Editorial</option>
+              <option value="film" data-i18n="naType_film">Film</option>
+              <option value="short" data-i18n="naType_short">Short</option>
+              <option value="artists" data-i18n="naType_artists">Artists</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="adminSection">Section</span>
+            <select name="section">
+              <option value="latest" data-i18n="naSection_latest">Latest</option>
+              <option value="popular" data-i18n="naSection_popular">Popular</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          <span data-i18n="adminMeta">Meta (category — date)</span>
+          <input type="text" name="meta" id="publish-meta" maxlength="80" autocomplete="off" />
+        </label>
+        <p id="publish-status" class="na-status" role="status"></p>
+        <div class="na-drawer__foot">
+          <span class="na-spacer"></span>
+          <button type="submit" class="na-btn na-btn--dark" data-i18n="adminPublishSubmissionBtn">Publish on NaMe</button>
+        </div>
+      </form>
+      <form id="reject-form" class="na-form">
+        <h3 class="na-subhead" data-i18n="submissionStatus_rejected">Not selected</h3>
+        <label>
+          <span data-i18n="naRejectNote">Note for the artist (optional, shown in their submission history)</span>
+          <textarea name="adminNote" id="reject-note" rows="3"></textarea>
+        </label>
+        <div class="na-drawer__foot">
+          <span class="na-spacer"></span>
+          <button type="submit" class="na-btn na-btn--light" data-i18n="naMarkNotSelected">Mark as not selected</button>
+        </div>
+      </form>
+      <div class="na-drawer__foot na-drawer__foot--end">
+        <button type="button" class="na-btn na-btn--danger" id="publish-delete"><svg aria-hidden="true"><use href="#i-trash" /></svg><span data-i18n="adminDeleteSubmission">Delete</span></button>
+      </div>
     </div>
   </div>
 
@@ -195,6 +539,11 @@
   <script src="admin-common.js"></script>
   <script src="admin-body-images.js"></script>
   <script src="meta-combo.js"></script>
+  <script src="admin-upload.js"></script>
+  <script src="admin-exclusive.js"></script>
+  <script src="admin-community.js"></script>
+  <script src="admin-submissions.js"></script>
+  <script src="admin-comments.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

@@ -1,8 +1,18 @@
 /**
- * NaMe — full admin dashboard
+ * NaMe — admin controller: boot, overview, posts, users, edit drawer.
+ * Other sections live in admin-{exclusive,community,submissions,comments,upload}.js.
  */
 let allPosts = [];
+let postsFilter = "all";
+let allUsers = [];
+let usersFilter = "all";
+let commentCounts = null;
 let editMetaNames = [];
+
+const esc = (value) => NaMeAdmin.esc(value);
+const formatDate = (value) => NaMeAdmin.formatDate(value);
+const tr = (key) => NaMeI18n.t(NaMeI18n.getLang(), key);
+const TYPE_ORDER = ["article", "editorial", "magazine", "film", "short", "artists"];
 
 async function refreshEditMetaNames(type) {
   if (typeof NaMeMetaCombo === "undefined") return;
@@ -10,164 +20,263 @@ async function refreshEditMetaNames(type) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const ok = await NaMeAdmin.init("dashboard");
+  const ok = await NaMeAdmin.init();
   if (!ok) return;
-
-  bootDashboard();
-
-  window.addEventListener("hashchange", () => {
-    const hash = location.hash.replace("#", "");
-    if (hash === "content" || hash === "users") showPanel(hash);
-    else if (!hash) showPanel("dashboard");
-    NaMeAdmin.renderSidebar("dashboard");
-  });
+  initEditModal();
+  NaMeAdmin.start();
+  loadSummary();
 });
 
 document.addEventListener("name:adminpage", (e) => {
   const page = e.detail?.page;
-  if (page === "dashboard" || page === "content" || page === "users") {
-    bootDashboard(page);
-  }
+  if (page === "overview") loadSummary();
+  if (page === "posts") loadContent();
+  if (page === "users") loadUsers();
 });
 
-function bootDashboard(page = null) {
-  initEditModal();
-  initFilters();
+document.addEventListener("name:adminsearch", (e) => {
+  const page = e.detail?.page;
+  if (page === "posts") applyContentFilters();
+  if (page === "users") renderUsers();
+  if (page === "overview") renderRecent(allPosts);
+});
 
-  const target =
-    page ||
-    (location.hash === "#content" ? "content" : location.hash === "#users" ? "users" : "dashboard");
+document.addEventListener("name:adminrefresh", (e) => {
+  const page = e.detail?.page;
+  if (page === "overview") loadSummary();
+  if (page === "posts") loadContent();
+  if (page === "users") loadUsers();
+});
 
-  showPanel(target);
+document.addEventListener("name:posts-changed", () => {
+  loadSummary();
+  if (NaMeAdmin.current() === "posts") loadContent();
+});
 
-  loadDashboard();
-  loadContent();
-  loadUsers();
+/* ---------- overview ---------- */
+
+function settle(promise) {
+  return promise.then((value) => ({ ok: true, value }), (error) => ({ ok: false, error }));
 }
 
-function showPanel(panel) {
-  const titles = {
-    dashboard: "adminNavDashboard",
-    content: "adminNavContent",
-    users: "adminNavUsers",
-  };
+async function loadSummary() {
+  const [stats, posts, submissions, comments, community] = await Promise.all([
+    settle(NaMeAuth.fetchAdminStats()),
+    settle(NaMeAuth.fetchPosts()),
+    settle(NaMeAuth.fetchAdminSubmissions()),
+    settle(NaMeAuth.fetchAdminComments()),
+    settle(NaMeAuth.fetchAdminCommunityPosts()),
+  ]);
+  [stats, posts, submissions, comments, community].forEach((r) => !r.ok && console.warn(r.error));
 
-  document.querySelectorAll("[data-panel-view]").forEach((v) => {
-    v.classList.toggle("is-active", v.dataset.panelView === panel);
+  const byType = stats.ok ? stats.value.postsByType || {} : countBy(posts.ok ? posts.value : [], "type");
+  if (posts.ok) allPosts = posts.value;
+  const postCount = Object.entries(byType).reduce((n, [type, v]) => n + (type === "exclusive" ? 0 : v), 0);
+  NaMeAdmin.setCount("posts", postCount);
+  NaMeAdmin.setCount("exclusive", byType.exclusive || 0);
+  if (community.ok) NaMeAdmin.setCount("community", community.value.posts.length);
+  if (comments.ok) {
+    NaMeAdmin.setCount("comments", comments.value.comments.length);
+    commentCounts = countBy(comments.value.comments.map((c) => ({ id: c.author.id })), "id");
+  }
+  if (stats.ok) NaMeAdmin.setCount("users", stats.value.users);
+  const subCounts = submissions.ok ? submissions.value.counts || {} : {};
+  if (submissions.ok) {
+    const total = submissions.value.submissions.length;
+    NaMeAdmin.setCount("submissions", subCounts.pending || 0);
+    NaMeAdmin.setPlan(total - (subCounts.pending || 0), total);
+  }
+
+  renderStats({
+    stats: stats.ok ? stats.value : null,
+    posts: posts.ok ? posts.value : [],
+    subCounts,
+    comments: comments.ok ? comments.value.comments : [],
   });
-
-  const titleEl = document.getElementById("admin-page-title");
-  if (titleEl) {
-    titleEl.textContent = NaMeI18n.t(NaMeI18n.getLang(), titles[panel] || panel);
-  }
+  renderRecent(allPosts);
+  renderPipeline(submissions.ok ? subCounts : null);
+  renderFormatStrip(byType);
 }
 
-async function loadDashboard() {
-  const stats = document.getElementById("admin-stats");
-  const recentList = document.getElementById("dashboard-recent");
-  if (!stats || !recentList) return;
-  try {
-    const { posts, users, comments, members, admins, postsByType } =
-      await NaMeAuth.fetchAdminStats();
-    if (!stats.isConnected) return;
-    stats.innerHTML = `
-      <div class="admin-stat"><span class="admin-stat__n">${posts}</span><span class="admin-stat__l">Posts</span></div>
-      <div class="admin-stat"><span class="admin-stat__n">${users}</span><span class="admin-stat__l">Users</span></div>
-      <div class="admin-stat"><span class="admin-stat__n">${comments}</span><span class="admin-stat__l">Comments</span></div>
-      <div class="admin-stat"><span class="admin-stat__n">${admins}</span><span class="admin-stat__l">Admins</span></div>
-      <div class="admin-stat"><span class="admin-stat__n">${members}</span><span class="admin-stat__l">Members</span></div>
-      <div class="admin-stat admin-stat--wide">
-        <span class="admin-stat__l">By type</span>
-        <span class="admin-stat__meta">${Object.entries(postsByType || {})
-          .map(([k, v]) => `${k}: ${v}`)
-          .join(" · ") || "—"}</span>
-      </div>`;
-
-    const list = await NaMeAuth.fetchPosts();
-    const recent = list.slice(0, 8);
-    if (!recentList.isConnected) return;
-    recentList.innerHTML = recent
-      .map(
-        (p) => `
-      <li class="admin-table__row">
-        <span>${esc(p.title)} <small>${p.type}</small></span>
-        <span>
-          <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(p.slug)}" target="_blank">View</a>
-          <button type="button" data-edit="${p.id}">Edit</button>
-        </span>
-      </li>`
-      )
-      .join("");
-    bindEditButtons(document.getElementById("dashboard-recent"));
-  } catch (e) {
-    console.error(e);
-  }
+function countBy(list, key) {
+  const out = {};
+  for (const item of list) out[item[key]] = (out[item[key]] || 0) + 1;
+  return out;
 }
 
-async function loadContent() {
-  const tbody = document.getElementById("content-table-body");
-  if (!tbody) return;
-  try {
-    const posts = await NaMeAuth.fetchPosts();
-    if (!tbody.isConnected) return;
-    allPosts = posts;
-    applyContentFilters();
-  } catch {
-    tbody.innerHTML =
-      '<tr><td colspan="5">Could not load posts.</td></tr>';
-  }
+function since(list, days, field) {
+  const from = Date.now() - days * 86400000;
+  return list.filter((item) => new Date(item[field]).getTime() >= from).length;
 }
 
-function renderContentTable(posts) {
-  const tbody = document.getElementById("content-table-body");
-  if (!posts.length) {
-    tbody.innerHTML = `<tr><td colspan="5">${allPosts.length ? "No matching posts. Try another search or type." : "No posts yet."}</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = posts
+function renderStats({ stats, posts, subCounts, comments }) {
+  const el = document.getElementById("admin-stats");
+  if (!el) return;
+  const n = (v) => (v == null ? "—" : Number(v).toLocaleString());
+  const fill = (key, value) => tr(key).replace("{n}", n(value));
+  const cards = [
+    { label: tr("naStatPosts"), value: stats?.posts, icon: "grid", tone: "red", note: fill("naStatPostsNote", since(posts, 30, "publishedAt")), href: "#posts" },
+    { label: tr("naStatPending"), value: subCounts.pending ?? null, icon: "inbox", tone: "amber", note: fill("naStatPendingNote", subCounts.published || 0), href: "#submissions" },
+    { label: tr("adminNavComments"), value: stats?.comments, icon: "chat", tone: "teal", note: fill("naStatCommentsNote", since(comments, 7, "createdAt")), href: "#comments" },
+    { label: tr("naStatMembers"), value: stats?.users, icon: "users", tone: "violet", note: fill("naStatMembersNote", stats?.admins), href: "#users" },
+  ];
+  el.innerHTML = cards
     .map(
-      (p) => `
-    <tr>
-      <td><strong>${esc(p.title)}</strong><br><small class="text-dim">/${esc(p.slug)}</small></td>
-      <td>${esc(p.type)}</td>
-      <td>${esc(p.section || "—")}</td>
-      <td>${p.featured ? "★" : "—"}</td>
-      <td class="admin-actions">
-        <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(p.slug)}" target="_blank">View</a>
-        <button type="button" data-edit="${p.id}">Edit</button>
-        <button type="button" class="danger" data-delete-post="${p.id}">Delete</button>
-      </td>
-    </tr>`
+      (c) => `
+      <a class="na-stat" href="${c.href}">
+        <span class="na-stat__top"><span class="na-stat__label">${esc(c.label)}</span><span class="na-stat__icon na-stat__icon--${c.tone}">${NaMeAdmin.icon(c.icon)}</span></span>
+        <strong class="na-stat__value">${esc(n(c.value))}</strong>
+        <small class="na-stat__note">${esc(c.note)}</small>
+      </a>`
     )
     .join("");
+}
 
-  bindEditButtons(tbody);
-  tbody.querySelectorAll("[data-delete-post]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      if (!confirm("Delete this post permanently?")) return;
-      btn.disabled = true;
-      try {
-        await NaMeAuth.deletePost(btn.dataset.deletePost);
-        await loadContent();
-        loadDashboard();
-      } catch (error) {
-        alert(error.message);
-        btn.disabled = false;
-      }
+function renderRecent(posts) {
+  const list = document.getElementById("dashboard-recent");
+  if (!list) return;
+  const recent = posts.filter((p) => NaMeAdmin.matches(`${p.title} ${p.meta || ""} ${p.type}`)).slice(0, 6);
+  if (!recent.length) {
+    list.innerHTML = `<li>${NaMeAdmin.emptyState(posts.length ? tr("naNoMatches") : tr("naNoPosts"))}</li>`;
+    return;
+  }
+  list.innerHTML = recent
+    .map((p) => {
+      const src = NaMeAdmin.safeUrl(p.imageUrl);
+      return `
+      <li class="na-recent__row">
+        <span class="na-recent__thumb">${src ? `<img src="${esc(src)}" alt="" loading="lazy" />` : NaMeAdmin.icon("file")}</span>
+        <span class="na-recent__main"><strong>${esc(p.title)}</strong><small>${esc(NaMeAdmin.typeLabel(p.type))} · ${esc(NaMeAdmin.timeAgo(p.publishedAt))}</small></span>
+        <button type="button" class="na-btn na-btn--light na-btn--sm" data-edit="${esc(p.id)}">${esc(tr("naEdit"))}</button>
+      </li>`;
+    })
+    .join("");
+  bindEditButtons(list);
+}
+
+function renderPipeline(counts) {
+  const el = document.getElementById("na-pipeline");
+  if (!el) return;
+  if (!counts) {
+    el.innerHTML = NaMeAdmin.emptyState(tr("naLoadFailed"));
+    return;
+  }
+  const rows = ["pending", "published", "rejected"];
+  const total = rows.reduce((sum, key) => sum + (counts[key] || 0), 0);
+  el.innerHTML = rows
+    .map((key) => {
+      const value = counts[key] || 0;
+      const share = total ? Math.round((value / total) * 100) : 0;
+      return `
+      <button type="button" class="na-pipeline__row" data-pipeline="${key}">
+        <span class="na-pipeline__label">${NaMeAdmin.pill(key, tr(`submissionStatus_${key}`))}<b>${value}</b></span>
+        <span class="na-meter na-meter--${key}"><span style="width:${share}%"></span></span>
+      </button>`;
+    })
+    .join("");
+  el.querySelectorAll("[data-pipeline]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (typeof setSubmissionFilter === "function") setSubmissionFilter(btn.dataset.pipeline);
+      NaMeAdmin.navigateTo("#submissions");
     });
   });
 }
 
-function initFilters() {
-  const search = document.getElementById("content-search");
-  const typeFilter = document.getElementById("content-filter-type");
-  if (!search && !typeFilter) return;
-  if (search?.dataset.booted) return;
-  if (search) search.dataset.booted = "1";
+function renderFormatStrip(byType) {
+  const el = document.getElementById("na-format-strip");
+  if (!el) return;
+  const types = Object.keys(byType)
+    .filter((type) => type !== "exclusive" && byType[type])
+    .sort((a, b) => (TYPE_ORDER.indexOf(a) + 99) % 99 - (TYPE_ORDER.indexOf(b) + 99) % 99);
+  const total = types.reduce((sum, type) => sum + byType[type], 0);
+  if (!types.length) {
+    el.innerHTML = NaMeAdmin.emptyState(tr("naNoPosts"));
+    return;
+  }
+  el.innerHTML = types
+    .map((type) => {
+      const share = total ? Math.round((byType[type] / total) * 100) : 0;
+      return `
+      <button type="button" class="na-strip__card" data-format="${esc(type)}">
+        <span class="na-strip__label">${esc(NaMeAdmin.typeLabel(type))}</span>
+        <strong>${byType[type]}</strong>
+        <span class="na-meter"><span style="width:${share}%"></span></span>
+        <small>${share}%</small>
+      </button>`;
+    })
+    .join("");
+  el.querySelectorAll("[data-format]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      postsFilter = btn.dataset.format;
+      NaMeAdmin.navigateTo("#posts");
+    });
+  });
+}
 
-  let filterTimer;
-  search?.addEventListener("input", () => { clearTimeout(filterTimer); filterTimer = setTimeout(applyContentFilters, 140); });
-  typeFilter?.addEventListener("change", applyContentFilters);
+/* ---------- posts ---------- */
+
+async function loadContent() {
+  const grid = document.getElementById("posts-grid");
+  if (!grid) return;
+  if (!allPosts.length) grid.innerHTML = NaMeAdmin.emptyState(tr("adminLoading"));
+  try {
+    const posts = await NaMeAuth.fetchPosts();
+    if (!grid.isConnected) return;
+    allPosts = posts;
+    applyContentFilters();
+  } catch {
+    grid.innerHTML = NaMeAdmin.emptyState(tr("naLoadFailed"));
+  }
+}
+
+function applyContentFilters() {
+  const posts = allPosts.filter((p) => p.type !== "exclusive");
+  const types = [...new Set(posts.map((p) => p.type))].sort(
+    (a, b) => (TYPE_ORDER.indexOf(a) + 99) % 99 - (TYPE_ORDER.indexOf(b) + 99) % 99
+  );
+  if (postsFilter !== "all" && !types.includes(postsFilter)) postsFilter = "all";
+  const searched = posts.filter((p) => NaMeAdmin.matches(`${p.title} ${p.slug} ${p.meta || ""}`));
+  NaMeAdmin.renderSegment(
+    document.getElementById("posts-filters"),
+    [
+      { value: "all", label: tr("naAll"), count: searched.length },
+      ...types.map((type) => ({ value: type, label: NaMeAdmin.typeLabel(type), count: searched.filter((p) => p.type === type).length })),
+    ],
+    postsFilter,
+    (value) => {
+      postsFilter = value;
+      applyContentFilters();
+    }
+  );
+  const shown = searched.filter((p) => postsFilter === "all" || p.type === postsFilter);
+  const status = document.getElementById("content-results");
+  if (status) status.textContent = `${shown.length} / ${posts.length}`;
+  renderPostGrid(shown, posts.length);
+}
+
+function renderPostGrid(posts, total) {
+  const grid = document.getElementById("posts-grid");
+  if (!grid) return;
+  if (!posts.length) {
+    grid.innerHTML = NaMeAdmin.emptyState(total ? tr("naNoMatches") : tr("naNoPosts"));
+    return;
+  }
+  grid.innerHTML = posts
+    .map((p) =>
+      NaMeAdmin.card({
+        image: p.imageUrl,
+        status: p.featured ? "featured" : "live",
+        statusLabel: tr(p.featured ? "naStatusFeatured" : "naStatusLive"),
+        tag: NaMeAdmin.typeLabel(p.type),
+        title: p.title,
+        meta: [p.meta, NaMeAdmin.formatDate(p.publishedAt)].filter(Boolean).join(" · "),
+        actions: `
+          <button type="button" class="na-btn na-btn--dark na-btn--sm" data-edit="${esc(p.id)}">${NaMeAdmin.icon("pen")}<span>${esc(tr("naEdit"))}</span></button>
+          <a class="na-btn na-btn--light na-btn--sm" href="${esc(NaMeAdmin.postUrl(p.slug))}" target="_blank" rel="noopener">${NaMeAdmin.icon("arrow")}<span>${esc(tr("naView"))}</span></a>`,
+      })
+    )
+    .join("");
+  bindEditButtons(grid);
 }
 
 function bindEditButtons(root) {
@@ -175,6 +284,8 @@ function bindEditButtons(root) {
     btn.addEventListener("click", () => openEditModal(btn.dataset.edit).catch((error) => alert(error.message)));
   });
 }
+
+/* ---------- edit drawer ---------- */
 
 function initEditModal() {
   const modal = document.getElementById("edit-modal");
@@ -189,10 +300,6 @@ function initEditModal() {
     typeSelect: document.querySelector("#edit-form select[name=type]"),
   });
 
-  modal.querySelectorAll("[data-close-edit]").forEach((el) => {
-    el.addEventListener("click", () => closeEditModal());
-  });
-
   const editMeta = document.getElementById("edit-meta");
   if (editMeta && typeof NaMeMetaCombo !== "undefined") {
     NaMeMetaCombo.attach(editMeta, { getNames: () => editMetaNames });
@@ -201,12 +308,29 @@ function initEditModal() {
     refreshEditMetaNames(event.target.value);
   });
 
+  document.getElementById("edit-delete")?.addEventListener("click", async (event) => {
+    const btn = event.currentTarget;
+    const id = document.getElementById("edit-id").value;
+    if (!id || !confirm(tr("naDeletePostConfirm"))) return;
+    btn.disabled = true;
+    try {
+      await NaMeAuth.deletePost(id);
+      document.dispatchEvent(new CustomEvent("name:form-saved", { detail: { form: document.getElementById("edit-form") } }));
+      NaMeAdmin.closeDrawer("edit-modal");
+      NaMeAdmin.announce(tr("naPostDeleted"));
+      document.dispatchEvent(new CustomEvent("name:posts-changed"));
+    } catch (error) {
+      editStatus.textContent = error.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   document.getElementById("edit-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.target;
     const id = document.getElementById("edit-id").value;
-    const status = document.getElementById("edit-status");
-    status.textContent = "";
+    editStatus.textContent = "";
     const fd = new FormData(form);
     if (fd.get("featured")) fd.set("featured", "1");
     else fd.delete("featured");
@@ -216,13 +340,11 @@ function initEditModal() {
     try {
       const res = await NaMeAuth.updatePost(id, fd);
       document.dispatchEvent(new CustomEvent("name:form-saved", { detail: { form } }));
-      status.textContent = `Saved: ${res.post.title}`;
-      allPosts = await NaMeAuth.fetchPosts();
-      loadContent();
-      loadDashboard();
-      setTimeout(closeEditModal, 800);
+      editStatus.textContent = `${tr("naSaved")} ${res.post.title}`;
+      document.dispatchEvent(new CustomEvent("name:posts-changed"));
+      setTimeout(() => NaMeAdmin.closeDrawer("edit-modal"), 800);
     } catch (err) {
-      status.textContent = err.message;
+      editStatus.textContent = err.message;
     } finally {
       submit.disabled = false;
     }
@@ -230,10 +352,9 @@ function initEditModal() {
 }
 
 async function openEditModal(id) {
-  const modal = document.getElementById("edit-modal");
-  const form = document.getElementById("edit-form");
   const { post } = await NaMeAuth.fetchAdminPost(id);
   const f = document.getElementById("edit-form");
+  f.reset();
   document.getElementById("edit-id").value = post.id;
   f.elements.type.value = post.type;
   f.elements.section.value = post.section || "";
@@ -246,91 +367,119 @@ async function openEditModal(id) {
   f.elements.body.value =
     typeof NaMeInstagram !== "undefined" ? NaMeInstagram.stripMarker(post.body || "") : post.body || "";
   if (f.elements.instagramUrl) {
-    f.elements.instagramUrl.value =
-      typeof NaMeInstagram !== "undefined" ? NaMeInstagram.permalink(post) : "";
+    f.elements.instagramUrl.value = typeof NaMeInstagram !== "undefined" ? NaMeInstagram.permalink(post) : "";
   }
   f.elements.videoUrl.value = post.videoUrl || "";
   f.elements.featured.checked = post.featured;
-  f.elements.image.value = "";
   document.getElementById("edit-status").textContent = "";
-  modal.classList.add("is-open");
-  modal.setAttribute("aria-hidden", "false");
-  document.body.style.overflow = "hidden";
+  NaMeAdmin.openDrawer("edit-modal", { focus: "[name=title]" });
 }
 
 function closeEditModal() {
-  if (!NaMeAdmin.discardForm(document.getElementById("edit-form"))) return;
-  const modal = document.getElementById("edit-modal");
-  modal.classList.remove("is-open");
-  modal.setAttribute("aria-hidden", "true");
-  document.body.style.overflow = "";
+  NaMeAdmin.closeDrawer("edit-modal");
 }
+
+/* ---------- users ---------- */
 
 async function loadUsers() {
   const tbody = document.getElementById("users-table-body");
+  if (!tbody) return;
+  if (!allUsers.length) tbody.innerHTML = `<tr><td colspan="5">${esc(tr("adminLoading"))}</td></tr>`;
   try {
     const { users } = await NaMeAuth.fetchAdminUsers();
-    if (!tbody?.isConnected) return;
-    const me = NaMeAuth.getUser()?.id;
-    tbody.innerHTML = users
-      .map(
-        (u) => `
-      <tr>
-        <td>${esc(u.displayName)}</td>
-        <td>${esc(u.email)}</td>
-        <td>
-          <select aria-label="Role: ${esc(u.displayName)}" data-user-role="${u.id}" ${u.id === me ? "disabled" : ""}>
-            <option value="member" ${u.role === "member" ? "selected" : ""}>member</option>
-            <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
-          </select>
-        </td>
-        <td>${formatDate(u.createdAt)}</td>
-        <td>
-          ${u.id !== me ? `<button type="button" class="danger" data-delete-user="${u.id}">Delete</button>` : "<small>you</small>"}
-        </td>
-      </tr>`
-      )
-      .join("");
-
-    tbody.querySelectorAll("[data-user-role]").forEach((sel) => {
-      sel.addEventListener("change", async () => {
-        try {
-          await NaMeAuth.updateAdminUser(sel.dataset.userRole, {
-            role: sel.value,
-          });
-        } catch (err) {
-          alert(err.message);
-          loadUsers();
-        }
-      });
-    });
-
-    tbody.querySelectorAll("[data-delete-user]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        if (!confirm("Delete this user and all their comments?")) return;
-        try {
-          await NaMeAuth.deleteAdminUser(btn.dataset.deleteUser);
-          loadUsers();
-          loadDashboard();
-        } catch (err) {
-          alert(err.message);
-        }
-      });
-    });
+    if (!tbody.isConnected) return;
+    allUsers = users;
+    NaMeAdmin.setCount("users", users.length);
+    if (!commentCounts) {
+      NaMeAuth.fetchAdminComments()
+        .then(({ comments }) => {
+          commentCounts = countBy(comments.map((c) => ({ id: c.author.id })), "id");
+          renderUsers();
+        })
+        .catch(() => {});
+    }
+    renderUsers();
   } catch {
-    tbody.innerHTML = '<tr><td colspan="5">Could not load users.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="5">${esc(tr("naLoadFailed"))}</td></tr>`;
   }
 }
 
-const esc = NaMeAdmin.esc;
-const formatDate = NaMeAdmin.formatDate;
+function renderUsers() {
+  const tbody = document.getElementById("users-table-body");
+  if (!tbody) return;
+  const searched = allUsers.filter((u) => NaMeAdmin.matches(`${u.displayName} ${u.email}`));
+  NaMeAdmin.renderSegment(
+    document.getElementById("users-filters"),
+    [
+      { value: "all", label: tr("naAll"), count: searched.length },
+      { value: "admin", label: tr("naRole_admin"), count: searched.filter((u) => u.role === "admin").length },
+      { value: "member", label: tr("naRole_member"), count: searched.filter((u) => u.role !== "admin").length },
+    ],
+    usersFilter,
+    (value) => {
+      usersFilter = value;
+      renderUsers();
+    }
+  );
+  const list = searched.filter((u) => usersFilter === "all" || (usersFilter === "admin" ? u.role === "admin" : u.role !== "admin"));
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="5">${esc(allUsers.length ? tr("naNoMatches") : tr("naNoUsers"))}</td></tr>`;
+    return;
+  }
+  const me = NaMeAuth.getUser()?.id;
+  tbody.innerHTML = list
+    .map((u) => {
+      const role = u.role === "admin" ? "admin" : "member";
+      return `
+      <tr>
+        <td>
+          <span class="na-person">
+            <span class="na-avatar na-avatar--sm" aria-hidden="true">${esc(NaMeAdmin.initials(u.displayName || u.email))}</span>
+            <span class="na-person__text"><strong>${esc(u.displayName || "—")}</strong><small>${esc(u.email || "")}</small></span>
+          </span>
+        </td>
+        <td>
+          <span class="na-role">
+            ${NaMeAdmin.pill(role, tr(`naRole_${role}`))}
+            <select class="na-select" aria-label="${esc(tr("adminColRole"))}: ${esc(u.displayName)}" data-user-role="${esc(u.id)}" ${u.id === me ? "disabled" : ""}>
+              <option value="member" ${role === "member" ? "selected" : ""}>${esc(tr("naRole_member"))}</option>
+              <option value="admin" ${role === "admin" ? "selected" : ""}>${esc(tr("naRole_admin"))}</option>
+            </select>
+          </span>
+        </td>
+        <td class="na-num" data-label="${esc(tr("naRecentComments"))}">${commentCounts ? commentCounts[u.id] || 0 : "—"}</td>
+        <td data-label="${esc(tr("adminColJoined"))}">${esc(formatDate(u.createdAt))}</td>
+        <td class="na-row-actions">
+          ${u.id !== me ? `<button type="button" class="na-btn na-btn--danger na-btn--sm" data-delete-user="${esc(u.id)}">${esc(tr("adminDelete"))}</button>` : `<small class="na-dim">${esc(tr("naYou"))}</small>`}
+        </td>
+      </tr>`;
+    })
+    .join("");
 
-function applyContentFilters() {
-  const search = document.getElementById("content-search");
-  const type = document.getElementById("content-filter-type")?.value;
-  const q = search?.value.trim().toLocaleLowerCase() || "";
-  const posts = allPosts.filter((post) => (!type || post.type === type) && `${post.title} ${post.slug} ${post.meta || ""}`.toLocaleLowerCase().includes(q));
-  const status = document.getElementById("content-results");
-  if (status) status.textContent = `${posts.length} / ${allPosts.length}`;
-  if (document.getElementById("content-table-body")) renderContentTable(posts);
+  tbody.querySelectorAll("[data-user-role]").forEach((sel) => {
+    sel.addEventListener("change", async () => {
+      try {
+        await NaMeAuth.updateAdminUser(sel.dataset.userRole, { role: sel.value });
+        const user = allUsers.find((u) => u.id === sel.dataset.userRole);
+        if (user) user.role = sel.value;
+        renderUsers();
+      } catch (err) {
+        alert(err.message);
+        loadUsers();
+      }
+    });
+  });
+
+  tbody.querySelectorAll("[data-delete-user]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm(tr("naDeleteUserConfirm"))) return;
+      try {
+        await NaMeAuth.deleteAdminUser(btn.dataset.deleteUser);
+        allUsers = allUsers.filter((u) => u.id !== btn.dataset.deleteUser);
+        loadUsers();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+  });
 }
