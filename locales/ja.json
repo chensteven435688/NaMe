@@ -489,5 +489,6 @@
   "readingFocus": "集中モード",
   "readingTime": "分で読めます",
   "unsavedChanges": "保存されていない変更があります。このページを離れますか？",
-  "archiveSearchError": "ただいま検索を利用できません。"
+  "archiveSearchError": "ただいま検索を利用できません。",
+  "introTagline": "Before the Name"
 }
