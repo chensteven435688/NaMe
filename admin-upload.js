@@ -1,12 +1,16 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  const ok = await NaMeAdmin.init("upload");
-  if (!ok) return;
+/**
+ * NaMe — "New post" drawer (admin.html). Opened by [data-open-upload] buttons
+ * or by the #upload hash (old admin-upload.html links).
+ */
+function openUploadDrawer() {
   bootUpload();
-});
+  NaMeAdmin.openDrawer("upload-modal", { focus: "#upload-title" });
+}
 
-document.addEventListener("name:adminpage", (e) => {
-  if (e.detail?.page === "upload") bootUpload();
+document.addEventListener("click", (event) => {
+  if (event.target.closest?.("[data-open-upload]")) openUploadDrawer();
 });
+document.addEventListener("name:open-upload", openUploadDrawer);
 
 function bootUpload() {
   const form = document.getElementById("upload-form");
@@ -35,7 +39,7 @@ function bootUpload() {
     const type = typeSelect.value;
     document.getElementById("preview-title").textContent = title;
     document.getElementById("preview-meta").textContent = meta;
-    document.getElementById("preview-type").textContent = type;
+    document.getElementById("preview-type").textContent = NaMeAdmin.typeLabel ? NaMeAdmin.typeLabel(type) : type;
 
     const url = imageUrlInput.value.trim();
     const file = imageInput.files?.[0];
@@ -112,14 +116,15 @@ function bootUpload() {
       const post = res.post;
       form.reset();
       document.dispatchEvent(new CustomEvent("name:form-saved", { detail: { form } }));
+      document.dispatchEvent(new CustomEvent("name:posts-changed"));
       updatePreview();
       status.textContent = "";
       success.classList.remove("is-hidden");
       success.innerHTML = `
         <p><strong>${NaMeI18n.t(NaMeI18n.getLang(), "adminPublishSuccess")}</strong> ${NaMeAdmin.esc(post.title)}</p>
         <p>
-          <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(post.slug)}" class="btn btn--primary" target="_blank">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewPost")}</a>
-          <button type="button" class="btn btn--ghost" id="upload-another">${NaMeI18n.t(NaMeI18n.getLang(), "adminUploadAnother")}</button>
+          <a href="${typeof NaMeBase !== "undefined" ? NaMeBase.path("/post.html") : "/post.html"}?slug=${encodeURIComponent(post.slug)}" class="na-btn na-btn--dark na-btn--sm" target="_blank" rel="noopener">${NaMeI18n.t(NaMeI18n.getLang(), "adminViewPost")}</a>
+          <button type="button" class="na-btn na-btn--light na-btn--sm" id="upload-another">${NaMeI18n.t(NaMeI18n.getLang(), "adminUploadAnother")}</button>
         </p>`;
       document.getElementById("upload-another")?.addEventListener("click", () => {
         form.reset();
