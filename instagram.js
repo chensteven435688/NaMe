@@ -131,7 +131,7 @@ const NaMeInstagram = (function () {
     const caption = captionExcerpt(post);
     const image = safeImage(post?.imageUrl || post?.image_url);
     const imageHtml = image
-      ? `<img class="post-ig-card__img" src="${escapeHtml(image)}" alt="" />`
+      ? `<img class="post-ig-card__img" src="${escapeHtml((globalThis.NaMeMedia?.img(image, 480) ?? image))}" alt="" loading="lazy" decoding="async" />`
       : "";
     const captionHtml = caption ? `<p class="post-ig-card__caption">${escapeHtml(caption)}</p>` : "";
     return `<aside class="post-instagram" data-ig-placement>

@@ -246,7 +246,7 @@ function atelierPieceHtml(post, slot, lang, priority = false) {
   return `
     <a class="atelier-piece${slotClass}" href="${href}">
       <span class="atelier-piece__frame">
-        <img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title || "")}" decoding="async" ${priority ? 'fetchpriority="high"' : 'loading="lazy"'} />
+        <img src="${escapeHtml((globalThis.NaMeMedia?.img(post.imageUrl || "", 1200) ?? (post.imageUrl || "")))}"${globalThis.NaMeMedia?.srcsetAttr(post.imageUrl, "(max-width: 900px) 100vw, 60vw") ?? ""} alt="${escapeHtml(post.title || "")}" decoding="async" ${priority ? 'fetchpriority="high"' : 'loading="lazy"'} />
       </span>
       ${copy}
     </a>`;
@@ -269,7 +269,7 @@ function initHero(slides) {
     .map(
       (slide, i) => `
     <figure class="hero__slide">
-      <img src="${escapeHtml(slide.imageUrl || "")}" alt="${escapeHtml(slide.title)}" ${i < 2 ? "" : 'loading="lazy"'} />
+      <img src="${escapeHtml((globalThis.NaMeMedia?.img(slide.imageUrl || "", 1800) ?? (slide.imageUrl || "")))}"${globalThis.NaMeMedia?.srcsetAttr(slide.imageUrl, "100vw") ?? ""} alt="${escapeHtml(slide.title)}" decoding="async" ${i < 2 ? "" : 'loading="lazy"'} />
     </figure>`
     )
     .join("");
@@ -330,7 +330,7 @@ async function loadHomeIndex() {
           <span class="home-index__name">${escapeHtml(post.title)}</span>
           ${
             post.imageUrl
-              ? `<img class="home-index__preview" src="${escapeHtml(post.imageUrl)}" alt="" loading="lazy" />`
+              ? `<img class="home-index__preview" src="${escapeHtml((globalThis.NaMeMedia?.img(post.imageUrl, 480) ?? post.imageUrl))}" alt="" loading="lazy" decoding="async" />`
               : ""
           }
         </a>
@@ -447,7 +447,7 @@ function renderCard(post, cfg) {
       : `<h3 class="card__title">${escapeHtml(post.title)}</h3>`;
   return `
     <a href="${href}" class="card ${cfg.cardClass}">
-      <div class="card__img"><img src="${escapeHtml(post.imageUrl || "")}" alt="${escapeHtml(post.title)}" loading="lazy" /></div>
+      <div class="card__img"><img src="${escapeHtml((globalThis.NaMeMedia?.img(post.imageUrl || "", 800) ?? (post.imageUrl || "")))}"${globalThis.NaMeMedia?.srcsetAttr(post.imageUrl, "(max-width: 700px) 100vw, 400px") ?? ""} alt="${escapeHtml(post.title)}" loading="lazy" decoding="async" /></div>
       ${meta}
       ${title}
     </a>`;

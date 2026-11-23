@@ -114,13 +114,15 @@ function renderPost(post) {
   const igPlacement = permalink ? NaMeInstagram.placementHtml(post, permalink) : "";
 
   let media;
-  if (post.videoUrl) {
-    media = `<video class="post__video" controls poster="${escapeAttr(safeMediaUrl(post.imageUrl))}" src="${escapeAttr(safeMediaUrl(post.videoUrl))}"></video>`;
+  const videoHtml = post.videoUrl ? buildPostVideo(post) : "";
+  if (videoHtml) {
+    media = videoHtml;
   } else if (galleryImages.length > 1) {
     media = buildPostGallery(galleryImages, post.title, lang);
   } else {
     const src = galleryImages[0] || post.imageUrl || "";
-    media = `<img class="post__hero-img" src="${escapeAttr(safeMediaUrl(src))}" alt="${escapeHtml(post.title)}" />`;
+    const safeSrc = safeMediaUrl(src);
+    media = `<img class="post__hero-img" src="${escapeAttr(globalThis.NaMeMedia?.img(safeSrc, 1600) ?? safeSrc)}"${globalThis.NaMeMedia?.srcsetAttr(safeSrc, "(max-width: 1280px) 100vw, 1280px") ?? ""} alt="${escapeHtml(post.title)}" fetchpriority="high" decoding="async" />`;
   }
 
   const datesHtml = buildPostDates(post, lang);
@@ -373,6 +375,7 @@ function formatStoryCopy(html) {
   if (!source.trim()) return "";
   const doc = new DOMParser().parseFromString(source, "text/html");
   doc.querySelectorAll("script, style, iframe, object, embed").forEach((node) => node.remove());
+  globalThis.NaMeMedia?.optimizeImages(doc.body, { width: 1200, sizes: "(max-width: 760px) 100vw, 760px" });
   const lines = storyLines(doc.body);
   if (!lines.some((line) => parseCreditLine(line))) return doc.body.innerHTML.trim();
 
@@ -406,6 +409,26 @@ function formatStoryCopy(html) {
   return parts.join("");
 }
 
+/** Player for a story's video link: YouTube/Vimeo embed, native <video> for files, or a link out. */
+function buildPostVideo(post) {
+  const info = globalThis.NaMeMedia?.video(post.videoUrl) ?? { kind: "file", src: safeMediaUrl(post.videoUrl) };
+  if (!info) return "";
+  const title = escapeAttr(post.title || "Video");
+  if (info.kind === "youtube" || info.kind === "vimeo") {
+    return `<div class="post__embed"><iframe src="${escapeAttr(info.embed)}" title="${title}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`;
+  }
+  const poster = safeMediaUrl(post.imageUrl);
+  const posterUrl = poster ? (globalThis.NaMeMedia?.img(poster, 1600) ?? poster) : "";
+  if (info.kind === "file" && info.src) {
+    return `<video class="post__video" controls playsinline preload="metadata"${posterUrl ? ` poster="${escapeAttr(posterUrl)}"` : ""} src="${escapeAttr(info.src)}"></video>`;
+  }
+  if (info.kind === "link") {
+    const label = escapeHtml(NaMeI18n.t(NaMeI18n.getLang(), "watchVideo") || "Watch video");
+    return `<a class="post__video-link" href="${escapeAttr(info.href)}" target="_blank" rel="noopener noreferrer">${posterUrl ? `<img class="post__hero-img" src="${escapeAttr(posterUrl)}" alt="${title}" />` : ""}<span>${label} ↗</span></a>`;
+  }
+  return "";
+}
+
 function buildPostGallery(images, title, lang) {
   const prevLabel = NaMeI18n.t(lang, "previous");
   const nextLabel = NaMeI18n.t(lang, "next");
@@ -413,7 +436,7 @@ function buildPostGallery(images, title, lang) {
     .map(
       (url, i) => `
       <figure class="post-gallery__slide" data-index="${i}">
-        <img src="${escapeAttr(url)}" alt="${escapeHtml(title)} (${i + 1}/${images.length})" />
+        <img src="${escapeAttr((globalThis.NaMeMedia?.img(url, 1600) ?? url))}"${globalThis.NaMeMedia?.srcsetAttr(url, "(max-width: 1280px) 100vw, 1280px") ?? ""} alt="${escapeHtml(title)} (${i + 1}/${images.length})" decoding="async"${i ? ' loading="lazy"' : ""} />
       </figure>`
     )
     .join("");

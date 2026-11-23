@@ -95,10 +95,10 @@ function renderCard(s, lang) {
   let preview;
   if (galleryImages.length > 1) {
     preview = `<div class="admin-submission-card__gallery">${galleryImages
-      .map((url) => `<img src="${NaMeAdmin.esc(url)}" alt="" class="admin-submission-card__gallery-img" />`)
+      .map((url) => `<img src="${NaMeAdmin.esc((globalThis.NaMeMedia?.img(url, 480) ?? url))}" loading="lazy" decoding="async" alt="" class="admin-submission-card__gallery-img" />`)
       .join("")}</div>`;
   } else if (s.fileMime?.startsWith("image/")) {
-    preview = `<img src="${NaMeAdmin.esc(s.fileUrl)}" alt="" class="admin-submission-card__img" />`;
+    preview = `<img src="${NaMeAdmin.esc((globalThis.NaMeMedia?.img(s.fileUrl, 800) ?? s.fileUrl))}" loading="lazy" decoding="async" alt="" class="admin-submission-card__img" />`;
   } else if (s.fileMime?.startsWith("video/")) {
     preview = `<video src="${NaMeAdmin.esc(s.fileUrl)}" controls class="admin-submission-card__video"></video>`;
   } else {

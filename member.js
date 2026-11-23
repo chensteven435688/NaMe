@@ -198,7 +198,7 @@ function renderMemberPostTile(post) {
   const title = post.title || post.caption?.slice(0, 40) || "Community post";
   return `
     <button type="button" class="member-grid__item" data-pin-id="${escapeHtml(post.id)}" aria-label="${escapeHtml(title)}">
-      <img src="${escapeHtml(post.imageUrl)}" alt="${escapeHtml(title)}" loading="lazy" />
+      <img src="${escapeHtml((globalThis.NaMeMedia?.img(post.imageUrl, 600) ?? post.imageUrl))}" alt="${escapeHtml(title)}" loading="lazy" decoding="async" />
       <span class="member-grid__overlay" aria-hidden="true">
         <span>♥ ${post.likeCount}</span>
         <span>💬 ${post.commentCount}</span>

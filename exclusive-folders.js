@@ -87,12 +87,12 @@ function renderExclusiveFolderCard(folder, lang, pagePath) {
     if (images.length === 3) break;
   }
   const cover = images[0]
-    ? `<img src="${exclusiveFolderEscape(images[0])}" alt="" />`
+    ? `<img src="${exclusiveFolderEscape((globalThis.NaMeMedia?.img(images[0], 800) ?? images[0]))}" alt="" loading="lazy" decoding="async" />`
     : `<span class="meta-folder__mark">${exclusiveFolderEscape(label.slice(0, 1) || "—")}</span>`;
   const extras = images.slice(1);
   const thumbs = extras.length
     ? `<div class="meta-folder__thumbs">${extras
-        .map((url) => `<img src="${exclusiveFolderEscape(url)}" alt="" />`)
+        .map((url) => `<img src="${exclusiveFolderEscape((globalThis.NaMeMedia?.img(url, 480) ?? url))}" alt="" loading="lazy" decoding="async" />`)
         .join("")}</div>`
     : "";
   return `

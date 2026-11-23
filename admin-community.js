@@ -56,7 +56,7 @@ function renderCommunityPosts() {
       (post, index) => `
     <article class="admin-community-card${post.isHidden ? " is-hidden" : ""}" data-post-id="${post.id}">
       <div class="admin-community-card__img">
-        <img src="${NaMeAdmin.esc(post.imageUrl)}" alt="${NaMeAdmin.esc(post.title || "Community pin")}" loading="lazy" />
+        <img src="${NaMeAdmin.esc((globalThis.NaMeMedia?.img(post.imageUrl, 480) ?? post.imageUrl))}" decoding="async" alt="${NaMeAdmin.esc(post.title || "Community pin")}" loading="lazy" />
       </div>
       <div class="admin-community-card__body">
         <strong>${NaMeAdmin.esc(post.title || post.caption?.slice(0, 48) || "Untitled pin")}</strong>

@@ -193,7 +193,7 @@ const NaMeAuth = (function () {
   function formatUserAvatar(author, className = "user-avatar") {
     const name = author?.displayName || "Member";
     if (author?.avatarUrl) {
-      return `<img class="${escHtml(className)}" src="${escUrlAttr(author.avatarUrl)}" alt="${escHtml(name)}" loading="lazy" />`;
+      return `<img class="${escHtml(className)}" src="${escUrlAttr((globalThis.NaMeMedia?.img(author.avatarUrl, 160) ?? author.avatarUrl))}" alt="${escHtml(name)}" loading="lazy" decoding="async" />`;
     }
     const initial = (name[0] || "?").toUpperCase();
     return `<span class="${escHtml(className)} user-avatar--initial" aria-hidden="true">${escHtml(initial)}</span>`;

@@ -195,7 +195,7 @@ const NaMePinOps = (function () {
     return `
       <article class="card ${esc(cardClass)} pin-tile">
         <a class="pin-tile__link" href="${esc(snap.href)}">
-          <div class="card__img"><img class="pin-fade" src="${esc(post.imageUrl || "")}" alt="${esc(post.title || "")}" loading="lazy" decoding="async" /></div>
+          <div class="card__img"><img class="pin-fade" src="${esc((globalThis.NaMeMedia?.img(post.imageUrl || "", 800) ?? (post.imageUrl || "")))}"${globalThis.NaMeMedia?.srcsetAttr(post.imageUrl, "(max-width: 700px) 50vw, 320px") ?? ""} alt="${esc(post.title || "")}" loading="lazy" decoding="async" /></div>
           ${typeLabel}
           ${meta}
           <h3 class="card__title">${esc(post.title || "")}</h3>
