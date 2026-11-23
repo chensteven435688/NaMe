@@ -145,7 +145,7 @@ function renderRecent(posts) {
       const src = NaMeAdmin.safeUrl(p.imageUrl);
       return `
       <li class="na-recent__row">
-        <span class="na-recent__thumb">${src ? `<img src="${esc(src)}" alt="" loading="lazy" />` : NaMeAdmin.icon("file")}</span>
+        <span class="na-recent__thumb">${src ? `<img src="${esc(globalThis.NaMeMedia?.img(src, 160) ?? src)}" alt="" loading="lazy" decoding="async" />` : NaMeAdmin.icon("file")}</span>
         <span class="na-recent__main"><strong>${esc(p.title)}</strong><small>${esc(NaMeAdmin.typeLabel(p.type))} · ${esc(NaMeAdmin.timeAgo(p.publishedAt))}</small></span>
         <button type="button" class="na-btn na-btn--light na-btn--sm" data-edit="${esc(p.id)}">${esc(tr("naEdit"))}</button>
       </li>`;

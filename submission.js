@@ -69,7 +69,7 @@ function updateGalleryPreview() {
       galleryPreviewUrls.push(url);
       return `
         <figure class="submission-gallery__thumb">
-          <img src="${escAttr(url)}" alt="" />
+          <img src="${escAttr((globalThis.NaMeMedia?.img(url, 800) ?? url))}" alt="" loading="lazy" decoding="async" />
           <figcaption>${esc(label)}</figcaption>
         </figure>`;
     })
@@ -135,12 +135,12 @@ function renderSubmissionMedia(s) {
     return `<div class="submission-item__gallery">${images
       .map(
         (img) =>
-          `<img src="${escAttr(img.url)}" alt="" class="submission-item__gallery-img" />`
+          `<img src="${escAttr((globalThis.NaMeMedia?.img(img.url, 800) ?? img.url))}" loading="lazy" decoding="async" alt="" class="submission-item__gallery-img" />`
       )
       .join("")}</div>`;
   }
   if (s.fileMime?.startsWith("image/")) {
-    return `<img src="${escAttr(s.fileUrl)}" alt="" class="submission-item__preview" />`;
+    return `<img src="${escAttr((globalThis.NaMeMedia?.img(s.fileUrl, 800) ?? s.fileUrl))}" loading="lazy" decoding="async" alt="" class="submission-item__preview" />`;
   }
   if (s.fileMime?.startsWith("video/")) {
     return `<video src="${escAttr(s.fileUrl)}" controls class="submission-item__preview"></video>`;

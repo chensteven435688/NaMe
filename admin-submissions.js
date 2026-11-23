@@ -131,7 +131,7 @@ function renderReview(s) {
   const images = submissionImages(s).map(NaMeAdmin.safeUrl).filter(Boolean);
   let media = "";
   if (images.length) {
-    media = `<div class="na-review__gallery">${images.map((url) => `<img src="${esc(url)}" alt="" loading="lazy" />`).join("")}</div>`;
+    media = `<div class="na-review__gallery">${images.map((url) => `<img src="${esc(globalThis.NaMeMedia?.img(url, 800) ?? url)}" alt="" loading="lazy" decoding="async" />`).join("")}</div>`;
   } else if (s.fileMime?.startsWith("video/") && NaMeAdmin.safeUrl(s.fileUrl)) {
     media = `<video src="${esc(NaMeAdmin.safeUrl(s.fileUrl))}" controls class="na-review__video"></video>`;
   } else if (NaMeAdmin.safeUrl(s.fileUrl)) {

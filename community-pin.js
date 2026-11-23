@@ -125,7 +125,7 @@ const NaMeCommunityPin = (function () {
     if (!hasCarousel) {
       return `
         <div class="pin-detail__media">
-          <img src="${esc(images[0])}" alt="${alt}" />
+          <img src="${esc((globalThis.NaMeMedia?.img(images[0], 1200) ?? images[0]))}"${globalThis.NaMeMedia?.srcsetAttr(images[0], "(max-width: 900px) 100vw, 900px") ?? ""} alt="${alt}" decoding="async" />
         </div>`;
     }
 
@@ -135,7 +135,7 @@ const NaMeCommunityPin = (function () {
       .map(
         (url, i) => `
         <figure class="pin-detail__slide" data-index="${i}">
-          <img src="${esc(url)}" alt="${alt} (${i + 1}/${images.length})" />
+          <img src="${esc((globalThis.NaMeMedia?.img(url, 1200) ?? url))}"${globalThis.NaMeMedia?.srcsetAttr(url, "(max-width: 900px) 100vw, 900px") ?? ""} alt="${alt} (${i + 1}/${images.length})" decoding="async"${i ? ' loading="lazy"' : ""} />
         </figure>`
       )
       .join("");

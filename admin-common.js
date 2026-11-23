@@ -141,7 +141,7 @@ const NaMeAdmin = (function () {
   function card({ image, status, statusLabel, tag, title, meta, extra = "", actions = "", className = "" }) {
     const src = safeUrl(image);
     const media = src
-      ? `<img src="${esc(src)}" alt="" loading="lazy" />`
+      ? `<img src="${esc(globalThis.NaMeMedia?.img(src, 480) ?? src)}" alt="" loading="lazy" decoding="async" />`
       : `<span class="na-item__placeholder">${icon("file")}</span>`;
     return `
       <article class="na-item ${esc(className)}">
